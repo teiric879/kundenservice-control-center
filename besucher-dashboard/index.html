@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>e-regio · Kundenservice Control Center</title>
+<link rel="stylesheet" href="styles.css?v=10">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="wordmark"><span class="wm-e">e</span><span class="wm-regio">regio</span></div>
+      <div class="brand-caption">Kundenservice Control Center</div>
+    </div>
+
+    <nav class="mod-nav" aria-label="Module">
+
+      <!-- ── Modul 1: Kundencenter Analytics (aktiv) ── -->
+      <div class="mod-group" id="mg-dashboard">
+        <button class="mod-toggle active" id="mt-dashboard" data-mg="dashboard" aria-expanded="true">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/>
+          </svg>
+          <span class="mod-label">Kundencenter Analytics</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mod-items" id="mi-dashboard">
+          <a data-view="dashboard" class="mod-item active" aria-current="page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+            Dashboard
+          </a>
+          <a data-view="erfassen" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+            Besuch erfassen
+          </a>
+        </div>
+      </div>
+
+      <!-- ── Modul 2: Produkt-ID Tool ── -->
+      <div class="mod-group" id="mg-produkt">
+        <button class="mod-toggle" id="mt-produkt" data-mg="produkt" aria-expanded="true">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/>
+          </svg>
+          <span class="mod-label">Produkt-ID Tool</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mod-items" id="mi-produkt">
+          <a href="../produkt-id-tool/?p=gas" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6 8 4 13 4 16a8 8 0 0 0 16 0c0-3-2-8-8-14Z"/></svg>
+            Erdgas
+            <span class="ext-dot"></span>
+          </a>
+          <a href="../produkt-id-tool/?p=strom" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+            Strom
+            <span class="ext-dot"></span>
+          </a>
+          <a href="../produkt-id-tool/?p=heizstrom" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0Z"/></svg>
+            Heizstrom
+            <span class="ext-dot"></span>
+          </a>
+          <a href="../produkt-id-tool/?p=autostrom" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+            AutoStrom
+            <span class="ext-dot"></span>
+          </a>
+          <a href="../produkt-id-tool/?p=steuve" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6M12 22v-6M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M2 12h6M22 12h-6M4.93 19.07l4.24-4.24M14.83 9.17l4.24-4.24"/></svg>
+            SteuVE §14a
+            <span class="ext-dot"></span>
+          </a>
+        </div>
+      </div>
+
+      <!-- ── Modul 3: Einsatzplaner ── -->
+      <div class="mod-group" id="mg-einsatzplaner">
+        <a href="../einsatzplaner/" class="mod-toggle" style="text-decoration:none">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h2M12 14h2M8 18h2M12 18h2M16 14h2"/>
+          </svg>
+          <span class="mod-label">Einsatzplaner</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;opacity:.4"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+
+    </nav>
+
+    <!-- Admin Link -->
+    <a href="../admin/" class="mod-toggle" style="margin-top:4px;text-decoration:none">
+      <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <span class="mod-label">Administration</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;opacity:.4"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>
+
+    <div class="side-foot" id="footMeta"></div>
+  </aside>
+
+  <main class="main">
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="topbar">
+        <div class="title">
+          <h1>Besucher-Dashboard <span class="live"><i></i>LIVE</span></h1>
+          <p id="rangeInfo">–</p>
+        </div>
+        <div class="controls">
+          <div class="field"><select id="standortSel" aria-label="Standort" autocomplete="off"></select></div>
+          <div class="seg glass" id="periodSeg" role="tablist">
+            <button data-p="heute">Heute</button>
+            <button data-p="month">Monat</button>
+            <button data-p="ytd" class="active">Jahr</button>
+            <button data-p="12m">12 Mon.</button>
+            <button data-p="custom">Zeitraum</button>
+            <button data-p="all">Gesamt</button>
+          </div>
+          <div class="daterange glass" id="customRange" style="border-radius:13px;padding:5px 8px">
+            <input type="date" id="fromDate" aria-label="von" autocomplete="off"><span>–</span><input type="date" id="toDate" aria-label="bis" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="kpis" id="kpis"></div>
+      <div class="kpis" id="kpis-loc" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px"></div>
+
+      <div class="card reveal" id="forecastCard" style="animation-delay:.03s;margin-bottom:18px">
+        <div class="p-head"><div><h3>Besucherprognose</h3><div class="sub">Hochrechnung aus historischem &#216; Wochentag &times; Monat (12 Monate) &amp; laufendem Tag</div></div></div>
+        <div class="fc-grid" id="fcGrid"></div>
+      </div>
+
+      <div class="panels">
+        <div class="card reveal" style="animation-delay:.05s">
+          <div class="p-head"><div><h3>Besuchsverlauf</h3><div class="sub" id="trendSub">–</div></div></div>
+          <div id="chartTrend"></div>
+        </div>
+        <div class="card reveal" style="animation-delay:.12s">
+          <div class="p-head"><div><h3>Je Standort</h3><div class="sub">Anteil im Zeitraum</div></div></div>
+          <div id="chartStandort"></div>
+          <div class="legend" id="legendStandort"></div>
+        </div>
+      </div>
+
+      <div class="panels-3">
+        <div class="card reveal" style="animation-delay:.18s">
+          <h3>Top-Kategorien</h3><div class="sub">Häufigste Anliegen</div>
+          <div id="chartKat"></div>
+        </div>
+        <div class="card reveal" style="animation-delay:.24s">
+          <h3>Nach Wochentag</h3><div class="sub">Verteilung Mo–So</div>
+          <div id="chartWday"></div>
+        </div>
+        <div class="card reveal" style="animation-delay:.30s">
+          <h3>Nach Uhrzeit</h3><div class="sub">Stoßzeiten · Personalplanung</div>
+          <div id="chartHour"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ERFASSEN -->
+    <section class="view" id="view-erfassen">
+      <div class="topbar"><div class="title"><h1>Besuch erfassen</h1><p>Standort wählen, dann das Anliegen antippen.</p></div></div>
+      <div class="cap">
+        <div class="loc" id="capLoc"></div>
+        <div class="cats" id="capGrid"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="tip" id="tip"></div>
+<div class="toast" id="toast"></div>
+<script src="app.js?v=13"></script>
+<link rel="stylesheet" href="../shared/erfass-bar.css?v=1">
+<script src="../shared/erfass-bar.js?v=3"></script>
+</body>
+</html>

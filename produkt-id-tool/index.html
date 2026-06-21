@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>e-regio · Produkt-ID Tool</title>
+<link rel="stylesheet" href="styles.css?v=4">
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="wordmark"><span class="wm-e">e</span><span class="wm-regio">regio</span></div>
+      <div class="brand-caption">Kundenservice Control Center</div>
+    </div>
+
+    <nav class="mod-nav" aria-label="Module">
+
+      <!-- ── Modul 1: Kundencenter Analytics ── -->
+      <div class="mod-group" id="mg-dashboard">
+        <button class="mod-toggle" id="mt-dashboard" data-mg="dashboard" aria-expanded="true">
+          <!-- Bar chart / analytics icon -->
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/>
+          </svg>
+          <span class="mod-label">Kundencenter Analytics</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mod-items" id="mi-dashboard">
+          <a href="../besucher-dashboard/" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+            Dashboard
+            <span class="ext-dot"></span>
+          </a>
+          <a href="../besucher-dashboard/#erfassen" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+            Besuch erfassen
+            <span class="ext-dot"></span>
+          </a>
+        </div>
+      </div>
+
+      <!-- ── Modul 2: Produkt-ID Tool (aktiv) ── -->
+      <div class="mod-group" id="mg-produkt">
+        <button class="mod-toggle active" id="mt-produkt" data-mg="produkt" aria-expanded="true">
+          <!-- Price tag icon -->
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/>
+          </svg>
+          <span class="mod-label">Produkt-ID Tool</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mod-items" id="mi-produkt">
+          <div class="prod-pills" id="prodPills" role="tablist">
+            <button class="pill active" data-p="gas" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6 8 4 13 4 16a8 8 0 0 0 16 0c0-3-2-8-8-14Z"/></svg>
+              Erdgas
+            </button>
+            <button class="pill" data-p="strom" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+              Strom
+            </button>
+            <button class="pill" data-p="heizstrom" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0Z"/></svg>
+              Heizstrom
+            </button>
+            <button class="pill" data-p="autostrom" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+              AutoStrom
+            </button>
+            <button class="pill" data-p="steuve" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6M12 22v-6M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M2 12h6M22 12h-6M4.93 19.07l4.24-4.24M14.83 9.17l4.24-4.24"/></svg>
+              SteuVE §14a
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Einsatzplaner ── -->
+      <div class="mod-group" id="mg-einsatzplaner">
+        <a href="../einsatzplaner/" class="mod-toggle" style="text-decoration:none">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h2M12 14h2M8 18h2M12 18h2M16 14h2"/>
+          </svg>
+          <span class="mod-label">Einsatzplaner</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;opacity:.4"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+
+    </nav>
+
+    <!-- Admin Link -->
+    <a href="../admin/" class="mod-toggle" style="margin-top:4px;text-decoration:none">
+      <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <span class="mod-label">Administration</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;opacity:.4"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>
+
+    <div class="side-foot">
+      <div class="sync-badge" id="syncBadge">Demo-Daten</div>
+      <div style="margin-top:6px;font-size:10px;color:var(--muted-2)">Port 8124 für Cross-Navigation nutzen</div>
+    </div>
+  </aside>
+
+  <!-- ── Left Input Panel ────────────────────────────────────────────────── -->
+  <div class="left-panel" id="leftPanel">
+    <div class="panel-head">
+      <h2 id="panelTitle">Erdgas</h2>
+      <small id="panelSub">Preise aktualisieren sich automatisch</small>
+    </div>
+
+    <div class="form-group">
+      <label class="field-label" for="gueltigkeitSel">Gültigkeit</label>
+      <select id="gueltigkeitSel" class="field-select" aria-label="Gültigkeit"></select>
+    </div>
+
+    <div class="form-group">
+      <label class="field-label" for="plzInput">Postleitzahl</label>
+      <div class="plz-field" id="plzField">
+        <input type="text" id="plzInput" class="plz-digits" placeholder="53879"
+               maxlength="5" inputmode="numeric" autocomplete="postal-code" value="53879">
+        <span class="plz-city" id="plzStadt"></span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="field-label" for="vertragsbeginnInput">Vertragsbeginn</label>
+      <input type="date" id="vertragsbeginnInput" class="field-input" autocomplete="off">
+    </div>
+
+    <div class="form-group">
+      <label class="field-label" for="verbrauchInput">Jahresverbrauch</label>
+      <div class="input-unit">
+        <input type="number" id="verbrauchInput" class="field-input" placeholder="20000" min="0" step="100" autocomplete="off">
+        <span class="unit-badge">kWh/a</span>
+      </div>
+    </div>
+
+    <div class="form-group" id="grpVerbrauchNT" style="display:none">
+      <label class="field-label" for="verbrauchNTInput">Jahresverbrauch NT</label>
+      <div class="input-unit">
+        <input type="number" id="verbrauchNTInput" class="field-input" placeholder="0" min="0" step="100" autocomplete="off">
+        <span class="unit-badge">kWh/a</span>
+      </div>
+    </div>
+
+    <div class="form-group" id="grpHzTyp" style="display:none">
+      <div class="field-label">Gerätetyp</div>
+      <div class="pill-row" id="hzTypPills">
+        <button class="pill-sm active" data-hztyp="WP">Wärmepumpe</button>
+        <button class="pill-sm" data-hztyp="NS">Nachtspeicher</button>
+      </div>
+    </div>
+
+    <div class="form-group" id="grpMessung" style="display:none">
+      <div class="field-label">Messungsart</div>
+      <div class="pill-row" id="messungPills">
+        <button class="pill-sm active" data-messung="getrennt">Getrennte Messung</button>
+        <button class="pill-sm" data-messung="gemeinschaft">Gemeinsame Messung</button>
+      </div>
+    </div>
+
+    <div class="form-group" id="grpZaehlerart" style="display:none">
+      <div class="field-label">Zählerart</div>
+      <div class="pill-row" id="zaehlerartPills">
+        <button class="pill-sm active" data-za="Einzeltarif">Eintarifzähler</button>
+        <button class="pill-sm" data-za="Doppeltarif">Doppeltarifzähler</button>
+      </div>
+    </div>
+
+    <div class="form-group" id="grpSteuveTyp" style="display:none">
+      <div class="field-label">Gerätetyp</div>
+      <div class="pill-row" id="steuveTypPills">
+        <button class="pill-sm active" data-typ="WP">Wärmepumpe</button>
+        <button class="pill-sm" data-typ="Wallbox">Wallbox</button>
+        <button class="pill-sm" data-typ="Sonstiges">Sonstiges</button>
+      </div>
+    </div>
+
+    <div class="form-group" id="grpSteuveModul" style="display:none">
+      <div class="field-label">Modul §14a EnWG</div>
+      <div class="pill-row" id="steuveModulPills">
+        <button class="pill-sm active" data-modul="1">Modul 1</button>
+        <button class="pill-sm" data-modul="2">Modul 2</button>
+        <button class="pill-sm" data-modul="3">Modul 3</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="field-label">Umsatzsteuer</div>
+      <div class="radio-row">
+        <label class="radio-opt" id="radioNetto">
+          <input type="radio" name="ust" value="netto">
+          <span class="radio-dot"></span> netto
+        </label>
+        <label class="radio-opt sel" id="radioBrutto">
+          <input type="radio" name="ust" value="brutto" checked>
+          <span class="radio-dot"></span> brutto
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="field-label">Optionen</div>
+      <label class="check-opt" id="chkNKB">
+        <input type="checkbox" id="neukundenbonus">
+        <span class="check-box">
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        Neukundenbonus
+      </label>
+      <label class="check-opt" id="chkAB">
+        <input type="checkbox" id="aktionsbonus">
+        <span class="check-box">
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        Aktionsbonus
+      </label>
+      <div id="grpAktionsbonusWert" style="display:none;margin-top:5px">
+        <div class="input-unit">
+          <input type="number" id="aktionsbonusWert" class="field-input" placeholder="0" min="0" step="10">
+          <span class="unit-badge">€</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-calc" id="btnCalc" type="button">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Preise berechnen
+    </button>
+
+    <div class="vergleich-panel">
+      <div class="section-sep"></div>
+      <div class="field-label" style="margin-bottom:8px">Vergleichstarif</div>
+      <div class="frei-grid">
+        <div class="form-group" style="margin-bottom:0">
+          <div class="frei-label">AP (ct/kWh brutto)</div>
+          <input type="number" id="vergleichAP" class="field-input" placeholder="0,00" min="0" step="0.01" style="margin-top:3px">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <div class="frei-label">GP (€/Monat brutto)</div>
+          <input type="number" id="vergleichGP" class="field-input" placeholder="0,00" min="0" step="0.01" style="margin-top:3px">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:8px;margin-bottom:0">
+        <div class="frei-label">Bonus (€ einmalig)</div>
+        <div class="input-unit" style="margin-top:3px">
+          <input type="number" id="vergleichBonus" class="field-input" placeholder="0" min="0" step="10">
+          <span class="unit-badge">€</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main Content ────────────────────────────────────────────────────── -->
+  <main class="content" id="mainContent">
+    <div class="content-top">
+      <div class="tab-strip" id="tabStrip" role="tablist">
+        <button class="tab-btn active" data-tab="kunde" role="tab" aria-selected="true">Kundeninformationen</button>
+        <button class="tab-btn" data-tab="sach" role="tab" aria-selected="false">Sachbearbeiterinformationen</button>
+      </div>
+      <div class="result-meta" id="resultMeta"></div>
+    </div>
+
+    <div class="empty-state" id="emptyState">
+      <svg viewBox="0 0 48 48" width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M24 4C13 4 4 13 4 24s9 20 20 20 20-9 20-20S35 4 24 4"/><path d="M24 32v-8M24 20h.01"/></svg>
+      <p>Jahresverbrauch eingeben –<br>Preise erscheinen automatisch</p>
+    </div>
+    <div id="warnBox" class="warn-box" style="display:none"></div>
+    <div id="cardsWrap" style="display:none;flex:1;overflow:hidden">
+      <div class="cards-scroll" id="cardsGrid"></div>
+    </div>
+  </main>
+
+</div>
+<script src="data.js"></script>
+<script type="module" src="app.js?v=20260621c"></script>
+<link rel="stylesheet" href="../shared/erfass-bar.css?v=1">
+<script src="../shared/erfass-bar.js?v=3"></script>
+</body>
+</html>

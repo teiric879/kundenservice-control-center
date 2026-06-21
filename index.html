@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>e-regio · Kundencenter</title>
+<link rel="stylesheet" href="besucher-dashboard/fonts.css">
+<style>
+:root{
+  --ci:#003431;--bg0:#021614;--bg1:#00302C;
+  --acc:#bf9200;--ink:#EAF6F2;--muted:#93B2AB;
+  --radius:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);
+  background:linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#002a27 100%);
+  display:flex;align-items:center;justify-content:center;
+  -webkit-font-smoothing:antialiased}
+.wrap{text-align:center;padding:2rem}
+.logo{font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.25rem}
+.logo span{color:var(--acc)}
+.sub{color:var(--muted);font-size:.95rem;margin-bottom:3rem}
+.cards{display:flex;gap:1.25rem;justify-content:center;flex-wrap:wrap}
+.card{
+  background:rgba(255,255,255,.06);border:1px solid rgba(180,255,238,.10);
+  border-radius:var(--radius);padding:2rem 2.5rem;text-decoration:none;
+  color:var(--ink);transition:background .18s,border-color .18s,transform .18s;
+  min-width:200px;
+}
+.card:hover{background:rgba(255,255,255,.10);border-color:rgba(180,255,238,.22);transform:translateY(-3px)}
+.card-icon{font-size:2rem;margin-bottom:.75rem}
+.card-title{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:600;margin-bottom:.3rem}
+.card-desc{font-size:.82rem;color:var(--muted);line-height:1.4}
+.footer{margin-top:3rem;font-size:.78rem;color:var(--muted);opacity:.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">e<span>-regio</span> Kundencenter</div>
+  <div class="sub">Control Center · Port 8124</div>
+  <div class="cards">
+    <a class="card" href="/besucher-dashboard/">
+      <div class="card-icon">📊</div>
+      <div class="card-title">Besucher-Dashboard</div>
+      <div class="card-desc">Besucherstatistiken Kall &amp; Euskirchen</div>
+    </a>
+    <a class="card" href="/produkt-id-tool/">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">Produkt-ID Tool</div>
+      <div class="card-desc">Preise, Produkt-IDs &amp; Angebots-IDs</div>
+    </a>
+    <a class="card" href="/einsatzplaner/">
+      <div class="card-icon">📅</div>
+      <div class="card-title">Einsatzplaner</div>
+      <div class="card-desc">Wochenplanung Kall &amp; Euskirchen</div>
+    </a>
+    <a class="card" href="/admin/">
+      <div class="card-icon">⚙️</div>
+      <div class="card-title">Administration</div>
+      <div class="card-desc">Datenbank, Produkte, Formulare</div>
+    </a>
+  </div>
+  <div class="footer">e-regio Regionetz GmbH · Euskirchen</div>
+</div>
+</body>
+</html>

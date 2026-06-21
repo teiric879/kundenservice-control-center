@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Einsatzplaner 2026 | e-regio</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#eef0f5;overflow:hidden;height:100vh}
+
+/* HEADER */
+.app-header{
+  background:linear-gradient(135deg,#1a3a5c 0%,#2563a8 100%);
+  color:#fff;padding:0 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:fixed;top:0;left:0;right:0;z-index:200;height:52px;
+  box-shadow:0 2px 10px rgba(0,0,0,.25);
+}
+.app-header h1{font-size:1.1rem;font-weight:700;letter-spacing:.01em}
+.app-header h1 span{opacity:.65;font-weight:400;font-size:.85rem;margin-left:8px}
+.header-btns{display:flex;gap:8px}
+.hbtn{
+  padding:5px 12px;border:1px solid rgba(255,255,255,.4);border-radius:16px;
+  background:transparent;color:#fff;cursor:pointer;font-size:.75rem;font-weight:500;
+  transition:background .15s
+}
+.hbtn:hover{background:rgba(255,255,255,.15)}
+
+/* MONTH NAV */
+.month-nav{
+  position:fixed;top:52px;left:0;right:0;z-index:199;
+  background:#fff;padding:8px 16px;
+  display:flex;gap:5px;align-items:center;height:44px;
+  border-bottom:2px solid #dce3f0;overflow-x:auto;scrollbar-width:thin
+}
+.mbtn{
+  padding:4px 13px;border:1px solid #d0d7e3;border-radius:14px;
+  cursor:pointer;font-size:.78rem;font-weight:500;background:#fff;color:#445;
+  white-space:nowrap;transition:all .12s;flex-shrink:0
+}
+.mbtn:hover{border-color:#2563a8;color:#2563a8}
+.mbtn.active{background:#2563a8;color:#fff;border-color:#2563a8}
+
+/* LAYOUT */
+.layout{
+  display:flex;position:fixed;
+  top:96px;bottom:0;left:0;right:0;overflow:hidden
+}
+
+/* SIDEBAR */
+.sidebar{
+  width:192px;background:#fff;border-right:1px solid #e0e4ea;
+  overflow-y:auto;flex-shrink:0;padding:10px;
+  display:flex;flex-direction:column;gap:4px;scrollbar-width:thin
+}
+.sb-title{
+  font-size:.66rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.1em;color:#999;padding:6px 4px 2px
+}
+.agent-item{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 7px;border-radius:8px;cursor:pointer;
+  border:2px solid transparent;transition:all .12s;user-select:none
+}
+.agent-item:hover{background:#f5f7fb}
+.agent-item.active{background:#eff6ff;border-color:#2563a8}
+.agent-badge{
+  width:36px;height:24px;border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:.7rem;flex-shrink:0
+}
+.agent-fullname{font-size:.72rem;color:#334;font-weight:500;line-height:1.2}
+.sb-divider{height:1px;background:#eee;margin:4px 0}
+.mode-btn{
+  width:100%;padding:7px;border-radius:8px;
+  border:2px solid #e53935;background:#fff;color:#e53935;
+  font-weight:700;font-size:.74rem;cursor:pointer;transition:all .12s;
+  display:flex;align-items:center;justify-content:center;gap:5px
+}
+.mode-btn:hover{background:#fde8e8}
+.mode-btn.active{background:#e53935;color:#fff}
+.hint-box{
+  background:#f0f6ff;border-radius:8px;padding:8px;
+  font-size:.68rem;color:#445;line-height:1.5;margin-top:4px
+}
+
+/* CONTENT */
+.content{
+  flex:1;overflow-y:auto;padding:14px 18px;
+  background:#eef0f5;scrollbar-width:thin
+}
+
+/* DASHBOARD */
+.dash-card{
+  background:#fff;border-radius:12px;padding:14px 16px;
+  margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);
+  overflow-x:auto
+}
+.dash-card-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px
+}
+.dash-card-header h3{font-size:.88rem;font-weight:700;color:#1a3a5c}
+.dash-toggle-btn{
+  padding:3px 10px;border:1px solid #ddd;border-radius:12px;
+  background:#fff;cursor:pointer;font-size:.72rem;color:#666
+}
+.dash-table{border-collapse:collapse;width:100%;font-size:.75rem;min-width:520px}
+.dash-table th{
+  background:#f0f4fa;padding:7px 10px;text-align:center;
+  font-weight:700;color:#445;border-bottom:2px solid #dce3f0;white-space:nowrap
+}
+.dash-table th:first-child{text-align:left;min-width:160px}
+.dash-table td{padding:5px 10px;text-align:center;border-bottom:1px solid #f0f0f0}
+.dash-table td:first-child{text-align:left}
+.dash-table tr:hover td{background:#f8faff}
+.dash-num{font-weight:700;color:#1a3a5c}
+.dash-num.z{color:#ccc;font-weight:400}
+.d-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:19px;border-radius:4px;
+  font-size:.64rem;font-weight:800;margin-right:6px;vertical-align:middle
+}
+.dash-total{font-weight:800;color:#1a3a5c}
+.dash-row-total{background:#f8faff}
+
+/* WEEK BLOCK */
+.week-block{
+  background:#fff;border-radius:12px;margin-bottom:14px;
+  overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)
+}
+.week-hdr{
+  background:linear-gradient(90deg,#1a3a5c,#2563a8);color:#fff;
+  padding:9px 14px;display:flex;align-items:center;justify-content:space-between
+}
+.week-kw{font-size:.83rem;font-weight:800}
+.week-range{font-size:.72rem;opacity:.75}
+.grid-wrap{overflow-x:auto;scrollbar-width:thin}
+
+/* GRID TABLE */
+.grid-table{border-collapse:collapse;width:100%;min-width:550px}
+.grid-table th,.grid-table td{border:1px solid #e8ecf2;padding:0}
+
+/* Day header */
+.day-th{
+  min-width:105px;width:105px;padding:7px 4px;
+  text-align:center;font-size:.76rem;background:#f8faff;vertical-align:top
+}
+.day-th.today{background:#e3f2fd}
+.day-th.hday{background:#fff8e1}
+.day-th.outm{background:#fafafa;opacity:.55}
+.day-name{font-weight:700;color:#1a3a5c;font-size:.8rem}
+.day-date{font-size:.68rem;color:#777;margin-top:1px}
+.hday-label{font-size:.6rem;color:#e65100;font-weight:700;display:block;margin-top:2px;line-height:1.2}
+
+/* Label column */
+.lbl-col{width:130px;min-width:130px}
+.lbl-cell{
+  padding:0 10px;font-size:.71rem;color:#556;font-weight:500;
+  height:34px;vertical-align:middle;background:#fafbfd;
+  white-space:nowrap;border-right:2px solid #e0e4ea
+}
+.lbl-head{
+  background:#f8faff;border-right:2px solid #e0e4ea;
+  height:auto;vertical-align:middle
+}
+
+/* Location group header row */
+.loc-hdr td{
+  padding:4px 10px;font-size:.67rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.08em;
+  border-right:none
+}
+
+/* Slot cell */
+.slot-cell{
+  height:34px;text-align:center;vertical-align:middle;
+  cursor:pointer;transition:background .1s;position:relative
+}
+.slot-cell.empty:hover{background:#e8f0fe}
+.slot-cell.hday{
+  background:repeating-linear-gradient(45deg,#fff8f0,#fff8f0 4px,#ffe8cc 4px,#ffe8cc 8px);
+  cursor:default;pointer-events:none
+}
+.slot-cell.outm{background:#f9f9f9;opacity:.4;cursor:default;pointer-events:none}
+
+/* Agent chip */
+.chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:3px 8px;border-radius:5px;font-size:.71rem;font-weight:800;
+  letter-spacing:.02em;cursor:pointer;user-select:none
+}
+
+/* Notes row */
+.notes-lbl{
+  font-size:.67rem;color:#bbb;font-style:italic;
+  padding:4px 10px;background:#fffde7;border-right:2px solid #e0e4ea;
+  vertical-align:top;padding-top:6px
+}
+.notes-cell{background:#fffde7;padding:3px 5px;vertical-align:top}
+.notes-cell.hday{
+  background:repeating-linear-gradient(45deg,#fff8f0,#fff8f0 4px,#ffe8cc 4px,#ffe8cc 8px);
+}
+.notes-cell.outm{background:#f9f9f9;opacity:.4}
+.notes-input{
+  width:100%;border:none;background:transparent;
+  font-size:.7rem;color:#555;font-family:inherit;resize:none;
+  outline:none;min-height:28px;max-height:72px;line-height:1.4;padding:1px
+}
+.notes-input:focus{background:#fff9c4;border-radius:3px}
+.notes-input::placeholder{color:#ccc}
+
+/* Scrollbar styling */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#aaa}
+
+/* Notification toast */
+.toast{
+  position:fixed;bottom:20px;right:20px;z-index:999;
+  background:#333;color:#fff;padding:10px 18px;border-radius:8px;
+  font-size:.8rem;opacity:0;transition:opacity .3s;pointer-events:none
+}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="app-header">
+    <h1>📅 Einsatzplaner 2026 <span>e-regio</span></h1>
+    <div class="header-btns">
+      <button class="hbtn" onclick="exportData()">💾 Exportieren</button>
+      <button class="hbtn" onclick="importData()">📥 Importieren</button>
+    </div>
+  </header>
+  <nav class="month-nav" id="monthNav"></nav>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+
+const AGENTS = [
+  { id:'SE', name:'Susanne Elste',      color:'#43a047', text:'#fff' },
+  { id:'AM', name:'Aldona Marusczyk',   color:'#1e88e5', text:'#fff' },
+  { id:'CS', name:'Chantal Siyah',      color:'#fb8c00', text:'#fff' },
+  { id:'LJ', name:'Lara Maria Jansen',  color:'#8e24aa', text:'#fff' },
+  { id:'SB', name:'Sofie Bierschenk',   color:'#e53935', text:'#fff' },
+  { id:'MS', name:'Stefan Mertens',     color:'#00897b', text:'#fff' },
+  { id:'AA', name:'Annette Arnold',     color:'#f4511e', text:'#fff' },
+  { id:'VS', name:'Veronika Schulz',    color:'#3949ab', text:'#fff' },
+  { id:'KK', name:'Kerstin Krause',     color:'#558b2f', text:'#fff' },
+  { id:'SC', name:'Christine Seifert',  color:'#0097a7', text:'#fff' },
+  { id:'VV', name:'Vanessa Ventura',    color:'#c2185b', text:'#fff' },
+  { id:'NK', name:'Nathalie Knappe',    color:'#5d4037', text:'#fff' },
+  { id:'MK', name:'Marc Klens',         color:'#455a64', text:'#fff' },
+  { id:'LK', name:'Lydia Kaufmann',     color:'#f9a825', text:'#333' },
+];
+
+const SLOT_GROUPS = [
+  {
+    id:'kall', label:'Kall',
+    hBg:'#e8f5e9', hColor:'#2e7d32',
+    slots:[
+      { id:'kall_b1', label:'Berater 1', dash:'kall' },
+      { id:'kall_b2', label:'Berater 2', dash:'kall' },
+    ]
+  },
+  {
+    id:'eusk', label:'Euskirchen',
+    hBg:'#e3f2fd', hColor:'#1565c0',
+    slots:[
+      { id:'eusk_z',   label:'Zentrale',     dash:'zentrale'  },
+      { id:'eusk_b1',  label:'Berater 1',    dash:'berater'   },
+      { id:'eusk_b2',  label:'Berater 2',    dash:'berater'   },
+      { id:'eusk_b3',  label:'Berater 3',    dash:'berater'   },
+      { id:'eusk_bo1', label:'Backoffice 1', dash:'backoffice'},
+      { id:'eusk_bo2', label:'Backoffice 2', dash:'backoffice'},
+      { id:'eusk_bo3', label:'Backoffice 3', dash:'backoffice'},
+      { id:'eusk_bo4', label:'Backoffice 4', dash:'backoffice'},
+      { id:'eusk_bo5', label:'Backoffice 5', dash:'backoffice'},
+    ]
+  },
+  {
+    id:'ho', label:'HomeOffice',
+    hBg:'#f3e5f5', hColor:'#6a1b9a',
+    slots: Array.from({length:8},(_,i)=>({
+      id:`ho_${i+1}`, label:`Platz ${i+1}`, dash:'homeoffice'
+    }))
+  }
+];
+
+// Slot ID → dashGroup lookup
+const SLOT_DASH = {};
+SLOT_GROUPS.forEach(g => g.slots.forEach(s => { SLOT_DASH[s.id] = s.dash; }));
+
+const HOLIDAYS = {
+  '2026-01-01':'Neujahr',
+  '2026-04-03':'Karfreitag',
+  '2026-04-06':'Ostermontag',
+  '2026-05-01':'Tag der Arbeit',
+  '2026-05-14':'Christi Himmelfahrt',
+  '2026-05-25':'Pfingstmontag',
+  '2026-06-04':'Fronleichnam',
+  '2026-10-03':'Tag der Einheit',
+  '2026-11-01':'Allerheiligen',
+  '2026-12-25':'1. Weihnachtstag',
+  '2026-12-26':'2. Weihnachtstag',
+};
+
+const MONTHS = ['Januar','Februar','März','April','Mai','Juni',
+                'Juli','August','September','Oktober','November','Dezember'];
+const DAY_SHORT = ['Mo','Di','Mi','Do','Fr'];
+
+const DASH_CATS = [
+  { key:'kall',       label:'Kall',       bg:'#e8f5e9', fg:'#2e7d32' },
+  { key:'zentrale',   label:'Zentrale',   bg:'#dbeafe', fg:'#1d4ed8' },
+  { key:'berater',    label:'Berater',    bg:'#e8eaf6', fg:'#283593' },
+  { key:'backoffice', label:'Backoffice', bg:'#fce4ec', fg:'#880e4f' },
+  { key:'homeoffice', label:'HomeOffice', bg:'#f3e5f5', fg:'#6a1b9a' },
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let currentMonth = new Date().getMonth(); // default: current month
+let selectedAgent = null;
+let deleteMode = false;
+let data = {};
+let dashScope = 'month'; // 'month' or 'year'
+let notesSaveTimer = null;
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+function loadData() {
+  try { data = JSON.parse(localStorage.getItem('ep2026') || '{}'); }
+  catch { data = {}; }
+}
+function saveData() {
+  localStorage.setItem('ep2026', JSON.stringify(data));
+}
+
+// ─── DATE UTILS ───────────────────────────────────────────────────────────────
+function toStr(d) {
+  return d.toISOString().slice(0,10);
+}
+function fmt(d) {
+  return String(d.getDate()).padStart(2,'0') + '.' +
+         String(d.getMonth()+1).padStart(2,'0') + '.';
+}
+function getMonday(d) {
+  const dt = new Date(d);
+  const day = dt.getDay();
+  dt.setDate(dt.getDate() + (day===0 ? -6 : 1-day));
+  return dt;
+}
+function isoWeek(d) {
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dow = dt.getUTCDay() || 7;
+  dt.setUTCDate(dt.getUTCDate() + 4 - dow);
+  const y1 = new Date(Date.UTC(dt.getUTCFullYear(),0,1));
+  return Math.ceil(((dt - y1) / 86400000 + 1) / 7);
+}
+function getWeeksForMonth(year, month) {
+  const seen = new Map();
+  const first = new Date(year, month, 1);
+  const last  = new Date(year, month+1, 0);
+  for (let d = new Date(first); d <= last; d.setDate(d.getDate()+1)) {
+    const dow = d.getDay();
+    if (dow >= 1 && dow <= 5) {
+      const mon = getMonday(new Date(d));
+      const key = toStr(mon);
+      if (!seen.has(key)) {
+        const days = [];
+        for (let i=0; i<5; i++) {
+          const day = new Date(mon);
+          day.setDate(day.getDate()+i);
+          days.push(day);
+        }
+        seen.set(key, { kw: isoWeek(mon), days });
+      }
+    }
+  }
+  return [...seen.values()].sort((a,b)=>a.days[0]-b.days[0]);
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function calcStats() {
+  const counts = {};
+  AGENTS.forEach(a => {
+    counts[a.id] = { kall:0, zentrale:0, berater:0, backoffice:0, homeoffice:0 };
+  });
+  Object.entries(data).forEach(([dateStr, dayData]) => {
+    const d = new Date(dateStr);
+    if (d.getFullYear() !== 2026) return;
+    if (dashScope === 'month' && d.getMonth() !== currentMonth) return;
+    Object.entries(dayData).forEach(([slotId, agentId]) => {
+      if (slotId === 'notes' || !counts[agentId]) return;
+      const g = SLOT_DASH[slotId];
+      if (g && counts[agentId][g] !== undefined) counts[agentId][g]++;
+    });
+  });
+  return counts;
+}
+
+function renderDashboardContent() {
+  const counts = calcStats();
+  const scopeLabel = dashScope === 'month'
+    ? MONTHS[currentMonth] + ' 2026'
+    : 'Gesamtjahr 2026';
+
+  const hdrCells = DASH_CATS.map(c =>
+    `<th style="background:${c.bg};color:${c.fg}">${c.label}</th>`
+  ).join('');
+
+  const rows = AGENTS.map(a => {
+    const c = counts[a.id];
+    const total = DASH_CATS.reduce((s, cat) => s + c[cat.key], 0);
+    const cells = DASH_CATS.map(cat => {
+      const v = c[cat.key];
+      return `<td><span class="dash-num ${v===0?'z':''}">${v||'–'}</span></td>`;
+    }).join('');
+    return `<tr>
+      <td>
+        <span class="d-badge" style="background:${a.color};color:${a.text}">${a.id}</span>
+        ${a.name}
+      </td>
+      ${cells}
+      <td class="dash-total">${total||'–'}</td>
+    </tr>`;
+  }).join('');
+
+  // Totals row
+  const totRow = `<tr class="dash-row-total" style="border-top:2px solid #dce3f0">
+    <td style="font-weight:700">Gesamt</td>
+    ${DASH_CATS.map(cat => {
+      const v = AGENTS.reduce((s,a)=>s+counts[a.id][cat.key],0);
+      return `<td><strong>${v||'–'}</strong></td>`;
+    }).join('')}
+    <td><strong>${AGENTS.reduce((s,a)=>s+DASH_CATS.reduce((ss,c)=>ss+counts[a.id][c.key],0),0)||'–'}</strong></td>
+  </tr>`;
+
+  return `
+    <div class="dash-card-header">
+      <h3>📊 Auswertung – ${scopeLabel}</h3>
+      <button class="dash-toggle-btn" onclick="toggleDashScope()">
+        ${dashScope==='month'?'📅 Jahresansicht':'📅 Monatsansicht'}
+      </button>
+    </div>
+    <table class="dash-table">
+      <thead><tr>
+        <th>Mitarbeiter</th>${hdrCells}<th>Gesamt</th>
+      </tr></thead>
+      <tbody>${rows}${totRow}</tbody>
+    </table>
+  `;
+}
+
+function toggleDashScope() {
+  dashScope = dashScope === 'month' ? 'year' : 'month';
+  const card = document.getElementById('dashCard');
+  if (card) card.innerHTML = renderDashboardContent();
+}
+
+function updateDashboard() {
+  const card = document.getElementById('dashCard');
+  if (card) card.innerHTML = renderDashboardContent();
+}
+
+// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+function renderSidebar() {
+  const s = document.getElementById('sidebar');
+  const agentItems = AGENTS.map(a => `
+    <div class="agent-item ${selectedAgent===a.id?'active':''}"
+         onclick="selectAgent('${a.id}')">
+      <div class="agent-badge" style="background:${a.color};color:${a.text}">${a.id}</div>
+      <div class="agent-fullname">${a.name}</div>
+    </div>
+  `).join('');
+
+  s.innerHTML = `
+    <div class="sb-title">Mitarbeiter</div>
+    ${agentItems}
+    <div class="sb-divider"></div>
+    <button class="mode-btn ${deleteMode?'active':''}" onclick="toggleDeleteMode()">
+      🗑 Löschen-Modus
+    </button>
+    <div class="hint-box">
+      ${selectedAgent
+        ? `<strong>Aktiv:</strong> ${AGENTS.find(a=>a.id===selectedAgent)?.name}<br>→ Slot anklicken zum Belegen`
+        : deleteMode
+          ? '→ Slot anklicken zum Leeren'
+          : 'Mitarbeiter auswählen, dann Slot anklicken'}
+    </div>
+  `;
+}
+
+function selectAgent(id) {
+  selectedAgent = selectedAgent === id ? null : id;
+  deleteMode = false;
+  renderSidebar();
+}
+
+function toggleDeleteMode() {
+  deleteMode = !deleteMode;
+  if (deleteMode) selectedAgent = null;
+  renderSidebar();
+}
+
+// ─── MONTH NAV ────────────────────────────────────────────────────────────────
+function renderMonthNav() {
+  document.getElementById('monthNav').innerHTML = MONTHS.map((m,i) =>
+    `<button class="mbtn ${i===currentMonth?'active':''}" onclick="setMonth(${i})">${m}</button>`
+  ).join('');
+}
+
+function setMonth(m) {
+  currentMonth = m;
+  dashScope = 'month';
+  renderMonthNav();
+  renderContent();
+}
+
+// ─── WEEK RENDERING ───────────────────────────────────────────────────────────
+function renderWeek(week) {
+  const { kw, days } = week;
+  const startFmt = fmt(days[0]);
+  const endFmt   = fmt(days[4]) + days[4].getFullYear();
+
+  // Header cells (day names + dates)
+  const dayHeaders = days.map((d,i) => {
+    const ds = toStr(d);
+    const holiday = HOLIDAYS[ds];
+    const isToday = ds === toStr(new Date());
+    const inMonth = d.getMonth() === currentMonth;
+    let cls = 'day-th';
+    if (isToday)  cls += ' today';
+    if (holiday)  cls += ' hday';
+    if (!inMonth) cls += ' outm';
+    return `<th class="${cls}">
+      <div class="day-name">${DAY_SHORT[i]}</div>
+      <div class="day-date">${fmt(d)}${d.getFullYear()===2026?'':d.getFullYear()}</div>
+      ${holiday ? `<span class="hday-label">${holiday}</span>` : ''}
+    </th>`;
+  }).join('');
+
+  // Slot rows
+  let bodyHtml = '';
+  SLOT_GROUPS.forEach(group => {
+    bodyHtml += `<tr class="loc-hdr">
+      <td colspan="6" style="background:${group.hBg};color:${group.hColor}">${group.label}</td>
+    </tr>`;
+    group.slots.forEach(slot => {
+      const cells = days.map(d => {
+        const ds = toStr(d);
+        const holiday = HOLIDAYS[ds];
+        const inMonth = d.getMonth() === currentMonth;
+        const agentId = data[ds]?.[slot.id];
+        const agent = agentId ? AGENTS.find(a=>a.id===agentId) : null;
+
+        let cls = 'slot-cell';
+        if (holiday)    { cls += ' hday'; }
+        else if(!inMonth) { cls += ' outm'; }
+        else if (!agent)  { cls += ' empty'; }
+
+        const click = (!holiday && inMonth)
+          ? `onclick="handleSlotClick('${ds}','${slot.id}')"` : '';
+        const chip = agent
+          ? `<span class="chip" style="background:${agent.color};color:${agent.text}">${agent.id}</span>` : '';
+
+        return `<td class="${cls}" id="c-${ds}-${slot.id}" ${click}>${chip}</td>`;
+      }).join('');
+      bodyHtml += `<tr><td class="lbl-cell">${slot.label}</td>${cells}</tr>`;
+    });
+  });
+
+  // Notes row
+  const notesCells = days.map(d => {
+    const ds = toStr(d);
+    const holiday = HOLIDAYS[ds];
+    const inMonth = d.getMonth() === currentMonth;
+    if (holiday) return `<td class="notes-cell hday"></td>`;
+    if (!inMonth) return `<td class="notes-cell outm"></td>`;
+    const val = (data[ds]?.notes || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<td class="notes-cell">
+      <textarea class="notes-input" data-date="${ds}"
+        placeholder="Notiz…"
+        oninput="scheduleNotesSave('${ds}',this.value)"
+        onblur="saveNotes('${ds}',this.value)">${val}</textarea>
+    </td>`;
+  }).join('');
+  bodyHtml += `<tr><td class="notes-lbl">📝 Notizen</td>${notesCells}</tr>`;
+
+  return `
+    <div class="week-block">
+      <div class="week-hdr">
+        <span class="week-kw">KW ${kw}</span>
+        <span class="week-range">${startFmt} – ${endFmt}</span>
+      </div>
+      <div class="grid-wrap">
+        <table class="grid-table">
+          <colgroup>
+            <col class="lbl-col">
+            <col><col><col><col><col>
+          </colgroup>
+          <thead><tr>
+            <th class="lbl-cell lbl-head"></th>${dayHeaders}
+          </tr></thead>
+          <tbody>${bodyHtml}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ─── CONTENT ──────────────────────────────────────────────────────────────────
+function renderContent() {
+  const weeks = getWeeksForMonth(2026, currentMonth);
+  const weeksHtml = weeks.map(w => renderWeek(w)).join('');
+
+  document.getElementById('content').innerHTML = `
+    <div class="dash-card" id="dashCard">${renderDashboardContent()}</div>
+    ${weeksHtml}
+  `;
+}
+
+// ─── SLOT CLICK ───────────────────────────────────────────────────────────────
+function handleSlotClick(dateStr, slotId) {
+  if (!data[dateStr]) data[dateStr] = {};
+
+  if (deleteMode) {
+    delete data[dateStr][slotId];
+    if (!Object.keys(data[dateStr]).filter(k=>k!=='notes').length &&
+        !data[dateStr].notes) delete data[dateStr];
+  } else if (selectedAgent) {
+    if (data[dateStr][slotId] === selectedAgent) {
+      delete data[dateStr][slotId];
+    } else {
+      data[dateStr][slotId] = selectedAgent;
+    }
+  } else return;
+
+  saveData();
+
+  // Update cell in-place
+  const cell = document.getElementById(`c-${dateStr}-${slotId}`);
+  if (cell) {
+    const agentId = data[dateStr]?.[slotId];
+    const agent = agentId ? AGENTS.find(a=>a.id===agentId) : null;
+    cell.className = 'slot-cell' + (agent ? '' : ' empty');
+    cell.innerHTML = agent
+      ? `<span class="chip" style="background:${agent.color};color:${agent.text}">${agent.id}</span>`
+      : '';
+  }
+
+  updateDashboard();
+}
+
+// ─── NOTES ───────────────────────────────────────────────────────────────────
+function scheduleNotesSave(dateStr, value) {
+  clearTimeout(notesSaveTimer);
+  notesSaveTimer = setTimeout(() => saveNotes(dateStr, value), 600);
+}
+
+function saveNotes(dateStr, value) {
+  clearTimeout(notesSaveTimer);
+  if (!data[dateStr]) data[dateStr] = {};
+  if (value.trim()) {
+    data[dateStr].notes = value;
+  } else {
+    delete data[dateStr].notes;
+    if (!Object.keys(data[dateStr]).filter(k=>k!=='notes').length) delete data[dateStr];
+  }
+  saveData();
+}
+
+// ─── EXPORT / IMPORT ─────────────────────────────────────────────────────────
+function exportData() {
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'einsatzplan_2026.json'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Daten exportiert ✓');
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        data = JSON.parse(e.target.result);
+        saveData(); renderContent();
+        showToast('Daten importiert ✓');
+      } catch { showToast('Fehler beim Import'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  loadData();
+  renderMonthNav();
+  renderSidebar();
+  renderContent();
+}
+
+init();
+</script>
+</body>
+</html>

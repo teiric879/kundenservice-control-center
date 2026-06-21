@@ -1,0 +1,1598 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>e-regio · Admin</title>
+<link rel="stylesheet" href="../besucher-dashboard/fonts.css">
+<style>
+:root{
+  --ci:#003431;--bg0:#021614;--bg1:#00302C;--bg2:#004B43;
+  --glass:rgba(255,255,255,.045);--glass-hi:rgba(255,255,255,.075);
+  --glass-card:rgba(255,255,255,.06);
+  --stroke:rgba(180,255,238,.10);--stroke-hi:rgba(180,255,238,.20);
+  --acc:#bf9200;--acc-2:#8c6b00;--acc-hi:#e0ad1f;--gold:#E9C682;
+  --ink:#EAF6F2;--muted:#93B2AB;--muted-2:#5F827B;
+  --pos:#3BE8A6;--neg:#FF8A78;--warn:#F59E0B;
+  --radius:18px;--shadow:0 24px 60px rgba(0,12,10,.45);
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'DM Sans',system-ui,-apple-system,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 800px at 100% -10%,#064b43 0%,transparent 55%),
+    radial-gradient(900px 700px at -10% 110%,#053b39 0%,transparent 50%),
+    linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#002a27 100%);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(80px);opacity:.5;z-index:-1;pointer-events:none}
+body::before{width:520px;height:520px;top:-120px;right:-80px;background:radial-gradient(circle,rgba(191,146,0,.25),transparent 70%);animation:float1 18s var(--ease) infinite alternate}
+body::after{width:460px;height:460px;bottom:-140px;left:-60px;background:radial-gradient(circle,rgba(140,107,0,.22),transparent 70%);animation:float2 22s var(--ease) infinite alternate}
+@keyframes float1{to{transform:translate(-60px,80px) scale(1.15)}}
+@keyframes float2{to{transform:translate(70px,-60px) scale(1.1)}}
+@media(prefers-reduced-motion:reduce){body::before,body::after{animation:none}}
+h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.01em}
+
+/* ── Lock Screen ─────────────────────────────────────────────────────────── */
+#lockScreen{
+  position:fixed;inset:0;z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(1200px 800px at 100% -10%,#064b43 0%,transparent 55%),
+    radial-gradient(900px 700px at -10% 110%,#053b39 0%,transparent 50%),
+    linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#002a27 100%);
+}
+.lock-box{
+  width:360px;padding:40px 36px 36px;
+  background:rgba(255,255,255,.055);
+  border:1px solid var(--stroke-hi);
+  border-radius:24px;
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  box-shadow:0 32px 80px rgba(0,12,10,.6);
+  text-align:center;
+}
+.lock-icon{
+  width:56px;height:56px;border-radius:16px;
+  background:rgba(191,146,0,.15);border:1px solid rgba(191,146,0,.3);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 22px;
+}
+.lock-icon svg{width:26px;height:26px;color:var(--acc-hi)}
+.lock-box h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.lock-box p{color:var(--muted);font-size:13px;margin-bottom:28px}
+.lock-brand{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:24px}
+.lock-brand b{font-family:'Space Grotesk';font-size:15px}
+.lock-brand small{color:var(--muted);font-size:11px}
+.pw-field{position:relative;margin-bottom:14px}
+.pw-field input{
+  width:100%;padding:12px 44px 12px 14px;
+  border-radius:12px;font-size:14px;font-family:inherit;
+  background:rgba(255,255,255,.07);border:1.5px solid var(--stroke-hi);
+  color:var(--ink);transition:border-color .15s;
+  letter-spacing:.05em;
+}
+.pw-field input:focus{outline:none;border-color:rgba(191,146,0,.5)}
+.pw-field input.error{border-color:rgba(255,138,120,.6)}
+.pw-toggle{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--muted);cursor:pointer;
+  padding:4px;display:flex;align-items:center;
+  transition:color .15s;
+}
+.pw-toggle:hover{color:var(--ink)}
+.lock-btn{
+  width:100%;padding:12px;border-radius:12px;
+  background:linear-gradient(135deg,var(--acc),var(--acc-2));
+  border:none;color:#fff;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit;
+  transition:opacity .15s,transform .1s;
+  letter-spacing:.01em;
+}
+.lock-btn:hover{opacity:.9}
+.lock-btn:active{transform:scale(.98)}
+.lock-error{
+  color:var(--neg);font-size:12px;margin-top:10px;
+  min-height:18px;transition:opacity .2s;
+}
+.lock-hint{
+  margin-top:22px;padding-top:18px;border-top:1px solid var(--stroke);
+  color:var(--muted-2);font-size:11px;
+}
+
+/* ── App Layout ──────────────────────────────────────────────────────────── */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+.sidebar{
+  width:240px;flex:0 0 240px;
+  display:flex;flex-direction:column;
+  padding:18px 12px 16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-right:1px solid var(--stroke);
+  overflow-y:auto;scrollbar-width:none;gap:0;
+}
+.brand{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:6px 10px 24px}
+.wordmark{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.wm-e{color:#f5b800}
+.wm-regio{color:#fff}
+.brand-caption{font-size:11.5px;font-weight:400;color:rgba(180,210,200,.7);letter-spacing:.01em;line-height:1;padding-top:10px;margin-top:2px;border-top:1px solid rgba(191,146,0,.28);width:100%}
+.mod-nav{display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto;min-height:0;scrollbar-width:none}
+.mod-group{border-radius:13px;overflow:hidden;margin-bottom:3px}
+.mod-toggle{
+  width:100%;display:flex;align-items:center;gap:9px;
+  padding:9px 10px;border-radius:13px;background:transparent;
+  border:1px solid transparent;color:var(--muted);
+  font-size:12.5px;font-weight:700;cursor:pointer;
+  transition:all .18s var(--ease);font-family:inherit;text-align:left;
+  letter-spacing:.01em;
+}
+.mod-toggle svg.mod-icon{width:16px;height:16px;flex:0 0 16px;opacity:.75}
+.mod-toggle .mod-label{flex:1}
+.mod-toggle .chevron{flex:0 0 14px;width:14px;height:14px;transition:transform .22s var(--ease);opacity:.5}
+.mod-toggle:hover{color:var(--ink);background:var(--glass);border-color:var(--stroke)}
+.mod-toggle.active{color:var(--acc-hi);background:rgba(191,146,0,.10);border-color:rgba(191,146,0,.22)}
+.mod-toggle.active svg.mod-icon{opacity:1}
+.mod-toggle.collapsed .chevron{transform:rotate(-90deg)}
+.mod-items{display:flex;flex-direction:column;gap:1px;padding:2px 0 4px 8px;max-height:400px;overflow:hidden;transition:max-height .28s var(--ease),opacity .2s,padding .2s;opacity:1}
+.mod-items.collapsed{max-height:0;opacity:0;padding-top:0;padding-bottom:0}
+.mod-item{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;
+  color:var(--muted);font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:all .15s var(--ease);
+  border:none;background:transparent;font-family:inherit;
+  text-decoration:none;text-align:left;width:100%;
+}
+.mod-item svg{width:13px;height:13px;flex:0 0 13px;opacity:.6}
+.mod-item:hover{color:var(--ink);background:var(--glass)}
+.mod-item.active{color:var(--acc-hi);background:rgba(191,146,0,.10)}
+.mod-item.active svg{opacity:1}
+.mod-item .ext-dot{margin-left:auto;width:5px;height:5px;border-radius:50%;background:var(--stroke-hi);flex:0 0 5px;opacity:.5}
+.side-foot{
+  margin-top:auto;padding:10px 8px 0;
+  color:var(--muted-2);font-size:10.5px;line-height:1.5;
+  border-top:1px solid var(--stroke);
+}
+.sync-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 9px;border-radius:20px;font-size:10.5px;font-weight:600;
+  background:rgba(255,138,120,.12);border:1px solid rgba(255,138,120,.25);color:#FF8A78;
+}
+.sync-badge.ok{background:rgba(59,232,166,.10);border-color:rgba(59,232,166,.25);color:var(--pos)}
+.logout-btn{
+  display:flex;align-items:center;gap:7px;width:100%;
+  padding:8px 10px;border-radius:10px;margin-top:8px;
+  background:rgba(255,138,120,.08);border:1px solid rgba(255,138,120,.18);
+  color:var(--neg);font-size:11.5px;font-weight:600;cursor:pointer;
+  font-family:inherit;transition:all .15s var(--ease);
+}
+.logout-btn:hover{background:rgba(255,138,120,.15);border-color:rgba(255,138,120,.3)}
+.logout-btn svg{width:13px;height:13px;opacity:.8}
+
+/* ── Admin Main ──────────────────────────────────────────────────────────── */
+.admin-main{
+  flex:1;overflow-y:auto;padding:28px 32px 40px;
+  scrollbar-width:thin;scrollbar-color:var(--stroke) transparent;
+}
+.admin-header{margin-bottom:28px}
+.admin-header h1{font-size:26px;font-weight:700;color:var(--ink)}
+.admin-header p{color:var(--muted);font-size:13px;margin-top:4px}
+.admin-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:20px;
+  background:rgba(191,146,0,.12);border:1px solid rgba(191,146,0,.25);
+  color:var(--acc-hi);font-size:10.5px;font-weight:700;letter-spacing:.04em;
+  margin-left:10px;vertical-align:middle;text-transform:uppercase;
+}
+
+/* Tab bar */
+.tab-bar{
+  display:flex;gap:4px;margin-bottom:28px;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--stroke);
+  border-radius:14px;padding:4px;
+  width:fit-content;
+}
+.tab-btn{
+  padding:8px 18px;border-radius:10px;
+  border:none;background:transparent;
+  color:var(--muted);font-size:13px;font-weight:600;
+  cursor:pointer;font-family:inherit;
+  transition:all .15s var(--ease);
+  display:flex;align-items:center;gap:7px;
+}
+.tab-btn svg{width:14px;height:14px;opacity:.7}
+.tab-btn:hover{color:var(--ink);background:var(--glass)}
+.tab-btn.active{
+  color:var(--acc-hi);background:rgba(191,146,0,.12);
+  border:1px solid rgba(191,146,0,.22);
+}
+.tab-btn.active svg{opacity:1}
+
+/* Panel */
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* Cards */
+.card{
+  background:var(--glass-card);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  padding:24px;
+  margin-bottom:20px;
+}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.card-title{font-size:15px;font-weight:700;color:var(--ink)}
+.card-sub{color:var(--muted-2);font-size:12px;margin-top:3px}
+.card-icon{
+  width:38px;height:38px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  flex:0 0 38px;
+}
+.icon-gold{background:rgba(191,146,0,.12);border:1px solid rgba(191,146,0,.2);color:var(--acc-hi)}
+.icon-green{background:rgba(59,232,166,.08);border:1px solid rgba(59,232,166,.18);color:var(--pos)}
+.icon-blue{background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.18);color:#60a5fa}
+.icon-red{background:rgba(255,138,120,.08);border:1px solid rgba(255,138,120,.18);color:var(--neg)}
+.card-icon svg{width:18px;height:18px}
+
+/* Form elements */
+.field-row{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+.field-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2)}
+.field-input,.field-select{
+  width:100%;padding:10px 12px;border-radius:10px;font-size:13.5px;
+  background:rgba(255,255,255,.055);border:1px solid var(--stroke);color:var(--ink);
+  font-family:inherit;transition:border-color .15s,background .15s;
+  -webkit-appearance:none;
+}
+.field-input:focus,.field-select:focus{outline:none;border-color:rgba(191,146,0,.45);background:rgba(255,255,255,.08)}
+.field-input::placeholder{color:var(--muted-2)}
+.field-hint{font-size:11px;color:var(--muted-2);margin-top:4px}
+.field-row-h{display:flex;gap:12px;margin-bottom:16px}
+.field-row-h .field-row{flex:1;margin-bottom:0}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 18px;border-radius:11px;border:none;
+  font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
+  transition:all .15s var(--ease);
+}
+.btn svg{width:14px;height:14px}
+.btn-primary{background:linear-gradient(135deg,var(--acc),var(--acc-2));color:#fff}
+.btn-primary:hover{opacity:.88}
+.btn-ghost{background:var(--glass);border:1px solid var(--stroke);color:var(--muted)}
+.btn-ghost:hover{color:var(--ink);background:var(--glass-hi);border-color:var(--stroke-hi)}
+.btn-danger{background:rgba(255,138,120,.12);border:1px solid rgba(255,138,120,.25);color:var(--neg)}
+.btn-danger:hover{background:rgba(255,138,120,.2)}
+.btn-green{background:rgba(59,232,166,.1);border:1px solid rgba(59,232,166,.25);color:var(--pos)}
+.btn-green:hover{background:rgba(59,232,166,.18)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* Status indicators */
+.status-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px}
+.status-dot.ok{background:var(--pos);box-shadow:0 0 6px rgba(59,232,166,.5)}
+.status-dot.warn{background:var(--warn);box-shadow:0 0 6px rgba(245,158,11,.4)}
+.status-dot.err{background:var(--neg);box-shadow:0 0 6px rgba(255,138,120,.4)}
+
+/* Info row */
+.info-row{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px;border-radius:12px;
+  background:rgba(255,255,255,.03);border:1px solid var(--stroke);
+  font-size:13px;margin-bottom:10px;
+}
+.info-row .info-label{color:var(--muted-2);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.info-row .info-val{color:var(--ink);font-weight:600;flex:1;word-break:break-all}
+.info-row .info-copy{
+  margin-left:auto;padding:4px 8px;border-radius:7px;border:none;
+  background:var(--glass);color:var(--muted);font-size:11px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:all .12s;white-space:nowrap;
+}
+.info-row .info-copy:hover{background:var(--glass-hi);color:var(--ink)}
+
+/* Sync status box */
+.sync-box{
+  display:flex;align-items:center;gap:14px;
+  padding:16px 20px;border-radius:14px;
+  background:rgba(255,255,255,.04);border:1px solid var(--stroke);
+  margin-bottom:20px;
+}
+.sync-box-text .sync-title{font-size:14px;font-weight:700;color:var(--ink)}
+.sync-box-text .sync-sub{font-size:12px;color:var(--muted-2);margin-top:2px}
+.sync-box .sync-action{margin-left:auto}
+
+/* Preis-Editor */
+.prod-tab-bar{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap}
+.prod-tab{
+  padding:6px 14px;border-radius:9px;border:1px solid var(--stroke);
+  background:transparent;color:var(--muted);font-size:12px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:all .15s var(--ease);
+}
+.prod-tab:hover{color:var(--ink);background:var(--glass)}
+.prod-tab.active{color:var(--acc-hi);background:rgba(191,146,0,.10);border-color:rgba(191,146,0,.25)}
+
+/* ── Gültigkeiten-Pflege ── */
+.gue-sparte-bar{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.gue-pill{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:10px;border:1px solid var(--stroke);
+  background:transparent;color:var(--muted);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s var(--ease)}
+.gue-pill:hover{color:var(--ink);background:var(--glass)}
+.gue-pill.active{color:var(--ink);background:rgba(191,146,0,.12);border-color:rgba(191,146,0,.3)}
+.gue-pill .dot{width:8px;height:8px;border-radius:50%}
+
+.gue-table{width:100%;border-collapse:collapse;font-size:13px}
+.gue-table th{text-align:left;font-size:11px;font-weight:600;color:var(--muted-2);text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--stroke)}
+.gue-table td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.05)}
+.gue-table tr:hover td{background:rgba(255,255,255,.02)}
+.gue-badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.03em}
+.gue-badge.import{background:rgba(96,165,250,.14);color:#93c5fd}
+.gue-badge.manuell{background:rgba(59,232,166,.14);color:#5fe3b0}
+.gue-actbtn{padding:5px 11px;border-radius:8px;border:1px solid var(--stroke);background:transparent;color:var(--muted);
+  font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.gue-actbtn:hover{color:var(--ink);background:var(--glass)}
+.gue-actbtn.danger:hover{color:#ff8a78;border-color:rgba(255,138,120,.3)}
+
+.gue-edit-head{display:flex;align-items:flex-end;gap:24px;margin-top:8px;flex-wrap:wrap}
+.gue-field{display:flex;flex-direction:column;gap:5px}
+.gue-field>span{font-size:11px;font-weight:600;color:var(--muted-2);text-transform:uppercase;letter-spacing:.04em}
+.gue-field input{padding:8px 11px;border-radius:9px;border:1px solid var(--stroke);background:rgba(0,0,0,.18);
+  color:var(--ink);font-size:13px;font-family:inherit}
+.gue-legend{display:flex;gap:16px;font-size:11.5px;color:var(--muted-2);margin-left:auto}
+
+.gue-prod-sec{margin-bottom:14px}
+.gue-prod-head{display:flex;align-items:center;gap:9px;padding:10px 14px;font-size:13.5px;font-weight:700;color:var(--ink)}
+.gue-grid{width:100%;border-collapse:collapse;font-size:12.5px}
+.gue-grid th{text-align:left;font-size:10.5px;font-weight:600;color:var(--muted-2);text-transform:uppercase;letter-spacing:.03em;padding:6px 8px;border-bottom:1px solid var(--stroke);white-space:nowrap}
+.gue-grid td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.gue-grid input{width:78px;padding:6px 8px;border-radius:7px;border:1px solid var(--stroke);background:rgba(0,0,0,.18);
+  color:var(--ink);font-size:12.5px;font-family:inherit;text-align:right}
+.gue-grid input:focus{outline:none;border-color:rgba(191,146,0,.5)}
+.gue-grid input.aid-manual{border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.06)}
+.gue-calc{color:var(--muted);font-variant-numeric:tabular-nums}
+.gue-aid{font-weight:700;font-variant-numeric:tabular-nums}
+.gue-aid.ok{color:#5fe3b0}
+.gue-aid.neu{color:var(--warn)}
+.gue-pidcell{color:var(--muted-2);font-variant-numeric:tabular-nums;font-size:11.5px}
+
+.preis-table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--stroke)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{
+  padding:9px 12px;text-align:left;
+  font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted-2);border-bottom:1px solid var(--stroke);
+  background:rgba(255,255,255,.03);white-space:nowrap;
+}
+td{
+  padding:9px 12px;border-bottom:1px solid rgba(180,255,238,.05);
+  color:var(--ink);vertical-align:middle;
+}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.025)}
+td input[type="number"],td input[type="text"],td input[type="date"]{
+  width:100%;padding:5px 8px;border-radius:7px;font-size:12px;font-family:inherit;
+  background:rgba(255,255,255,.06);border:1px solid var(--stroke);
+  color:var(--ink);transition:border-color .12s;min-width:70px;
+}
+td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,255,255,.09)}
+.ga-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:7px;font-size:11px;font-weight:600;
+  background:rgba(191,146,0,.1);border:1px solid rgba(191,146,0,.2);color:var(--acc-hi);
+  white-space:nowrap;
+}
+.ga-badge.latest{background:rgba(59,232,166,.08);border-color:rgba(59,232,166,.2);color:var(--pos)}
+
+/* Gültigkeits-Gruppe */
+.glt-group{margin-bottom:24px}
+.glt-head{
+  display:flex;align-items:center;gap:10px;margin-bottom:12px;
+  padding:10px 14px;border-radius:11px;
+  background:rgba(255,255,255,.03);border:1px solid var(--stroke);
+}
+.glt-head h3{font-size:13px;font-weight:700;color:var(--ink)}
+.glt-actions{margin-left:auto;display:flex;gap:6px}
+
+/* PDF Pfad Liste */
+.pdf-list{display:flex;flex-direction:column;gap:10px}
+.pdf-item{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;border-radius:12px;
+  background:rgba(255,255,255,.035);border:1px solid var(--stroke);
+}
+.pdf-icon{
+  width:36px;height:36px;border-radius:9px;flex:0 0 36px;
+  display:flex;align-items:center;justify-content:center;
+}
+.pdf-item-body{flex:1;min-width:0}
+.pdf-item-body .pdf-name{font-size:13px;font-weight:600;color:var(--ink)}
+.pdf-item-body .pdf-path{font-size:11.5px;color:var(--muted-2);margin-top:3px;word-break:break-all}
+.pdf-item input{
+  flex:1;padding:8px 11px;border-radius:9px;font-size:12.5px;font-family:inherit;
+  background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--ink);
+  transition:border-color .12s;
+}
+.pdf-item input:focus{outline:none;border-color:rgba(191,146,0,.4)}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:8888;
+  padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  display:flex;align-items:center;gap:8px;
+  transform:translateY(80px);opacity:0;
+  transition:transform .3s var(--ease),opacity .25s;
+  pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{background:rgba(59,232,166,.15);border:1px solid rgba(59,232,166,.3);color:var(--pos)}
+.toast.err{background:rgba(255,138,120,.15);border:1px solid rgba(255,138,120,.3);color:var(--neg)}
+.toast.info{background:rgba(191,146,0,.15);border:1px solid rgba(191,146,0,.3);color:var(--acc-hi)}
+.toast svg{width:15px;height:15px}
+
+/* Divider */
+.divider{height:1px;background:var(--stroke);margin:20px 0}
+
+/* Grid */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid-2{grid-template-columns:1fr}.admin-main{padding:20px 16px 32px}}
+
+/* ── Toggle Switch ───────────────────────────────────────────────────────── */
+.toggle-sw{position:relative;width:42px;height:24px;flex:0 0 42px}
+.toggle-sw input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{
+  position:absolute;inset:0;border-radius:12px;cursor:pointer;
+  background:rgba(255,255,255,.10);border:1px solid var(--stroke);
+  transition:background .2s,border-color .2s;
+}
+.toggle-slider::after{
+  content:'';position:absolute;width:16px;height:16px;border-radius:50%;
+  background:rgba(255,255,255,.4);top:3px;left:3px;
+  transition:transform .2s var(--ease);
+}
+.toggle-sw input:checked+.toggle-slider{background:rgba(59,232,166,.25);border-color:rgba(59,232,166,.45)}
+.toggle-sw input:checked+.toggle-slider::after{transform:translateX(18px);background:var(--pos)}
+
+/* ── Produkte Sichtbarkeit ───────────────────────────────────────────────── */
+.sparte-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px}
+@media(max-width:860px){.sparte-grid{grid-template-columns:1fr}}
+.sparte-card{background:var(--glass-card);border:1px solid var(--stroke);border-radius:var(--radius);padding:20px;margin-bottom:0}
+.sparte-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--stroke)}
+.sparte-dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+.sparte-label{font-size:14px;font-weight:700;color:var(--ink);flex:1}
+.sparte-count{font-size:11px;color:var(--muted-2);font-weight:600}
+.prod-vis-list{display:flex;flex-direction:column;gap:5px}
+.prod-vis-row{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  border-radius:9px;background:rgba(255,255,255,.025);border:1px solid transparent;
+  transition:background .15s;cursor:default;
+}
+.prod-vis-row:hover{background:rgba(255,255,255,.05)}
+.prod-vis-name{flex:1;font-size:13px;font-weight:600;color:var(--ink);line-height:1.3}
+.prod-vis-key{font-size:10.5px;color:var(--muted-2);font-weight:500;display:block}
+
+/* ── PDF per Produkt ─────────────────────────────────────────────────────── */
+.pdf-sparte-section{margin-bottom:20px}
+.pdf-sparte-head{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  border-radius:11px;background:rgba(255,255,255,.04);border:1px solid var(--stroke);
+  margin-bottom:8px;cursor:pointer;transition:background .15s;
+}
+.pdf-sparte-head:hover{background:rgba(255,255,255,.07)}
+.pdf-sparte-title{font-size:13px;font-weight:700;color:var(--ink);flex:1}
+.pdf-sparte-chevron{width:14px;height:14px;transition:transform .22s var(--ease);opacity:.5}
+.pdf-sparte-section.open .pdf-sparte-chevron{transform:rotate(180deg)}
+.pdf-sparte-body{display:none;flex-direction:column;gap:6px}
+.pdf-sparte-section.open .pdf-sparte-body{display:flex}
+.pdf-prod-block{
+  padding:14px 16px;border-radius:12px;
+  background:rgba(255,255,255,.025);border:1px solid var(--stroke);
+}
+.pdf-prod-name{
+  font-size:12.5px;font-weight:700;color:var(--ink);
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;
+}
+.pdf-entries{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.pdf-entry{display:flex;gap:7px;align-items:center}
+.pdf-entry input.pdf-name-in{
+  width:150px;flex:0 0 150px;padding:7px 10px;border-radius:8px;
+  font-size:12px;font-family:inherit;
+  background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--ink);
+}
+.pdf-entry input.pdf-path-in{
+  flex:1;padding:7px 10px;border-radius:8px;
+  font-size:12px;font-family:inherit;
+  background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--ink);
+}
+.pdf-entry input::placeholder{color:var(--muted-2)}
+.pdf-entry input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,255,255,.09)}
+.pdf-entry-del{
+  width:28px;height:28px;border-radius:7px;flex:0 0 28px;
+  border:1px solid rgba(255,138,120,.2);background:rgba(255,138,120,.06);
+  color:var(--neg);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .12s;
+}
+.pdf-entry-del:hover{background:rgba(255,138,120,.18)}
+.pdf-entry-del svg{width:13px;height:13px}
+.pdf-add-btn{
+  padding:5px 11px;border-radius:8px;border:1px dashed var(--stroke-hi);
+  background:transparent;color:var(--muted);font-size:11.5px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:all .15s;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.pdf-add-btn:hover{color:var(--acc-hi);border-color:rgba(191,146,0,.4);background:rgba(191,146,0,.06)}
+.pdf-add-btn svg{width:12px;height:12px}
+</style>
+</head>
+<body>
+
+<!-- ── Lock Screen ──────────────────────────────────────────────────────────── -->
+<div id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-brand">
+      <svg viewBox="0 0 44 44" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="44" height="44" rx="12" fill="#003431"/>
+        <rect width="44" height="44" rx="12" fill="url(#lg1)" opacity=".6"/>
+        <defs>
+          <linearGradient id="lg1" x1="0" y1="0" x2="44" y2="44">
+            <stop offset="0%" stop-color="#006058"/>
+            <stop offset="100%" stop-color="#001a18"/>
+          </linearGradient>
+        </defs>
+        <path d="M22 12a10 10 0 1 0 7.07 17.07" stroke="#bf9200" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <line x1="12" y1="22" x2="31" y2="22" stroke="#bf9200" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="32.5" cy="22" r="1.8" fill="#e0ad1f"/>
+      </svg>
+      <div><b>Kundencenter</b><br><small>Control Center</small></div>
+    </div>
+
+    <div class="lock-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    </div>
+    <h1>Adminbereich</h1>
+    <p>Zugang nur für autorisierte Mitarbeiter</p>
+
+    <div class="pw-field">
+      <input type="password" id="pwInput" placeholder="Passwort eingeben …" autocomplete="current-password">
+      <button class="pw-toggle" id="pwToggle" type="button" aria-label="Passwort anzeigen">
+        <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
+
+    <button class="lock-btn" id="unlockBtn">Anmelden</button>
+    <div class="lock-error" id="lockError"></div>
+
+    <div class="lock-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:12px;height:12px;display:inline;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      Nur auf Port 8124 nutzbar · e-regio intern
+    </div>
+  </div>
+</div>
+
+<!-- ── Admin App ────────────────────────────────────────────────────────────── -->
+<div id="adminApp" class="app" style="display:none">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="wordmark"><span class="wm-e">e</span><span class="wm-regio">regio</span></div>
+      <div class="brand-caption">Kundenservice Control Center</div>
+    </div>
+
+    <nav class="mod-nav" aria-label="Module">
+
+      <!-- Kundencenter Analytics -->
+      <div class="mod-group" id="mg-dashboard">
+        <button class="mod-toggle collapsed" id="mt-dashboard" data-mg="dashboard">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/>
+          </svg>
+          <span class="mod-label">Kundencenter Analytics</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mod-items collapsed" id="mi-dashboard">
+          <a href="../besucher-dashboard/" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+            Dashboard<span class="ext-dot"></span>
+          </a>
+          <a href="../besucher-dashboard/#erfassen" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+            Besuch erfassen<span class="ext-dot"></span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Produkt-ID Tool -->
+      <div class="mod-group" id="mg-produkt">
+        <button class="mod-toggle collapsed" id="mt-produkt" data-mg="produkt">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/>
+          </svg>
+          <span class="mod-label">Produkt-ID Tool</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mod-items collapsed" id="mi-produkt">
+          <a href="../produkt-id-tool/" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/></svg>
+            Preisrechner<span class="ext-dot"></span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Einsatzplaner -->
+      <div class="mod-group" id="mg-einsatz">
+        <button class="mod-toggle collapsed" id="mt-einsatz" data-mg="einsatz">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            <rect x="7" y="14" width="3" height="3" rx=".5"/><rect x="14" y="14" width="3" height="3" rx=".5"/>
+          </svg>
+          <span class="mod-label">Einsatzplaner</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mod-items collapsed" id="mi-einsatz">
+          <a href="../einsatzplaner/" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+            Wochenplaner<span class="ext-dot"></span>
+          </a>
+          <button class="mod-item" id="sideTab-einsatzplaner" onclick="showTab('einsatzplaner')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Berater verwalten
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin (aktiv) -->
+      <div class="mod-group">
+        <button class="mod-toggle active" style="cursor:default">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span class="mod-label">Administration</span>
+        </button>
+        <div class="mod-items">
+          <button class="mod-item active" id="sideTab-produkte" onclick="showTab('produkte')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            Produkte
+          </button>
+          <button class="mod-item" id="sideTab-gueltigkeiten" onclick="showTab('gueltigkeiten')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><path d="M9 16l2 2 4-4"/></svg>
+            Gültigkeiten
+          </button>
+          <button class="mod-item" id="sideTab-formulare" onclick="showTab('formulare')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Vertragsformulare
+          </button>
+        </div>
+      </div>
+
+    </nav>
+
+    <div class="side-foot">
+      <div class="sync-badge" id="sideSync">Demo-Daten</div>
+      <button class="logout-btn" id="logoutBtn" onclick="logout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Abmelden
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="admin-main">
+
+    <div class="admin-header">
+      <h1>Administration <span class="admin-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:10px;height:10px;display:inline;vertical-align:middle;margin-right:2px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Eingeloggt
+      </span></h1>
+      <p>Preismanagement, Gültigkeiten und Vertragsformulare verwalten</p>
+    </div>
+
+    <!-- ── Tab Bar ── -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-produkte" onclick="showTab('produkte')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Produkte
+      </button>
+      <button class="tab-btn" id="tab-gueltigkeiten" onclick="showTab('gueltigkeiten')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><path d="M9 16l2 2 4-4"/></svg>
+        Gültigkeiten
+      </button>
+      <button class="tab-btn" id="tab-formulare" onclick="showTab('formulare')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+        Vertragsformulare
+      </button>
+      <button class="tab-btn" id="tab-einsatzplaner" onclick="showTab('einsatzplaner')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+        Einsatzplaner
+      </button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- (entfernt) Datenbank-Tab – Access durch Turso/SQLite abgelöst             -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- Datenbank-Tab entfernt (2026-06-21): Access durch Turso/SQLite abgelöst, keine DB-Pfad-Pflege mehr nötig. -->
+
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: Produkte                                                         -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel active" id="panel-produkte">
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Produktsichtbarkeit verwalten</div>
+            <div class="card-sub">Aktive Tarife je Sparte · Deaktivierte Tarife werden im Produkt-ID Tool ausgeblendet</div>
+          </div>
+          <div class="card-icon icon-gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:4px">
+          <button class="btn btn-primary" onclick="saveProdukteVis()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Sichtbarkeit speichern
+          </button>
+          <span style="font-size:12px;color:var(--muted-2)">Wird sofort im Produkt-ID Tool wirksam</span>
+        </div>
+      </div>
+
+      <div class="sparte-grid" id="prodVisGrid">
+        <!-- wird per JS gefüllt -->
+      </div>
+
+    </div><!-- /panel-produkte -->
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: Gültigkeiten (Preispflege)                                       -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-gueltigkeiten">
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Preis-Gültigkeiten pflegen</div>
+            <div class="card-sub">Neue & historische Preisstände je Datum · SQLite ist autoritativ · Produkt-/Angebots-IDs automatisch aus Registry</div>
+          </div>
+          <div class="card-icon icon-gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
+          </div>
+        </div>
+        <div class="gue-sparte-bar" id="gueSparteBar"><!-- Sparte-Pills per JS --></div>
+      </div>
+
+      <!-- Listen-Ansicht -->
+      <div id="gueListView">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title" id="gueListTitle">Gültigkeiten</div>
+            <button class="btn btn-primary" onclick="gueNew()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+              Neue Gültigkeit
+            </button>
+          </div>
+          <div id="gueList"><!-- Tabelle per JS --></div>
+        </div>
+      </div>
+
+      <!-- Editor-Ansicht -->
+      <div id="gueEditView" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-head">
+            <div>
+              <div class="card-title" id="gueEditTitle">Gültigkeit bearbeiten</div>
+              <div class="card-sub" id="gueEditSub"></div>
+            </div>
+            <button class="btn btn-ghost" onclick="gueCloseEditor()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Zurück zur Liste
+            </button>
+          </div>
+          <div class="gue-edit-head">
+            <label class="gue-field">
+              <span>Gültig ab</span>
+              <input type="date" id="gueGaInput">
+            </label>
+            <div class="gue-legend">
+              <span><b style="color:var(--pos)">●</b> aid aus Registry</span>
+              <span><b style="color:var(--warn)">●</b> neu – aus SAP eintragen</span>
+            </div>
+          </div>
+        </div>
+        <div id="gueEditor"><!-- Produkt-Sektionen per JS --></div>
+        <div class="btn-row" style="margin-top:18px">
+          <button class="btn btn-primary" onclick="gueSave()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Gültigkeit speichern
+          </button>
+          <span style="font-size:12px;color:var(--muted-2)">Eingabe: <b>Netto</b> AP (ct/kWh) &amp; GP (€/Jahr) · Brutto wird automatisch berechnet (×1,19)</span>
+        </div>
+      </div>
+
+    </div><!-- /panel-gueltigkeiten -->
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: Vertragsformulare                                               -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-formulare">
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Vertragsformulare je Produkt</div>
+            <div class="card-sub">Mehrere PDFs pro Tarif möglich · Klick im Produkt-ID Tool öffnet Auswahlmenü</div>
+          </div>
+          <div class="card-icon icon-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="savePdfPaths()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Alle PDFs speichern
+          </button>
+          <span style="font-size:12px;color:var(--muted-2)">Lokale/UNC-Pfade · Im Tool erscheint ein Auswahlmenü wenn mehrere PDFs vorhanden</span>
+        </div>
+      </div>
+
+      <div id="pdfPanel">
+        <!-- wird per JS gefüllt -->
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px">Hinweis</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7">
+          Je Tarif können mehrere PDFs mit individuellem Namen hinterlegt werden.<br>
+          Beispiel: <code style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:5px;font-size:11.5px">H:\K-K-D\Formulare\Gas_Basis_2026.pdf</code><br>
+          Hat ein Produkt genau ein PDF, wird es direkt geöffnet. Bei mehreren erscheint eine Auswahl.
+        </div>
+      </div>
+
+    </div><!-- /panel-formulare -->
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: Einsatzplaner                                                     -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-einsatzplaner">
+
+      <div class="sync-box" style="margin-bottom:20px">
+        <div class="card-icon icon-gold" style="margin-right:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+        </div>
+        <div class="sync-box-text">
+          <div class="sync-title">Einsatzplaner</div>
+          <div class="sync-sub">Wochenplanung Kall, Euskirchen &amp; HomeOffice</div>
+        </div>
+        <div class="sync-action">
+          <a class="btn btn-ghost" href="../einsatzplaner/" target="_blank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Wochenplaner öffnen
+          </a>
+        </div>
+      </div>
+
+      <div class="grid-2">
+
+        <!-- Berater-Liste -->
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">Berater</div><div class="card-sub">Alle aktiven &amp; inaktiven Berater</div></div>
+            <div class="card-icon icon-green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </div>
+          </div>
+          <div id="epAgentList"><div style="color:var(--muted-2);font-size:13px">Lade…</div></div>
+        </div>
+
+        <!-- Neuer Berater -->
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">Neuer Berater</div><div class="card-sub">Zum Einsatzplaner hinzufügen</div></div>
+            <div class="card-icon icon-gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+            </div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">VOLLSTÄNDIGER NAME</label>
+            <input class="field-input" id="epNewName" type="text" placeholder="z.B. Erika Musterfrau"
+              onkeydown="if(event.key==='Enter')epCreateAgent()">
+          </div>
+          <div class="field-row-h">
+            <div class="field-row">
+              <label class="field-label">KÜRZEL (2–3 Zeichen)</label>
+              <input class="field-input" id="epNewKuerzel" type="text" placeholder="z.B. EM" maxlength="3"
+                oninput="this.value=this.value.toUpperCase()"
+                onkeydown="if(event.key==='Enter')epCreateAgent()">
+            </div>
+            <div class="field-row">
+              <label class="field-label">FARBE</label>
+              <input type="color" id="epNewColor" value="#3BE8C4" style="height:42px;width:100%;border-radius:10px;border:1px solid var(--stroke);background:var(--glass);cursor:pointer;padding:4px">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="epCreateAgent()" style="width:100%;justify-content:center;margin-top:4px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+            Berater hinzufügen
+          </button>
+        </div>
+
+      </div>
+    </div><!-- /panel-einsatzplaner -->
+
+  </main>
+</div><!-- /adminApp -->
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg id="toastIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<script src="../produkt-id-tool/data.js"></script>
+<script>
+'use strict';
+
+// ── Konstanten ──────────────────────────────────────────────────────────────
+const PW = 'eregio2026#';
+const LS = {
+  session:     'admin-session',
+  backendPath: 'admin-backend-path',
+  hauptPath:   'admin-haupt-path',
+  lastSync:    'admin-last-sync',
+  pdfPaths:    'admin-pdf-paths-v2',
+  prodVis:     'admin-produkt-vis',
+};
+
+const SPARTEN_META = [
+  {key:'gas',      label:'Erdgas',      color:'#F97316'},
+  {key:'strom',    label:'Strom',       color:'#F59E0B'},
+  {key:'heizstrom',label:'Heizstrom',   color:'#A78BFA'},
+  {key:'autostrom',label:'AutoStrom',   color:'#34D399'},
+  {key:'steuve',   label:'SteuVE §14a', color:'#60A5FA'},
+];
+
+// ── Lock / Unlock ────────────────────────────────────────────────────────────
+function init(){
+  const sess = sessionStorage.getItem(LS.session);
+  if(sess === '1') unlock(true);
+  loadDbPaths();
+}
+
+document.getElementById('pwInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter') tryUnlock();
+  document.getElementById('pwInput').classList.remove('error');
+  document.getElementById('lockError').textContent='';
+});
+document.getElementById('unlockBtn').addEventListener('click', tryUnlock);
+document.getElementById('pwToggle').addEventListener('click',()=>{
+  const inp = document.getElementById('pwInput');
+  inp.type = inp.type==='password' ? 'text' : 'password';
+});
+
+function tryUnlock(){
+  const val = document.getElementById('pwInput').value;
+  if(val === PW){
+    unlock(false);
+  } else {
+    document.getElementById('pwInput').classList.add('error');
+    document.getElementById('lockError').textContent = 'Falsches Passwort. Bitte erneut versuchen.';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+function unlock(silent){
+  sessionStorage.setItem(LS.session,'1');
+  document.getElementById('lockScreen').style.display='none';
+  document.getElementById('adminApp').style.display='flex';
+  if(!silent) showToast('Erfolgreich angemeldet','ok');
+  loadDbPaths();
+  renderProduktePanel();
+  renderPdfPanel();
+}
+
+function logout(){
+  sessionStorage.removeItem(LS.session);
+  document.getElementById('adminApp').style.display='none';
+  document.getElementById('lockScreen').style.display='flex';
+  document.getElementById('pwInput').value='';
+  document.getElementById('lockError').textContent='';
+}
+
+// ── Tab Navigation ───────────────────────────────────────────────────────────
+const TABS = ['produkte','gueltigkeiten','formulare','einsatzplaner'];
+function showTab(name){
+  TABS.forEach(t=>{
+    const panel = document.getElementById('panel-'+t);
+    const tabBtn = document.getElementById('tab-'+t);
+    const sideBtn = document.getElementById('sideTab-'+t);
+    if(panel) panel.classList.toggle('active', t===name);
+    if(tabBtn) tabBtn.classList.toggle('active', t===name);
+    if(sideBtn) sideBtn.classList.toggle('active', t===name);
+  });
+  if(name==='einsatzplaner') epLoadAgents();
+  if(name==='gueltigkeiten') gueInit();
+}
+
+// ── Sidebar Toggles ──────────────────────────────────────────────────────────
+document.querySelectorAll('.mod-toggle[data-mg]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const mg = btn.dataset.mg;
+    const items = document.getElementById('mi-'+mg);
+    const collapsed = items.classList.toggle('collapsed');
+    btn.classList.toggle('collapsed', collapsed);
+  });
+});
+
+// ── DB Pfad Management ───────────────────────────────────────────────────────
+function loadDbPaths(){
+  const bp = localStorage.getItem(LS.backendPath)||'';
+  const hp = localStorage.getItem(LS.hauptPath)||'';
+  const ls = localStorage.getItem(LS.lastSync)||'';
+
+  if(document.getElementById('backendPath')) document.getElementById('backendPath').value = bp;
+  if(document.getElementById('hauptPath')) document.getElementById('hauptPath').value = hp;
+
+  const dispB = document.getElementById('disp-backend');
+  const dispH = document.getElementById('disp-haupt');
+  const dispS = document.getElementById('disp-sync');
+  if(dispB){ dispB.textContent = bp || '–'; }
+  if(dispH){ dispH.textContent = hp || '–'; }
+  if(dispS){ dispS.textContent = ls ? 'Zuletzt: '+ls : 'Nie synchronisiert'; }
+
+  // Sync-Box Status aktualisieren
+  const pd = window.PRODUKTDATEN;
+  const gaDate = pd && pd.gas && pd.gas.gueltigkeiten && pd.gas.gueltigkeiten[0];
+  const syncSt = document.getElementById('syncStatus');
+  const syncDot = document.getElementById('syncDot');
+  if(gaDate){
+    if(syncSt) syncSt.textContent = 'Aktuelle Preise geladen · Stand ' + gaDate;
+    if(syncDot){ syncDot.style.background='var(--pos)'; syncDot.style.boxShadow='0 0 8px rgba(59,232,166,.4)'; }
+  } else {
+    if(syncSt) syncSt.textContent = 'Keine Preisdaten – sync.bat ausführen';
+    if(syncDot){ syncDot.style.background='var(--neg)'; syncDot.style.boxShadow='0 0 8px rgba(255,138,120,.4)'; }
+  }
+
+  const dotB = document.getElementById('dot-backend');
+  const dotH = document.getElementById('dot-haupt');
+  if(dotB) dotB.className = 'status-dot '+(bp?'ok':'err');
+  if(dotH) dotH.className = 'status-dot '+(hp?'ok':'err');
+
+  // Sync badge in sidebar – zeige Gültig-ab aus geladener data.js
+  const sb = document.getElementById('sideSync');
+  if(sb){
+    const pd = window.PRODUKTDATEN;
+    const ga = pd && pd.gas && pd.gas.gueltigkeiten && pd.gas.gueltigkeiten[0];
+    const isGenerated = ga && document.querySelector && true; // data.js geladen
+    if(ga){
+      sb.textContent = 'Stand: ' + ga;
+      sb.className = 'sync-badge ok';
+    } else if(ls){
+      sb.textContent='Sync: '+ls;
+      sb.className='sync-badge ok';
+    } else {
+      sb.textContent='Keine Preisdaten';
+      sb.className='sync-badge';
+    }
+  }
+}
+
+function saveDbPath(type){
+  const key = type==='backend' ? 'backendPath' : 'hauptPath';
+  const lsKey = type==='backend' ? LS.backendPath : LS.hauptPath;
+  const val = document.getElementById(key).value.trim();
+  localStorage.setItem(lsKey, val);
+  loadDbPaths();
+  showToast('Pfad gespeichert','ok');
+}
+
+function copyPath(inputId){
+  const val = document.getElementById(inputId).value;
+  if(!val){ showToast('Kein Pfad eingegeben','err'); return; }
+  navigator.clipboard.writeText(val).then(()=>showToast('In Zwischenablage kopiert','ok'));
+}
+
+function triggerSync(){
+  // Browser kann keine lokalen Programme starten – Anleitung anzeigen
+  const modal = document.getElementById('syncModal');
+  if(modal) { modal.style.display='flex'; return; }
+
+  // Modal on-the-fly erzeugen
+  const m = document.createElement('div');
+  m.id='syncModal';
+  m.style.cssText='position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(6px)';
+  m.innerHTML=`
+    <div style="background:var(--bg1);border:1px solid var(--stroke-hi);border-radius:20px;padding:30px 32px;max-width:520px;width:calc(100% - 40px);box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" width="24" height="24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <h2 style="font-size:16px;font-weight:700">Preisdaten synchronisieren</h2>
+      </div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:18px">
+        Der Sync läuft als Java-Batchjob lokal auf dem Rechner – der Browser kann ihn nicht direkt starten.
+        Doppelklicken Sie die <code style="background:rgba(255,255,255,.1);padding:2px 7px;border-radius:5px">sync.bat</code>
+        im Ordner <code style="background:rgba(255,255,255,.1);padding:2px 7px;border-radius:5px">accdb-tools</code>:
+      </p>
+      <div style="background:rgba(255,255,255,.05);border:1px solid var(--stroke);border-radius:10px;padding:10px 14px;font-size:12px;font-family:monospace;color:var(--gold);display:flex;align-items:center;gap:8px;margin-bottom:18px">
+        <span style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">C:\\Users\\marck\\Downloads\\accdb-tools\\sync.bat</span>
+        <button onclick="navigator.clipboard.writeText('C:\\\\Users\\\\marck\\\\Downloads\\\\accdb-tools\\\\sync.bat').then(()=>showToast('Pfad kopiert','ok'))"
+          style="padding:4px 10px;border-radius:7px;background:var(--glass-hi);border:1px solid var(--stroke-hi);color:var(--ink);cursor:pointer;font-size:11px;white-space:nowrap">Kopieren</button>
+      </div>
+      <p style="font-size:12px;color:var(--muted-2);line-height:1.6;margin-bottom:22px">
+        Nach erfolgreichem Sync die Seite neu laden (<kbd style="background:rgba(255,255,255,.08);padding:1px 6px;border-radius:4px;font-size:11px">F5</kbd>) –
+        die Preisdaten werden aus der aktualisierten <code style="font-size:11px">data.js</code> geladen.
+      </p>
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button onclick="this.closest('#syncModal').style.display='none'" style="padding:8px 18px;border-radius:10px;background:var(--glass);border:1px solid var(--stroke);color:var(--ink);cursor:pointer;font-size:13px">Schließen</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', e=>{ if(e.target===m) m.style.display='none'; });
+}
+
+// ── Produkte Sichtbarkeit ─────────────────────────────────────────────────────
+function renderProduktePanel(){
+  const vis = JSON.parse(localStorage.getItem(LS.prodVis)||'{}');
+  const pd  = window.PRODUKTDATEN;
+  const grid = document.getElementById('prodVisGrid');
+  if(!grid || !pd) return;
+
+  grid.innerHTML = SPARTEN_META.map(s=>{
+    const d = pd[s.key];
+    if(!d) return '';
+    const produkte = d.produkte || [];
+    const labels   = d.labels   || {};
+    const activeCount = produkte.filter(p=>vis[s.key+'-'+p]!==false).length;
+
+    return `<div class="sparte-card">
+      <div class="sparte-head">
+        <span class="sparte-dot" style="background:${s.color};box-shadow:0 0 6px ${s.color}60"></span>
+        <span class="sparte-label">${s.label}</span>
+        <span class="sparte-count">${activeCount}/${produkte.length} aktiv</span>
+      </div>
+      <div class="prod-vis-list">
+        ${produkte.map(p=>{
+          const active = vis[s.key+'-'+p] !== false;
+          const id = 'vis-'+s.key+'-'+p.replace(/[^a-zA-Z0-9]/g,'_');
+          return `<div class="prod-vis-row" id="pvrow-${id}">
+            <div style="flex:1">
+              <div class="prod-vis-name">${labels[p]||p}</div>
+              <div class="prod-vis-key">${p}</div>
+            </div>
+            <label class="toggle-sw" title="${active?'Aktiv – klicken zum Deaktivieren':'Inaktiv – klicken zum Aktivieren'}">
+              <input type="checkbox" id="${id}" ${active?'checked':''} onchange="updateVisRow('${s.key}','${p}',this.checked,'${id}')">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateVisRow(sparte, prod, active, id){
+  const row = document.getElementById('pvrow-'+id);
+  if(row) row.style.opacity = active ? '' : '.45';
+  // Sparte-Count aktualisieren
+  const vis = {};
+  document.querySelectorAll('[id^="vis-"]').forEach(cb=>{
+    const parts = cb.id.replace('vis-','').split('-');
+    if(parts.length>=2){
+      const sk = parts[0];
+      const pk = parts.slice(1).join('-').replace(/_/g, match=>{
+        // find original product key - check labels
+        return match === '_' ? '+' : match; // Klima+ case
+      });
+      vis[sk+'-'+cb.id.replace('vis-'+sk+'-','')] = cb.checked;
+    }
+  });
+  // update counts
+  SPARTEN_META.forEach(s=>{
+    const d = window.PRODUKTDATEN[s.key];
+    if(!d) return;
+    const produkte = d.produkte||[];
+    const activeCount = produkte.filter(p=>{
+      const cb = document.getElementById('vis-'+s.key+'-'+p.replace(/[^a-zA-Z0-9]/g,'_'));
+      return cb ? cb.checked : true;
+    }).length;
+    // find count element
+    const head = document.querySelector(`#prodVisGrid .sparte-card:nth-child(${SPARTEN_META.indexOf(s)+1}) .sparte-count`);
+    if(head) head.textContent = activeCount + '/' + produkte.length + ' aktiv';
+  });
+}
+
+function saveProdukteVis(){
+  const vis = {};
+  document.querySelectorAll('[id^="vis-"]').forEach(cb=>{
+    // id format: vis-{sparte}-{prodKey_with_underscores}
+    const withoutPrefix = cb.id.replace(/^vis-/,'');
+    const spartePart = SPARTEN_META.find(s=>withoutPrefix.startsWith(s.key+'-'));
+    if(spartePart){
+      const prodUnder = withoutPrefix.replace(spartePart.key+'-','');
+      // find matching product key
+      const d = window.PRODUKTDATEN[spartePart.key];
+      if(d) {
+        const prod = (d.produkte||[]).find(p=>p.replace(/[^a-zA-Z0-9]/g,'_')===prodUnder);
+        if(prod) vis[spartePart.key+'-'+prod] = cb.checked;
+      }
+    }
+  });
+  localStorage.setItem(LS.prodVis, JSON.stringify(vis));
+  showToast('Sichtbarkeit gespeichert – Produkt-ID Tool aktualisiert','ok');
+}
+
+// ── PDF per Produkt ───────────────────────────────────────────────────────────
+// Storage: { "gas-Basis": [{name:"Standardvertrag",path:"H:\..."}, ...], ... }
+
+function renderPdfPanel(){
+  const saved  = JSON.parse(localStorage.getItem(LS.pdfPaths)||'{}');
+  const pd     = window.PRODUKTDATEN;
+  const panel  = document.getElementById('pdfPanel');
+  if(!panel || !pd) return;
+
+  panel.innerHTML = SPARTEN_META.map(s=>{
+    const d = pd[s.key];
+    if(!d) return '';
+    const produkte = d.produkte||[];
+    const labels   = d.labels||{};
+    const totalPdfs = produkte.reduce((n,p)=>{
+      const arr = saved[s.key+'-'+p]||[];
+      return n + arr.length;
+    }, 0);
+
+    return `<div class="pdf-sparte-section" id="pdfsec-${s.key}">
+      <div class="pdf-sparte-head" onclick="togglePdfSection('${s.key}')">
+        <span style="width:8px;height:8px;border-radius:50%;background:${s.color};flex:0 0 8px"></span>
+        <span class="pdf-sparte-title">${s.label}</span>
+        <span style="font-size:11px;color:var(--muted-2);margin-right:8px">${totalPdfs} PDF${totalPdfs!==1?'s':''} hinterlegt</span>
+        <svg class="pdf-sparte-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="pdf-sparte-body">
+        ${produkte.map(p=>{
+          const key = s.key+'-'+p;
+          const entries = saved[key]||[];
+          return `<div class="pdf-prod-block">
+            <div class="pdf-prod-name">
+              <span>${labels[p]||p}</span>
+              <button class="pdf-add-btn" onclick="addPdfEntry('${key}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+                PDF hinzufügen
+              </button>
+            </div>
+            <div class="pdf-entries" id="pdfentries-${key}">
+              ${entries.map((e,i)=>pdfEntryHtml(key,i,e.name,e.path)).join('')}
+            </div>
+            ${entries.length===0?`<div style="font-size:11.5px;color:var(--muted-2);padding:4px 0">Noch keine PDFs hinterlegt</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function pdfEntryHtml(key, idx, name, path){
+  return `<div class="pdf-entry" id="pdfrow-${key}-${idx}">
+    <input type="text" class="pdf-name-in" value="${escHtml(name)}" placeholder="Name (z.B. Standardvertrag)" oninput="markPdfDirty()">
+    <input type="text" class="pdf-path-in" value="${escHtml(path)}" placeholder="H:\\K-K-D\\Formulare\\Datei.pdf" oninput="markPdfDirty()">
+    <button class="pdf-entry-del" onclick="removePdfEntry('${key}',${idx})" title="Entfernen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>`;
+}
+
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function togglePdfSection(key){
+  const sec = document.getElementById('pdfsec-'+key);
+  if(sec) sec.classList.toggle('open');
+}
+
+function addPdfEntry(key){
+  // ensure section is open
+  const parts = key.split('-');
+  const sec = document.getElementById('pdfsec-'+parts[0]);
+  if(sec && !sec.classList.contains('open')) sec.classList.add('open');
+
+  const container = document.getElementById('pdfentries-'+key);
+  if(!container) return;
+  const idx = container.children.length;
+  container.insertAdjacentHTML('beforeend', pdfEntryHtml(key, idx, '', ''));
+  // hide "noch keine PDFs" hint
+  const hint = container.nextElementSibling;
+  if(hint && hint.textContent.includes('Noch keine')) hint.style.display='none';
+}
+
+function removePdfEntry(key, idx){
+  const container = document.getElementById('pdfentries-'+key);
+  if(!container) return;
+  const rows = container.querySelectorAll('.pdf-entry');
+  if(rows[idx]) rows[idx].remove();
+}
+
+function markPdfDirty(){ /* optional: mark save button as dirty */ }
+
+function savePdfPaths(){
+  const saved = JSON.parse(localStorage.getItem(LS.pdfPaths)||'{}');
+  // read all entries
+  document.querySelectorAll('[id^="pdfentries-"]').forEach(container=>{
+    const key = container.id.replace('pdfentries-','');
+    const entries = [];
+    container.querySelectorAll('.pdf-entry').forEach(row=>{
+      const name = row.querySelector('.pdf-name-in')?.value?.trim()||'';
+      const path = row.querySelector('.pdf-path-in')?.value?.trim()||'';
+      if(path) entries.push({name, path});
+    });
+    if(entries.length) saved[key] = entries;
+    else delete saved[key];
+  });
+  localStorage.setItem(LS.pdfPaths, JSON.stringify(saved));
+  showToast('PDF-Zuordnungen gespeichert','ok');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type='ok'){
+  const t = document.getElementById('toast');
+  const icon = document.getElementById('toastIcon');
+  t.className='toast '+type;
+  document.getElementById('toastMsg').textContent=msg;
+  const icons = {
+    ok:'<polyline points="20 6 9 17 4 12"/>',
+    err:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    info:'<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+  };
+  icon.innerHTML=icons[type]||icons.ok;
+  clearTimeout(toastTimer);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+// ── Spin Animation ────────────────────────────────────────────────────────────
+const style = document.createElement('style');
+style.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
+document.head.appendChild(style);
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+init();
+
+// ── Gültigkeiten-Pflege ───────────────────────────────────────────────────────
+const ADMIN_API = (location.hostname === '127.0.0.1' ? 'http://127.0.0.1:3001' : '') + '/api/admin';
+let GUE = { sparte:'gas', mode:null, ga:null, tpl:null };
+
+async function gueApi(path, opts){ const r = await fetch(ADMIN_API+path, opts); return r.json(); }
+
+function gueInit(){
+  const bar = document.getElementById('gueSparteBar');
+  if(bar && !bar.dataset.ready){
+    bar.innerHTML = SPARTEN_META.map(s=>
+      `<button class="gue-pill${s.key===GUE.sparte?' active':''}" data-sk="${s.key}" onclick="gueSelectSparte('${s.key}')">
+         <span class="dot" style="background:${s.color}"></span>${s.label}</button>`).join('');
+    bar.dataset.ready='1';
+  }
+  gueCloseEditor();
+  gueLoadList();
+}
+
+function gueSelectSparte(key){
+  GUE.sparte = key;
+  document.querySelectorAll('#gueSparteBar .gue-pill').forEach(p=>p.classList.toggle('active', p.dataset.sk===key));
+  gueCloseEditor();
+  gueLoadList();
+}
+
+async function gueLoadList(){
+  const list = document.getElementById('gueList');
+  const meta = SPARTEN_META.find(s=>s.key===GUE.sparte);
+  document.getElementById('gueListTitle').textContent = 'Gültigkeiten · '+(meta?meta.label:GUE.sparte);
+  list.innerHTML = '<div style="padding:14px;color:var(--muted-2);font-size:13px">Lädt…</div>';
+  try{
+    const res = await gueApi('/gueltigkeiten?sparte='+GUE.sparte);
+    if(!res.ok){ list.innerHTML = '<div style="padding:14px;color:#ff8a78">Fehler: '+(res.error||'?')+'</div>'; return; }
+    if(!res.gueltigkeiten.length){ list.innerHTML='<div style="padding:14px;color:var(--muted-2)">Noch keine Gültigkeiten.</div>'; return; }
+    list.innerHTML = `<table class="gue-table"><thead><tr>
+      <th>Gültig ab</th><th>Quelle</th><th>Preiszeilen</th><th>Konditionen</th><th style="text-align:right">Aktion</th>
+      </tr></thead><tbody>${res.gueltigkeiten.map(g=>`<tr>
+        <td style="font-weight:600">${g.ga}</td>
+        <td><span class="gue-badge ${g.quelle}">${g.quelle}</span></td>
+        <td>${g.n_preise}</td><td>${g.n_kond}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="gue-actbtn" onclick="gueEdit('${g.ga}')">Bearbeiten</button>
+          <button class="gue-actbtn danger" onclick="gueDelete('${g.ga}')">Löschen</button>
+        </td></tr>`).join('')}</tbody></table>`;
+  }catch(e){ list.innerHTML='<div style="padding:14px;color:#ff8a78">API nicht erreichbar (läuft der Server auf :3001?)</div>'; }
+}
+
+async function gueNew(){
+  const res = await gueApi('/gueltigkeit?sparte='+GUE.sparte);
+  if(!res.ok){ showToast('Fehler: '+(res.error||'?'),'err'); return; }
+  GUE.mode='new'; GUE.ga=null; GUE.tpl=res;
+  gueOpenEditor('Neue Gültigkeit anlegen','Vorlage geklont aus Stand '+(res.ga||'–')+' · Preise anpassen & neues Datum setzen');
+  document.getElementById('gueGaInput').value='';
+}
+
+async function gueEdit(ga){
+  const res = await gueApi('/gueltigkeit?sparte='+GUE.sparte+'&ga='+ga);
+  if(!res.ok){ showToast('Fehler: '+(res.error||'?'),'err'); return; }
+  GUE.mode='edit'; GUE.ga=ga; GUE.tpl=res;
+  gueOpenEditor('Gültigkeit bearbeiten · '+ga,'Änderungen werden als manueller Stand gespeichert');
+  document.getElementById('gueGaInput').value=ga;
+}
+
+function gueOpenEditor(title, sub){
+  document.getElementById('gueListView').style.display='none';
+  document.getElementById('gueEditView').style.display='';
+  document.getElementById('gueEditTitle').textContent=title;
+  document.getElementById('gueEditSub').textContent=sub;
+  gueRenderEditor();
+}
+function gueCloseEditor(){
+  document.getElementById('gueEditView').style.display='none';
+  document.getElementById('gueListView').style.display='';
+}
+
+function gueRenderEditor(){
+  const tpl = GUE.tpl;
+  const box = document.getElementById('gueEditor');
+  const meta = SPARTEN_META.find(s=>s.key===GUE.sparte);
+  const groups = {};
+  tpl.rows.forEach((r,i)=>{ (groups[r.produkt_key]=groups[r.produkt_key]||[]).push(i); });
+
+  box.innerHTML = Object.entries(groups).map(([pk,idxs])=>{
+    const anyNt = idxs.some(i=>tpl.rows[i].pid_nt!=null);
+    const anyZ  = idxs.some(i=>tpl.rows[i].zaehlerart!=null);
+    return `<div class="card gue-prod-sec">
+      <div class="gue-prod-head"><span style="width:9px;height:9px;border-radius:50%;background:${meta?meta.color:'#888'}"></span>${pk}</div>
+      <div style="overflow-x:auto"><table class="gue-grid"><thead><tr>
+        <th>Gebiet</th><th>Staffel (kWh)</th>${anyZ?'<th>Zähler</th>':''}
+        <th>Netto AP</th><th>Netto GP/J</th>${anyNt?'<th>Netto AP-NT</th>':''}<th>Bonus</th>
+        <th>→ Brutto AP</th><th>→ Brutto GP</th><th>Produkt-ID</th><th>Angebots-ID</th>
+      </tr></thead><tbody>${idxs.map(i=>gueRowHtml(i,anyNt,anyZ)).join('')}</tbody></table></div>
+    </div>`;
+  }).join('');
+}
+
+function gueRowHtml(i, anyNt, anyZ){
+  const r = GUE.tpl.rows[i];
+  const hasNtRow = r.pid_nt!=null;
+  const staffel = (r.v_von===0&&r.v_bis>=999999)?'gesamt':(r.v_von+'–'+r.v_bis);
+  return `<tr data-i="${i}">
+    <td>${r.gebiet||'<span style="color:var(--muted-2)">–</span>'}</td>
+    <td style="color:var(--muted)">${staffel}</td>
+    ${anyZ?`<td style="color:var(--muted)">${r.zaehlerart||'–'}</td>`:''}
+    <td><input type="number" step="0.01" class="g-ap" value="${r.ap_n??''}" oninput="gueRecalc(${i})"></td>
+    <td><input type="number" step="0.01" class="g-gp" value="${r.gp_n??''}" oninput="gueRecalc(${i})"></td>
+    ${anyNt?`<td>${hasNtRow?`<input type="number" step="0.01" class="g-apnt" value="${r.ap_nt_n??''}" oninput="gueRecalc(${i})">`:'<span style="color:var(--muted-2)">–</span>'}</td>`:''}
+    <td><input type="number" step="0.01" class="g-bonus" value="${r.bonus??0}"></td>
+    <td class="gue-calc g-apb">${fmtNum(r.apB)}</td>
+    <td class="gue-calc g-gpb">${fmtNum(r.gpB)}</td>
+    <td class="gue-pidcell g-pid">${r.pid||'–'}${r.pid_nt?'<br><span style="opacity:.7">NT '+r.pid_nt+'</span>':''}</td>
+    <td class="g-aidcell">${gueAidCell(i)}</td>
+  </tr>`;
+}
+
+function gueAidCell(i){
+  const r = GUE.tpl.rows[i];
+  if(r.aid_neu){
+    return `<span class="gue-aid neu" title="Nicht in Registry – aus SAP eintragen">neu</span>
+      <input type="number" class="aid-manual g-aidman" placeholder="aid" value="${r.aid_override??''}" style="width:64px" oninput="gueSetAidOverride(${i},this.value)">`;
+  }
+  return `<span class="gue-aid ok">${r.aid||'–'}</span>${r.aid_nt?'<br><span style="font-size:10.5px;color:var(--muted-2)">NT '+r.aid_nt+'</span>':''}`;
+}
+
+function fmtNum(v){ return v==null||v===''?'–':Number(v).toFixed(2); }
+function gRound(v){ return Math.round(v*100)/100; }
+
+let gueAidTimers={};
+function gueRecalc(i){
+  const tr = document.querySelector(`#gueEditor tr[data-i="${i}"]`);
+  if(!tr) return;
+  const ap = parseFloat(tr.querySelector('.g-ap')?.value);
+  const gp = parseFloat(tr.querySelector('.g-gp')?.value);
+  const apnt = parseFloat(tr.querySelector('.g-apnt')?.value);
+  tr.querySelector('.g-apb').textContent = isNaN(ap)?'–':gRound(ap*1.19).toFixed(2);
+  tr.querySelector('.g-gpb').textContent = isNaN(gp)?'–':gRound(gp/12*1.19).toFixed(2);
+  clearTimeout(gueAidTimers[i]);
+  gueAidTimers[i]=setTimeout(()=>gueResolveAid(i,ap,gp,apnt),350);
+}
+
+async function gueResolveAid(i,ap,gp,apnt){
+  const r = GUE.tpl.rows[i];
+  if(isNaN(ap)||isNaN(gp)) return;
+  const q = `/aid-lookup?sparte=${GUE.sparte}&ap=${ap}&gp=${gp}`+(r.pid_nt&&!isNaN(apnt)?`&apnt=${apnt}`:'');
+  let res; try{ res = await gueApi(q); }catch(e){ return; }
+  if(!res.ok) return;
+  if(res.aid!=null) r.aid = res.aid;
+  r.aid_neu = res.neu;
+  if(!res.neu) r.aid_override = null;
+  if(res.aidNt!=null) r.aid_nt = res.aidNt;
+  const tr = document.querySelector(`#gueEditor tr[data-i="${i}"]`);
+  if(tr){ const cell = tr.querySelector('.g-aidcell'); if(cell) cell.innerHTML = gueAidCell(i); }
+}
+
+function gueSetAidOverride(i,val){ GUE.tpl.rows[i].aid_override = val===''?null:Number(val); }
+
+async function gueSave(){
+  const ga = document.getElementById('gueGaInput').value.trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(ga)){ showToast('Bitte gültiges Datum (JJJJ-MM-TT) wählen','err'); return; }
+  const rows = GUE.tpl.rows.map((r,i)=>{
+    const tr = document.querySelector(`#gueEditor tr[data-i="${i}"]`);
+    const num = (sel)=>{ const v=tr?.querySelector(sel)?.value; return v==null||v===''?null:Number(v); };
+    return {
+      produkt_key:r.produkt_key, gebiet:r.gebiet, v_von:r.v_von, v_bis:r.v_bis, zaehlerart:r.zaehlerart,
+      ap_n:num('.g-ap'), gp_n:num('.g-gp'), ap_nt_n:num('.g-apnt'), bonus:num('.g-bonus')??0,
+      aid_override:r.aid_override??null, aid_nt_override:r.aid_nt_override??null,
+    };
+  });
+  const body = { sparte:GUE.sparte, ga, rows, kondGebietUniform:GUE.tpl.kondGebietUniform };
+  const method = (GUE.mode==='edit' && GUE.ga===ga) ? 'PUT' : 'POST';
+  const res = await gueApi('/gueltigkeit', {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  if(res.ok){ showToast(`Gültigkeit ${ga} gespeichert (${res.n} Zeilen)`,'ok'); gueCloseEditor(); gueLoadList(); }
+  else showToast('Fehler: '+(res.error||'?'),'err');
+}
+
+async function gueDelete(ga){
+  if(!confirm(`Gültigkeit ${ga} (${GUE.sparte}) wirklich löschen?`)) return;
+  const res = await gueApi('/gueltigkeit?sparte='+GUE.sparte+'&ga='+ga, {method:'DELETE'});
+  if(res.ok){ showToast('Gültigkeit gelöscht','ok'); gueLoadList(); }
+  else showToast('Fehler: '+(res.error||'?'),'err');
+}
+
+// ── Einsatzplaner Berater ─────────────────────────────────────────────────────
+const EP_API = (location.hostname === '127.0.0.1' ? 'http://127.0.0.1:3001' : '') + '/api/einsatzplaner';
+async function epApi(path, opts={}) {
+  const r = await fetch(EP_API+path, {
+    headers:{'Content-Type':'application/json'}, ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  return r.json();
+}
+
+async function epLoadAgents() {
+  const agents = await epApi('/agents');
+  const el = document.getElementById('epAgentList');
+  if(!agents?.length) { el.innerHTML='<div style="color:var(--muted-2);font-size:13px">Keine Berater gefunden</div>'; return; }
+  el.innerHTML = agents.map(a => `
+    <div class="info-row" style="gap:12px">
+      <span style="width:12px;height:12px;border-radius:50%;background:${a.color};flex:0 0 12px"></span>
+      <span style="flex:1;font-size:13px;font-weight:600;color:${a.active?'var(--ink)':'var(--muted-2)'}">${a.name}</span>
+      <span style="font-family:'Space Grotesk';font-size:11px;font-weight:700;color:var(--muted-2);
+        background:var(--glass);border:1px solid var(--stroke);border-radius:7px;padding:2px 8px">${a.kuerzel}</span>
+      <button onclick="epToggle(${a.id},${a.active})"
+        class="btn ${a.active?'btn-green':'btn-ghost'}" style="padding:5px 12px;font-size:11.5px">
+        ${a.active?'Aktiv':'Inaktiv'}
+      </button>
+    </div>`).join('');
+}
+
+async function epToggle(id, active) {
+  await epApi('/agents/'+id, {method:'PATCH', body:{active: active?0:1}});
+  await epLoadAgents();
+  showToast(active?'Berater deaktiviert':'Berater aktiviert','ok');
+}
+
+async function epCreateAgent() {
+  const name    = document.getElementById('epNewName').value.trim();
+  const kuerzel = document.getElementById('epNewKuerzel').value.trim();
+  const color   = document.getElementById('epNewColor').value;
+  if(!name||!kuerzel) { showToast('Name und Kürzel sind erforderlich','err'); return; }
+  await epApi('/agents', {method:'POST', body:{name,kuerzel,color}});
+  document.getElementById('epNewName').value='';
+  document.getElementById('epNewKuerzel').value='';
+  await epLoadAgents();
+  showToast(kuerzel+' wurde angelegt','ok');
+}
+</script>
+<link rel="stylesheet" href="../shared/erfass-bar.css?v=1">
+<script src="../shared/erfass-bar.js?v=3"></script>
+</body>
+</html>

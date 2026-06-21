@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/vercel.js": { "memory": 512, "maxDuration": 30 }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/vercel.js" }
+  ]
+}

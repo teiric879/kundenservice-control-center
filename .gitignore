@@ -1,0 +1,22 @@
+# ── Node ─────────────────────────────────────────────────────────────────────
+node_modules/
+api/node_modules/
+
+# ── SQLite (lokal; Produktion nutzt Turso) ───────────────────────────────────
+api/db/*.sqlite
+api/db/*.sqlite-journal
+api/db/*.sqlite-wal
+api/db/*.sqlite-shm
+
+# ── Umgebungsvariablen ───────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Interne / Dev-only ───────────────────────────────────────────────────────
+.claude/
+*.bak
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+Thumbs.db
+desktop.ini

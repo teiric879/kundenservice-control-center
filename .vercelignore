@@ -1,0 +1,22 @@
+# ── Node-Module ──────────────────────────────────────────────────────────────
+# Vercel installiert sie selbst via vercel-build (cd api && npm install).
+# Windows-Native-Binaries dürfen NICHT im Linux-Deployment landen.
+api/node_modules/
+
+# ── Lokale SQLite-Dateien ────────────────────────────────────────────────────
+# Produktion liest aus Turso (ENV-Variablen). Lokale Dateien nie deployen.
+api/db/
+
+# ── Access-Import-Pipeline (nur lokal) ───────────────────────────────────────
+api/migrate-*.js
+api/import-*.js
+api/migrate-current.js
+api/db.js
+api/schema.js
+
+# ── Interne / Doku ───────────────────────────────────────────────────────────
+.claude/
+*.bak
+*.bat
+e-regio_Analyse_und_Architektur.md
+PROJEKTUEBERGABE.md

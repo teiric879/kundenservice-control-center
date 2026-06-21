@@ -1,0 +1,426 @@
+/* e-regio Kundencenter Analytics – Dashboard live aus SQLite */
+(function(){
+"use strict";
+var V=[];   /* [{ymd,standort,kategorie,stunde,dow}, …] – geladen via GET /api/besucher */
+var ACC='#bf9200';
+var PAL=['#bf9200','#E9C682','#8c6b00','#39A0D6','#7A8BF0','#F08AB0','#5FD6A0','#B69CF5','#56C8E8','#E8A06A','#e0ad1f','#22C3B6'];
+var WD=['Mo','Di','Mi','Do','Fr','Sa','So'], WDF=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+var MON=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+var tip=document.getElementById('tip');
+var RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+var ICON={
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  week:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01"/>',
+  month:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  year:'<path d="M22 7 13.5 15.5l-5-5L2 17"/><path d="M16 7h6v6"/>',
+  pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>'
+};
+function svg(p){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';}
+function stripPfx(s){return String(s||'').replace(/^\d+\s+/,'');}
+function raf(fn){requestAnimationFrame(function(){requestAnimationFrame(fn);});}
+
+/* ---------- date helpers (ymd = y*10000+m*100+d) ---------- */
+function parseISO(s){var p=s.split('-');return p[0]*10000+(+p[1])*100+(+p[2]);}
+function ymdToDate(y){return new Date(Math.floor(y/10000),Math.floor(y/100)%100-1,y%100);}
+function dateToYmd(d){return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();}
+function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function addMonths(d,n){var x=new Date(d);x.setMonth(x.getMonth()+n);return x;}
+function fmtDE(y){return (''+(y%100)).padStart(2,'0')+'.'+(''+(Math.floor(y/100)%100)).padStart(2,'0')+'.'+Math.floor(y/10000);}
+function nf(n){return n.toLocaleString('de-DE');}
+function ymdToISO(y){return Math.floor(y/10000)+'-'+(''+(Math.floor(y/100)%100)).padStart(2,'0')+'-'+(''+(y%100)).padStart(2,'0');}
+
+/* ---------- state ---------- */
+var minYmd=20160101, maxYmd=20260101, dataMaxYmd=20260101;
+var nowYmd=dateToYmd(new Date()), nowDate=ymdToDate(nowYmd);
+var state={standort:'all',period:'ytd',from:null,to:null};
+
+/* ---------- filter ---------- */
+function matchStand(s){return state.standort==='all'||s===state.standort;}
+function countRange(a,b){
+  var n=0;
+  for(var i=0;i<V.length;i++){var r=V[i];if(r.ymd>=a&&r.ymd<=b&&matchStand(r.standort))n++;}
+  return n;
+}
+function rowsIn(a,b){
+  var out=[];
+  for(var i=0;i<V.length;i++){var r=V[i];if(r.ymd>=a&&r.ymd<=b&&matchStand(r.standort))out.push(r);}
+  return out;
+}
+function currentRange(){
+  if(state.period==='heute')return [nowYmd,nowYmd];
+  if(state.period==='month')return [dateToYmd(new Date(nowDate.getFullYear(),nowDate.getMonth(),1)),nowYmd];
+  if(state.period==='ytd')return [nowDate.getFullYear()*10000+101,nowYmd];
+  if(state.period==='12m')return [dateToYmd(addDays(addMonths(nowDate,-12),1)),nowYmd];
+  if(state.period==='custom')return [state.from||minYmd,state.to||maxYmd];
+  return [minYmd,maxYmd];
+}
+
+/* ---------- tooltip ---------- */
+function showTip(e,h){tip.innerHTML=h;tip.style.opacity=1;moveTip(e);}
+function moveTip(e){tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-12)+'px';}
+function hideTip(){tip.style.opacity=0;}
+
+/* ---------- count-up ---------- */
+function countUp(el,to,anim){
+  if(!anim||RM){el.textContent=nf(to);return;}
+  var dur=320,st=performance.now();
+  function step(t){var p=Math.min(1,(t-st)/dur);var e=1-Math.pow(1-p,3);el.textContent=nf(Math.round(to*e));if(p<1)requestAnimationFrame(step);}
+  requestAnimationFrame(step);
+}
+
+/* ---------- trend area chart ---------- */
+function renderTrend(rows,a,b,anim){
+  var box=document.getElementById('chartTrend');
+  var W=Math.max(360,Math.round(box.clientWidth)||760),H=248,pad={l:44,r:14,t:16,b:30};
+  var da=ymdToDate(a),db=ymdToDate(b),spanDays=Math.round((db-da)/864e5);
+  var mode=spanDays<=62?'day':(spanDays<=1100?'month':'year'),buckets=[],idx={};
+  function keyOf(ymd){var Y=Math.floor(ymd/10000),m=Math.floor(ymd/100)%100;return mode==='day'?ymd:mode==='month'?Y*100+m:Y;}
+  if(mode==='day'){for(var t=new Date(da);t<=db;t=addDays(t,1)){var k=dateToYmd(t);idx[k]=buckets.length;buckets.push({label:fmtDE(k).slice(0,5),v:0});}}
+  else if(mode==='month'){for(var t2=new Date(da.getFullYear(),da.getMonth(),1);t2<=db;t2=addMonths(t2,1)){var k2=t2.getFullYear()*100+(t2.getMonth()+1);idx[k2]=buckets.length;buckets.push({label:MON[t2.getMonth()]+' '+(''+t2.getFullYear()).slice(2),v:0});}}
+  else{for(var y=da.getFullYear();y<=db.getFullYear();y++){idx[y]=buckets.length;buckets.push({label:''+y,v:0});}}
+  for(var i=0;i<rows.length;i++){var j=idx[keyOf(rows[i].ymd)];if(j!=null)buckets[j].v++;}
+  document.getElementById('trendSub').textContent=(mode==='day'?'täglich':mode==='month'?'monatlich':'jährlich')+' · '+nf(rows.length)+' Besuche';
+  var max=Math.max(1,Math.max.apply(null,buckets.map(function(x){return x.v;})));
+  var n=buckets.length,iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
+  function X(i){return pad.l+(n<=1?iw/2:iw*i/(n-1));}
+  function Y(v){return pad.t+ih-ih*v/max;}
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="height:248px">';
+  s+='<defs><linearGradient id="tg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="'+ACC+'" stop-opacity=".34"/><stop offset="1" stop-color="'+ACC+'" stop-opacity="0"/></linearGradient>';
+  s+='<filter id="glow" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+  for(var g=0;g<=4;g++){var gv=Math.round(max*g/4),gy=Y(gv);
+    s+='<line class="gridline" x1="'+pad.l+'" y1="'+gy+'" x2="'+(W-pad.r)+'" y2="'+gy+'"/>';
+    s+='<text class="axis" x="'+(pad.l-9)+'" y="'+(gy+4)+'" text-anchor="end">'+nf(gv)+'</text>';}
+  var line='';buckets.forEach(function(d,i){line+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(d.v).toFixed(1)+' ';});
+  var area=line+'L'+X(n-1).toFixed(1)+' '+Y(0)+' L'+X(0).toFixed(1)+' '+Y(0)+' Z';
+  s+='<path class="t-area" d="'+area+'" fill="url(#tg)" opacity="0"/>';
+  s+='<path class="t-line" d="'+line+'" fill="none" stroke="'+ACC+'" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>';
+  var lblEvery=Math.ceil(n/8);
+  buckets.forEach(function(d,i){var x=X(i),y=Y(d.v);
+    if(mode!=='day')s+='<circle cx="'+x+'" cy="'+y+'" r="3.2" fill="'+ACC+'" stroke="#022" stroke-width="1.5"/>';
+    s+='<rect x="'+(x-Math.max(7,iw/n/2))+'" y="'+pad.t+'" width="'+Math.max(14,iw/n)+'" height="'+ih+'" fill="transparent" data-i="'+i+'"/>';
+    if(i%lblEvery===0||i===n-1)s+='<text class="axis" x="'+x+'" y="'+(H-9)+'" text-anchor="middle">'+d.label+'</text>';});
+  s+='</svg>';box.innerHTML=s;
+  var lp=box.querySelector('.t-line'),ar=box.querySelector('.t-area');
+  if(anim&&!RM&&lp){var len=lp.getTotalLength();lp.style.strokeDasharray=len;lp.style.strokeDashoffset=len;
+    raf(function(){lp.style.transition='stroke-dashoffset .5s cubic-bezier(.22,.61,.36,1)';lp.style.strokeDashoffset=0;ar.style.transition='opacity .35s ease .1s';ar.style.opacity=1;});}
+  else{ar.style.opacity=1;}
+  box.querySelectorAll('rect[data-i]').forEach(function(rc){rc.addEventListener('mousemove',function(e){var d=buckets[+rc.dataset.i];showTip(e,d.label+': <b>'+nf(d.v)+'</b>');});rc.addEventListener('mouseleave',hideTip);});
+}
+
+/* ---------- donut ---------- */
+function renderDonut(rows,anim){
+  var counts={};rows.forEach(function(r){var s=r.standort||'?';counts[s]=(counts[s]||0)+1;});
+  var items=Object.keys(counts).map(function(s){return {label:s,v:counts[s]};}).sort(function(a,b){return b.v-a.v;});
+  var total=items.reduce(function(s,x){return s+x.v;},0)||1,r=72,C=2*Math.PI*r,off=0;
+  var s='<svg viewBox="0 0 184 192" width="100%" style="height:196px"><g transform="rotate(-90 92 96)">';
+  s+='<circle cx="92" cy="96" r="'+r+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="22"/>';
+  items.forEach(function(it,i){var len=C*it.v/total,col=PAL[i%PAL.length];
+    s+='<circle class="d-seg" cx="92" cy="96" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="22" stroke-linecap="butt" stroke-dasharray="'+(anim&&!RM?0:len)+' '+(anim&&!RM?C:C-len)+'" data-len="'+len+'" data-c="'+C+'" stroke-dashoffset="'+(-off)+'" data-i="'+i+'"/>';
+    off+=len;});
+  s+='</g><text x="92" y="90" text-anchor="middle" font-family="Space Grotesk" font-size="27" font-weight="600" fill="#EAF6F2">'+nf(total)+'</text>';
+  s+='<text x="92" y="110" text-anchor="middle" font-size="12" fill="#93B2AB">Besuche</text></svg>';
+  var box=document.getElementById('chartStandort');box.innerHTML=s;
+  if(anim&&!RM){raf(function(){box.querySelectorAll('.d-seg').forEach(function(c,i){c.style.transition='stroke-dasharray .45s cubic-bezier(.22,.61,.36,1) '+(i*.04)+'s';c.style.strokeDasharray=c.dataset.len+' '+(c.dataset.c-c.dataset.len);});});}
+  var leg='';items.forEach(function(it,i){leg+='<span><i style="background:'+PAL[i%PAL.length]+'"></i>'+it.label+' · '+Math.round(it.v/total*100)+'% ('+nf(it.v)+')</span>';});
+  document.getElementById('legendStandort').innerHTML=leg;
+  box.querySelectorAll('.d-seg').forEach(function(c){c.addEventListener('mousemove',function(e){var it=items[+c.dataset.i];showTip(e,it.label+': <b>'+nf(it.v)+'</b> ('+Math.round(it.v/total*100)+'%)');});c.addEventListener('mouseleave',hideTip);});
+}
+
+/* ---------- top categories (hbars) ---------- */
+function renderKat(rows,anim){
+  var counts={};rows.forEach(function(r){if(!r.kategorie)return;counts[r.kategorie]=(counts[r.kategorie]||0)+1;});
+  var items=Object.keys(counts).map(function(k){return {label:stripPfx(k),v:counts[k]};}).sort(function(a,b){return b.v-a.v;}).slice(0,9);
+  var max=Math.max(1,Math.max.apply(null,items.map(function(x){return x.v;})));
+  var h='';items.forEach(function(it,i){var col=PAL[i%PAL.length];
+    h+='<div class="hbar"><div class="row"><b>'+it.label+'</b><span>'+nf(it.v)+'</span></div>'+
+       '<div class="track"><i data-w="'+(it.v/max*100)+'" style="background:linear-gradient(90deg,'+col+',#ffffff22);'+(anim&&!RM?'':'width:'+(it.v/max*100)+'%')+'"></i></div></div>';});
+  var box=document.getElementById('chartKat');box.innerHTML=h||'<p class="sub">Keine Daten</p>';
+  if(anim&&!RM)raf(function(){box.querySelectorAll('.track i').forEach(function(el){el.style.width=el.dataset.w+'%';});});
+}
+
+/* ---------- vertical bars (wday/hour) ---------- */
+function vbars(boxId,labels,values,full,anim){
+  var box=document.getElementById(boxId);
+  var W=Math.max(280,Math.round(box.clientWidth)||400),H=214,pad={l:34,r:8,t:18,b:26};
+  var max=Math.max(1,Math.max.apply(null,values)),n=values.length,iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
+  var gap=iw/n,bw=Math.min(42,gap*0.6);
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="height:214px"><defs>'+
+    '<linearGradient id="bg-'+boxId+'" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="'+ACC+'"/><stop offset="1" stop-color="#8c6b00"/></linearGradient></defs>';
+  for(var g=0;g<=3;g++){var gv=Math.round(max*g/3),gy=pad.t+ih-ih*g/3;
+    s+='<line class="gridline" x1="'+pad.l+'" y1="'+gy+'" x2="'+(W-pad.r)+'" y2="'+gy+'"/>';
+    s+='<text class="axis" x="'+(pad.l-6)+'" y="'+(gy+4)+'" text-anchor="end">'+nf(gv)+'</text>';}
+  values.forEach(function(v,i){var x=pad.l+gap*i+(gap-bw)/2,bh=Math.max(0,ih*v/max),y=pad.t+ih-bh;
+    s+='<rect class="bar" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="6" fill="url(#bg-'+boxId+')" data-i="'+i+'" style="transform-box:fill-box;transform-origin:center bottom;'+(anim&&!RM?'transform:scaleY(0)':'')+'"/>';
+    s+='<text class="axis" x="'+(x+bw/2).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+labels[i]+'</text>';});
+  s+='</svg>';box.innerHTML=s;
+  if(anim&&!RM)raf(function(){box.querySelectorAll('.bar').forEach(function(el,i){el.style.transition='transform .4s cubic-bezier(.22,.61,.36,1) '+(i*.02)+'s';el.style.transform='scaleY(1)';});});
+  box.querySelectorAll('.bar').forEach(function(rc){rc.addEventListener('mousemove',function(e){showTip(e,(full?full[+rc.dataset.i]:labels[+rc.dataset.i])+': <b>'+nf(values[+rc.dataset.i])+'</b>');});rc.addEventListener('mouseleave',hideTip);});
+}
+function renderWday(rows,anim){var c=[0,0,0,0,0,0,0];rows.forEach(function(r){if(r.dow>=0&&r.dow<=6)c[r.dow]++;});vbars('chartWday',WD,c,WDF,anim);}
+function renderHour(rows,anim){
+  var c={},mn=23,mx=0;
+  rows.forEach(function(r){if(r.stunde<0||r.stunde==null)return;c[r.stunde]=(c[r.stunde]||0)+1;if(r.stunde<mn)mn=r.stunde;if(r.stunde>mx)mx=r.stunde;});
+  if(mx<mn){mn=8;mx=18;}
+  var L=[],Vv=[],F=[];
+  for(var h=mn;h<=mx;h++){L.push(h);Vv.push(c[h]||0);F.push(h+':00–'+(h+1)+':00 Uhr');}
+  vbars('chartHour',L,Vv,F,anim);
+}
+
+/* ---------- KPIs ---------- */
+function spark(weeks){var W=120,H=36,max=Math.max(1,Math.max.apply(null,weeks)),n=weeks.length;
+  var d='';weeks.forEach(function(v,i){d+=(i?'L':'M')+(W*i/(n-1)).toFixed(1)+' '+(H-3-(H-6)*v/max).toFixed(1)+' ';});
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="height:36px" preserveAspectRatio="none"><defs><linearGradient id="sp" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="'+ACC+'" stop-opacity=".3"/><stop offset="1" stop-color="'+ACC+'" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+d+'L'+W+' '+H+' L0 '+H+' Z" fill="url(#sp)"/><path d="'+d+'" fill="none" stroke="'+ACC+'" stroke-width="2"/></svg>';}
+function delta(c,p){if(p===0)return c>0?{t:'+'+c,c:'up',a:'▲'}:{t:'±0',c:'flat',a:'•'};var x=Math.round((c-p)/p*100);return {t:(x>0?'+':'')+x+'%',c:x>0?'up':x<0?'down':'flat',a:x>0?'▲':x<0?'▼':'•'};}
+function last12w(){var a=[];for(var i=11;i>=0;i--){var e=addDays(nowDate,-7*i),s=addDays(e,-6);a.push(countRange(dateToYmd(s),dateToYmd(e)));}return a;}
+function renderKPIs(anim){
+  var y=nowDate.getFullYear(),m=nowDate.getMonth();
+  var today=countRange(nowYmd,nowYmd),yest=countRange(dateToYmd(addDays(nowDate,-1)),dateToYmd(addDays(nowDate,-1)));
+  var dow=(nowDate.getDay()+6)%7,mon=addDays(nowDate,-dow);
+  var week=countRange(dateToYmd(mon),nowYmd),pw=countRange(dateToYmd(addDays(mon,-7)),dateToYmd(addDays(mon,-1)));
+  var mStart=new Date(y,m,1),month=countRange(dateToYmd(mStart),nowYmd);
+  var pmEnd=addDays(mStart,-1),pmStart=new Date(pmEnd.getFullYear(),pmEnd.getMonth(),1);
+  var pmDay=Math.min(nowDate.getDate(),new Date(pmEnd.getFullYear(),pmEnd.getMonth()+1,0).getDate());
+  var pmonth=countRange(dateToYmd(pmStart),pmEnd.getFullYear()*10000+(pmEnd.getMonth()+1)*100+pmDay);
+  var ytd=countRange(y*10000+101,nowYmd),pytd=countRange((y-1)*10000+101,(y-1)*10000+(m+1)*100+nowDate.getDate());
+  var sp=spark(last12w());
+  var cards=[{l:'Heute',i:'sun',v:today,d:delta(today,yest),s:'vs. gestern'},
+    {l:'Diese Woche',i:'week',v:week,d:delta(week,pw),s:'vs. Vorwoche'},
+    {l:'Dieser Monat',i:'month',v:month,d:delta(month,pmonth),s:'vs. Vormonat'},
+    {l:'Dieses Jahr',i:'year',v:ytd,d:delta(ytd,pytd),s:'vs. Vorjahr'}];
+  var h='';cards.forEach(function(c,idx){h+=
+    '<div class="card kpi reveal" style="animation-delay:'+(idx*.03)+'s"><div class="k-top">'+c.l+'<span class="chip">'+svg(ICON[c.i])+'</span></div>'+
+    '<div class="num" data-v="'+c.v+'">0</div>'+
+    '<div><span class="k-delta '+c.d.c+'">'+c.d.a+' '+c.d.t+'</span><span class="k-sub">'+c.s+'</span></div>'+
+    '<div class="k-spark">'+sp+'</div></div>';});
+  var box=document.getElementById('kpis');box.innerHTML=h;
+  box.querySelectorAll('.num').forEach(function(el){countUp(el,+el.dataset.v,anim);});
+}
+
+/* ---------- Standort-KPIs ---------- */
+function renderLocKPIs(anim){
+  var r=currentRange(),a=r[0],b=r[1];
+  var total=0,eC=0,kC=0;
+  for(var i=0;i<V.length;i++){var row=V[i];if(row.ymd>=a&&row.ymd<=b){total++;if(row.standort==='Euskirchen')eC++;else if(row.standort==='Kall')kC++;}}
+  var locIc='<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>';
+  var globeIc='<circle cx="12" cy="12" r="9"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20A15.3 15.3 0 0 1 12 2"/>';
+  var items=[{l:'Besucher Gesamt',v:total,ic:globeIc},{l:'Euskirchen',v:eC,ic:locIc},{l:'Kall',v:kC,ic:locIc}];
+  var h='';items.forEach(function(it,idx){h+=
+    '<div class="card kpi reveal" style="animation-delay:'+(idx*.03)+'s"><div class="k-top">'+it.l+'<span class="chip">'+svg(it.ic)+'</span></div>'+
+    '<div class="num" data-v="'+it.v+'">0</div></div>';});
+  var box=document.getElementById('kpis-loc');if(!box)return;
+  box.innerHTML=h;
+  box.querySelectorAll('.num').forEach(function(el){countUp(el,+el.dataset.v,anim);});
+}
+
+/* ---------- Besucherprognose ---------- */
+function weekdayMonthAvg(){
+  var endDate=ymdToDate(dataMaxYmd),startDate=ymdToDate(minYmd);
+  var perDay={};
+  for(var i=0;i<V.length;i++){
+    var r=V[i];if(r.ymd>dataMaxYmd)break;
+    if(!matchStand(r.standort))continue;
+    perDay[r.ymd]=(perDay[r.ymd]||0)+1;
+  }
+  var sum=[],cnt=[];
+  for(var mo=0;mo<12;mo++){sum[mo]=[0,0,0,0,0,0,0];cnt[mo]=[0,0,0,0,0,0,0];}
+  for(var t=new Date(startDate);t<=endDate;t=addDays(t,1)){var mo2=t.getMonth(),wd=(t.getDay()+6)%7,yy=dateToYmd(t);sum[mo2][wd]+=perDay[yy]||0;cnt[mo2][wd]++;}
+  return sum.map(function(s,mo){return s.map(function(v,w){return cnt[mo][w]?v/cnt[mo][w]:0;});});
+}
+function hourlyCum(wd){
+  var byHour=new Array(24).fill(0),total=0;
+  for(var i=0;i<V.length;i++){
+    var r=V[i];if(r.ymd>dataMaxYmd)break;
+    if(!matchStand(r.standort)||r.dow!==wd)continue;
+    if(r.stunde<0||r.stunde>23)continue;
+    byHour[r.stunde]++;total++;
+  }
+  var cum=[],acc=0;for(var h=0;h<24;h++){acc+=byHour[h];cum[h]=total?acc/total:0;}
+  return cum;
+}
+function renderForecast(anim){
+  var box=document.getElementById('fcGrid');if(!box)return;
+  var wdm=weekdayMonthAvg(),y=nowDate.getFullYear(),m=nowDate.getMonth(),todayWd=(nowDate.getDay()+6)%7;
+  var avgToday=wdm[m][todayWd];
+  var actualToday=countRange(nowYmd,nowYmd);
+  var cum=hourlyCum(todayWd),curHour=new Date().getHours(),frac=cum[Math.min(23,Math.max(0,curHour))]||0;
+  var projToday=(frac>=0.15&&actualToday>0)?Math.round(actualToday/frac):Math.round(avgToday);
+  projToday=Math.max(projToday,actualToday);
+  var expToday=Math.round(avgToday);
+  var restTodayAvg=Math.max(0,avgToday-actualToday);
+  var mStart=new Date(y,m,1),mEnd=new Date(y,m+1,0),actualMonth=countRange(dateToYmd(mStart),nowYmd),remMonth=0;
+  for(var t=addDays(nowDate,1);t<=mEnd;t=addDays(t,1))remMonth+=wdm[t.getMonth()][(t.getDay()+6)%7];
+  var projMonth=Math.round(actualMonth+restTodayAvg+remMonth);
+  var next7=restTodayAvg;for(var t2=addDays(nowDate,1);t2<=addDays(nowDate,7);t2=addDays(t2,1))next7+=wdm[t2.getMonth()][(t2.getDay()+6)%7];
+  next7=Math.round(next7);
+  var cells=[
+    {l:'Prognose heute',v:projToday,s:'aktuell '+nf(actualToday)+' · &#216; '+WD[todayWd]+'. '+nf(expToday)},
+    {l:'Prognose '+MON[m]+'.',v:projMonth,s:'bislang '+nf(actualMonth)+' Besuche'},
+    {l:'N&auml;chste 7 Tage',v:next7,s:'voraussichtlich'}
+  ];
+  var wdAvgMoFr=wdm[m].slice(0,5);
+  var mx=Math.max.apply(null,wdAvgMoFr)||1;
+  var bars=wdAvgMoFr.map(function(a,i){var hh=Math.round(a/mx*100);
+    return '<div class="fc-wd'+(i===todayWd?' is-today':'')+'"><div class="fc-wd-track"><i data-h="'+hh+'" style="height:'+(anim&&!RM?0:hh)+'%"></i></div><span>'+WD[i]+'</span><b>'+nf(Math.round(a))+'</b></div>';
+  }).join('');
+  box.innerHTML='<div class="fc-stats">'+cells.map(function(c){
+    return '<div class="fc-cell"><div class="fc-l">'+c.l+'</div><div class="num fc-num" data-v="'+c.v+'">0</div><div class="fc-s">'+c.s+'</div></div>';
+  }).join('')+'</div><div class="fc-wdbars">'+bars+'</div>';
+  box.querySelectorAll('.fc-num').forEach(function(el){countUp(el,+el.dataset.v,anim);});
+  if(anim&&!RM)raf(function(){box.querySelectorAll('.fc-wd-track i').forEach(function(el){el.style.transition='height .45s var(--ease)';el.style.height=el.dataset.h+'%';});});
+}
+
+/* ---------- render ---------- */
+function render(anim){
+  var r=currentRange(),rows=rowsIn(r[0],r[1]);
+  document.getElementById('rangeInfo').textContent=fmtDE(r[0])+' – '+fmtDE(r[1])+' · '+nf(rows.length)+' Besuche'+(state.standort!=='all'?' · '+state.standort:'');
+  renderKPIs(anim);renderLocKPIs(anim);renderForecast(anim);renderTrend(rows,r[0],r[1],anim);renderDonut(rows,anim);renderKat(rows,anim);renderWday(rows,anim);renderHour(rows,anim);
+}
+
+/* ---------- controls ---------- */
+function initControls(){
+  var stFreq={};V.forEach(function(r){if(r.standort&&r.standort!=='(ohne Angabe)')stFreq[r.standort]=(stFreq[r.standort]||0)+1;});
+  var standorte=Object.keys(stFreq).sort(function(a,b){return stFreq[b]-stFreq[a];});
+  var sel=document.getElementById('standortSel');
+  sel.innerHTML='<option value="all">Alle Standorte</option>'+standorte.map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('');
+  sel.value='all';
+  sel.addEventListener('change',function(){state.standort=sel.value;render(true);});
+  document.querySelectorAll('#periodSeg button').forEach(function(b){b.addEventListener('click',function(){
+    document.querySelectorAll('#periodSeg button').forEach(function(x){x.classList.remove('active');});b.classList.add('active');
+    state.period=b.dataset.p;document.getElementById('customRange').classList.toggle('show',state.period==='custom');render(true);});});
+  var minISO=ymdToISO(minYmd),todayISO=ymdToISO(nowYmd);
+  var fi=document.getElementById('fromDate'),ti=document.getElementById('toDate');
+  fi.value=minISO;ti.value=todayISO;fi.min=ti.min=minISO;fi.max=ti.max=todayISO;
+  function upd(){if(fi.value)state.from=parseISO(fi.value);if(ti.value)state.to=parseISO(ti.value);if(state.period==='custom')render(true);}
+  fi.addEventListener('change',upd);ti.addEventListener('change',upd);
+  document.addEventListener('mousemove',function(e){if(tip.style.opacity==1)moveTip(e);});
+  document.querySelectorAll('.mod-item[data-view]').forEach(function(a){a.addEventListener('click',function(){
+    document.querySelectorAll('.mod-item[data-view]').forEach(function(x){x.classList.remove('active');x.removeAttribute('aria-current');});
+    a.classList.add('active');a.setAttribute('aria-current','page');
+    var v=a.dataset.view;document.querySelectorAll('.view').forEach(function(s){s.classList.remove('active');});
+    document.getElementById('view-'+v).classList.add('active');});});
+  document.getElementById('footMeta').innerHTML=nf(V.length)+' Besuche<br>'+fmtDE(minYmd)+' – '+fmtDE(maxYmd);
+}
+
+/* ---------- Erfassen ---------- */
+var _capToday=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+var _capKey='eregio_cap_'+_capToday;
+var capCounts=(function(){try{var s=localStorage.getItem(_capKey);return s?JSON.parse(s):{};}catch(e){return {};}}());
+function _persistCap(){try{localStorage.setItem(_capKey,JSON.stringify(capCounts));}catch(e){}}
+var _erfassenSelfFired=false;
+function initErfassen(){
+  var locBox=document.getElementById('capLoc'),grid=document.getElementById('capGrid');
+  var locFreq={};V.forEach(function(r){if(r.standort&&r.standort!=='(ohne Angabe)')locFreq[r.standort]=(locFreq[r.standort]||0)+1;});
+  var locs=Object.keys(locFreq).sort(function(a,b){return locFreq[b]-locFreq[a];});
+  if(!locs.length)locs=['Euskirchen','Kall'];
+  var sel=locs[0];
+  var LEGACY=['(ohne)','-','PV','sonstiges'];
+  var katSet={};
+  V.forEach(function(r){
+    if(!r.kategorie)return;
+    var disp=stripPfx(r.kategorie);
+    if(LEGACY.indexOf(r.kategorie)!==-1||LEGACY.indexOf(disp)!==-1)return;
+    katSet[r.kategorie]=true;
+  });
+  var allKats=Object.keys(katSet).sort(function(a,b){return stripPfx(a).localeCompare(stripPfx(b),'de');});
+
+  function drawLoc(){
+    locBox.innerHTML=locs.map(function(s){return '<button class="'+(s===sel?'active':'')+'" data-s="'+s+'">'+svg(ICON.pin)+s+'</button>';}).join('');
+    locBox.querySelectorAll('button').forEach(function(b){b.onclick=function(){sel=b.dataset.s;drawLoc();drawGrid();};});
+  }
+  function drawGrid(){
+    grid.innerHTML=allKats.map(function(kat){
+      var locsHtml=locs.map(function(s){var c=capCounts[s+'|'+kat]||0;return '<span class="cn-loc'+(c>0?' has-c':'')+'"><span class="cn-nm">'+s+'</span><b>'+c+'</b></span>';}).join('');
+      return '<button class="cat" data-k="'+encodeURIComponent(kat)+'"><span class="pop"></span><span class="ct">'+stripPfx(kat)+'</span><div class="cn-split">'+locsHtml+'</div></button>';
+    }).join('');
+    grid.querySelectorAll('.cat').forEach(function(b){
+      b.onclick=function(){
+        var kat=decodeURIComponent(b.dataset.k),key=sel+'|'+kat;
+        capCounts[key]=(capCounts[key]||0)+1;
+        _persistCap();
+        var now=new Date();
+        var entry={ymd:dateToYmd(now),standort:sel,kategorie:kat,stunde:now.getHours(),dow:(now.getDay()+6)%7};
+        V.push(entry);
+        if(window.erfassBesuch){_erfassenSelfFired=true;window.erfassBesuch(sel,kat).catch(function(){});}
+        render(false);
+        b.classList.add('bump');
+        toast('✓ '+stripPfx(kat)+' · '+sel+' erfasst');
+        var cnLocs=b.querySelectorAll('.cn-loc');
+        locs.forEach(function(s,li){
+          var c=capCounts[s+'|'+kat]||0,row=cnLocs[li];if(!row)return;
+          var bEl=row.querySelector('b');
+          bEl.textContent=c;row.classList.toggle('has-c',c>0);
+          if(s===sel){bEl.classList.remove('num-pop');void bEl.offsetWidth;bEl.classList.add('num-pop');}
+        });
+        setTimeout(function(){b.classList.remove('bump');},600);
+      };
+    });
+  }
+  drawLoc();drawGrid();
+  window.addEventListener('eregio:besuch-erfasst',function(e){
+    if(_erfassenSelfFired){_erfassenSelfFired=false;return;}
+    var d=e&&e.detail;
+    if(!d||!d.standort||!d.kategorie)return;
+    var key=d.standort+'|'+d.kategorie;
+    if(allKats.indexOf(d.kategorie)===-1)return;
+    capCounts[key]=(capCounts[key]||0)+1;
+    _persistCap();
+    drawGrid();
+  });
+}
+
+var toastT;function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},1800);}
+
+/* ---------- bootstrap: Daten aus SQLite laden ---------- */
+function parseApiRow(r){
+  var ymd=parseInt(r.datum,10)|0;
+  return {ymd:ymd,standort:r.standort||'(ohne Angabe)',kategorie:r.kategorie||'',stunde:r.stunde!=null?+r.stunde:-1,dow:(ymdToDate(ymd).getDay()+6)%7};
+}
+
+var kpisBox=document.getElementById('kpis');
+kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:32px 0;opacity:.5;font-size:15px">Lade Besuchsdaten …</div>';
+
+var API_BESUCHER=(location.hostname === '127.0.0.1' ? 'http://127.0.0.1:3001' : '') + '/api/besucher';
+var _booted=false;
+
+// Lädt die Besuche frisch aus SQLite und rendert neu. Beim ersten Aufruf wird zusätzlich
+// die UI initialisiert; spätere Aufrufe aktualisieren nur die Daten (Live-Refresh).
+function loadVisits(){
+  return fetch(API_BESUCHER, { cache:'no-store' })
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(rows){
+      V.length=0;
+      rows.forEach(function(r){V.push(parseApiRow(r));});
+      if(V.length){
+        V.sort(function(a,b){return a.ymd-b.ymd;});
+        minYmd=V[0].ymd;
+        dataMaxYmd=V[V.length-1].ymd;
+        maxYmd=Math.max(dataMaxYmd,nowYmd);
+      }
+      if(!_booted){
+        _booted=true;
+        initControls();
+        render(true);
+        initErfassen();
+        var rz;window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){render(false);},160);});
+      } else {
+        render(false);
+      }
+    });
+}
+
+loadVisits().catch(function(err){
+  kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:32px 0;color:#ff8a78">'+
+    'Fehler beim Laden ('+err.message+'). Ist der API-Server (Port 3001) gestartet?</div>';
+});
+
+// Neu erfasste Besuche zeitnah ins Dashboard holen – ohne manuelles Neuladen:
+//  • wenn der Tab wieder sichtbar/fokussiert wird (z.B. Rückkehr vom Produkt-ID Tool)
+//  • per Event direkt nach einer Schnellerfassung (erfass-bar.js)
+//  • als Fallback alle 20s, solange das Dashboard sichtbar ist
+function refreshVisits(){ if(_booted && document.visibilityState==='visible') loadVisits().catch(function(){}); }
+document.addEventListener('visibilitychange', refreshVisits);
+window.addEventListener('focus', refreshVisits);
+window.addEventListener('eregio:besuch-erfasst', function(){ if(_booted) loadVisits().catch(function(){}); });
+setInterval(refreshVisits, 20000);
+})();
