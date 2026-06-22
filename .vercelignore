@@ -1,6 +1,7 @@
 # ── Node-Module ──────────────────────────────────────────────────────────────
-# Vercel installiert sie selbst via vercel-build (cd api && npm install).
+# Vercel installiert sie selbst via vercel-build (cd backend && npm install).
 # Windows-Native-Binaries dürfen NICHT im Linux-Deployment landen.
+backend/node_modules/
 api/node_modules/
 
 # ── Lokale SQLite-Dateien ────────────────────────────────────────────────────

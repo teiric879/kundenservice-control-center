@@ -2,7 +2,7 @@
   "name": "eregio-control-center",
   "version": "1.0.0",
   "scripts": {
-    "vercel-build": "cd api && npm install"
+    "vercel-build": "cd backend && npm install"
   },
   "engines": {
     "node": ">=20"

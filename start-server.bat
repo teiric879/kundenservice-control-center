@@ -9,7 +9,7 @@ echo  Dieses Fenster offen lassen solange du das Tool nutzt.
 echo  Zum Beenden: Fenster schliessen oder Strg+C druecken.
 echo.
 
-start "e-regio API" /min node "C:\Users\marck\Documents\Claude Code\api\server.js"
+start "e-regio API" /min node "C:\Users\marck\Documents\Claude Code\backend\server.js"
 timeout /t 1 /nobreak >nul
 
 start "" "http://127.0.0.1:8124/"
