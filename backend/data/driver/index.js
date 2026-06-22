@@ -13,7 +13,8 @@ const { pathToFileURL } = require('url');
 const { makeDb } = require('./libsql');
 
 // api/db/<name> → korrekt enkodierter file:-URL (Leerzeichen im Pfad "Claude Code" werden zu %20).
-const DB_DIR = path.join(__dirname, '..', '..', 'db');
+// backend/data/driver/ → backend/data/ → backend/ → project-root/ → api/db/
+const DB_DIR = path.join(__dirname, '..', '..', '..', 'api', 'db');
 const fileUrl = (name) => pathToFileURL(path.join(DB_DIR, name)).href;
 
 // Pro DB: ENV-URL/-Token gewinnen, sonst lokale Datei. (DB_DRIVER ist Reserve für künftige Treiber.)
