@@ -2,7 +2,7 @@
   "name": "eregio-control-center",
   "version": "1.0.0",
   "scripts": {
-    "vercel-build": "npm install && npx @vercel/ncc build backend/vercel.js -o api/dist --external @libsql/client"
+    "vercel-build": "npm install && npx @vercel/ncc build backend/vercel.js -o api/dist"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",

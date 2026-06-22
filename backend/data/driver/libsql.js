@@ -14,8 +14,12 @@ const isFileUrl = (url) => url && url.startsWith('file:');
 
 function getCreateClient(url) {
   if (isFileUrl(url)) {
-    return require('@libsql/client').createClient;
+    // Lokaler Dev-Pfad (native Bindings). Variable-require → vom ncc-Bundler NICHT eingezogen,
+    // damit das Vercel-Bundle frei von nativem Code bleibt (auf Vercel nie erreicht).
+    const nativeMod = '@libsql/client';
+    return require(nativeMod).createClient;
   }
+  // Serverless/Turso: reiner fetch-Client, wird statisch ins ncc-Bundle aufgenommen.
   return require('@libsql/client/http').createClient;
 }
 
