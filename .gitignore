@@ -2,6 +2,7 @@
 node_modules/
 api/node_modules/
 backend/node_modules/
+package-lock.json
 
 # ── SQLite (lokal; Produktion nutzt Turso) ───────────────────────────────────
 api/db/*.sqlite
