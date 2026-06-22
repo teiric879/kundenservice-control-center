@@ -2,13 +2,17 @@
   "name": "eregio-control-center",
   "version": "1.0.0",
   "scripts": {
-    "vercel-build": "npm install"
+    "build:fn": "esbuild backend/serverless-entry.js --bundle --platform=node --target=node20 --outfile=api/index.js",
+    "vercel-build": "echo \"api/index.js is pre-bundled — no build needed\""
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
     "@libsql/client": "^0.17.4",
     "fastify": "^4.28.0",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
   },
   "engines": {
     "node": ">=20"
