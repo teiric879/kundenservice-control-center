@@ -11,6 +11,8 @@ function initProdukte() {
   db.exec(ddl.PRODUKTE_POST_INDEXES);
   // Registry-Tabellen (Spiegel des SAP-/Access-Standes; alleinige Quelle für aid/pid)
   db.exec(ddl.PRODUKTE_REGISTRY);
+  db.exec(ddl.VERTRAGSFORMULARE_TABLE);
+  for (const sql of ddl.VERTRAGSFORMULARE_ALTERS) { try { db.exec(sql); } catch {} }
 }
 
 function initBesucher() {

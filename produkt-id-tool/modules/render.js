@@ -1,6 +1,7 @@
 import { S } from './state.js';
 import { myRound, eur, ct, fmtDate, escape, cardColors } from './helpers.js';
-import { getData } from './calc.js';
+import { getData, preisTiers, lookupPrice, lookupKond } from './calc.js?v=20260622h';
+import { plzToStadt } from './plz.js';
 
 export function bonusRow(bonusAmt, ustModus, ust) {
   const label   = ustModus === 'brutto' ? 'Bonus (brutto)' : 'Bonus (netto)';
@@ -23,6 +24,48 @@ export function sachRow(lbl, val) {
       </button>
     </span>
   </div>`;
+}
+
+// Baut alle Daten, die das Vertragsformular braucht — abhängig von Sparte/Tarif.
+// Wird als JSON im data-fill-Attribut des Buttons abgelegt und von pdf-modal.js gelesen.
+export function buildFillData(productKey, ga, gebiet, ort) {
+  const fill = { plz: S.plz, ort, verbrauch: S.verbrauch };
+
+  if (S.produkt === 'heizstrom') {
+    fill.heiz = {};
+    if (productKey === 'WP') {
+      fill.heiz['Eintarif'] = lookupPrice('WP', ga, gebiet, 'Einzeltarif');
+      fill.heiz['Doppel']   = lookupPrice('WP', ga, gebiet, 'Doppeltarif');
+      fill.checkboxes = [S.zaehlerart === 'Doppeltarif' ? 'Doppeltarif' : 'Eintarif'];
+    } else { // Nachtspeicher (NS-Gem / NS-Get) — Formular deckt alle 3 Varianten ab
+      fill.heiz['Eintarif_getrennt'] = lookupPrice('NS-Get', ga, gebiet, 'Einzeltarif');
+      fill.heiz['Doppel_getrennt']   = lookupPrice('NS-Get', ga, gebiet, 'Doppeltarif');
+      fill.heiz['Doppel_gemeinsam']  = lookupPrice('NS-Gem', ga, gebiet, 'Doppeltarif');
+      fill.checkboxes = [
+        S.messung === 'gemeinschaft' ? 'Doppeltarif_gemeinsam'
+        : S.zaehlerart === 'Doppeltarif' ? 'Doppeltarif_getrennt'
+        : 'Eintarif_getrennt',
+      ];
+    }
+  } else if (S.produkt === 'steuve') {
+    const typ   = S.steuveTyp; // 'WP' | 'Wallbox' | 'Sonstiges'
+    const m1Key = `${typ}-M1`;
+    const m2Key = typ === 'WP' ? 'WP-M3' : `${typ}-M2`;
+    fill.modules = {
+      M1: lookupPrice(m1Key, ga, gebiet, null),
+      M2: lookupPrice(m2Key, ga, gebiet, null),
+    };
+    fill.selectedModule = `M${S.steuveModul}`;
+    // Nur Modul 1 hat die pauschale Netzentgeltreduzierung (§14a) — ins PDF übernehmen
+    if (S.steuveModul === 1) {
+      const m1Kond = lookupKond(m1Key, ga, gebiet);
+      if (m1Kond && m1Kond.netzentgeltRed) fill.netzentgeltRed = m1Kond.netzentgeltRed;
+    }
+  } else {
+    // Gas, Strom, Autostrom: Verbrauchs-Staffeln (auch Einzelband mit Suffix wie _K)
+    fill.tiers = preisTiers(productKey, ga, gebiet);
+  }
+  return fill;
 }
 
 export function buildCard(productKey, label, result, isVergleich = false, animDelay = 0, vergleich = null) {
@@ -142,12 +185,22 @@ export function buildCard(productKey, label, result, isVergleich = false, animDe
       </div>
     </div>
     ${saveBlock}
-    ${!isVergleich ? `<div class="card-footer kunde-only">
-      <button class="btn-vertrag" disabled title="PDF wird später hinterlegt">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 14px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 12v6M14 12v6M8 15h8"/></svg>
-        Vertragsformular
-      </button>
-    </div>` : ''}
+    ${!isVergleich ? (() => {
+      const vertragEntries = ((window.VERTRAG_MAP || {})[S.produkt + '-' + productKey]) || [];
+      const hasVertrag = vertragEntries.length > 0;
+      const ort = plzToStadt(S.plz) || '';
+      const fill = hasVertrag ? buildFillData(productKey, S.gueltigAb, S.gebiet, ort) : {};
+      return `<div class="card-footer kunde-only">
+        <button class="btn-vertrag"
+          ${hasVertrag ? '' : 'disabled title="Kein Formular hinterlegt"'}
+          data-sparte="${escape(S.produkt)}"
+          data-tarif="${escape(productKey)}"
+          data-fill="${escape(JSON.stringify(fill))}">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 14px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 12v6M14 12v6M8 15h8"/></svg>
+          Vertragsformular
+        </button>
+      </div>`;
+    })() : ''}
     ${sachBlock}
   </article>`;
 }

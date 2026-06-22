@@ -64,6 +64,83 @@ export function findKondRow(ga, verbrauch, gebiet) {
   return prior[0] ?? null;
 }
 
+// Preis-Block {apB,gpB,apNtB,...} → {gp, ap, apNt} im aktuellen ust-Modus.
+function ustVal(p, d) {
+  const isBrutto = S.ustModus === 'brutto';
+  const ap = isBrutto ? p.apB : (p.apN !== undefined ? p.apN : myRound(p.apB / (1 + d.ust / 100), 4));
+  const gp = isBrutto ? p.gpB : (p.gpN !== undefined ? p.gpN : myRound(p.gpB / (1 + d.ust / 100), 4));
+  const apNt = p.apNtB != null
+    ? (isBrutto ? p.apNtB : (p.apNtN !== undefined ? p.apNtN : myRound(p.apNtB / (1 + d.ust / 100), 4)))
+    : null;
+  return { gp, ap, apNt };
+}
+
+// Alle Preis-Staffeln (Verbrauchsbänder) für einen Tarif zu einer Gültigkeit/Gebiet.
+// Liefert nach vVon sortiert: [{vVon, vBis, ap, gp}] im aktuellen ust-Modus.
+// Für das Vertragsformular, das die komplette Staffel-Tabelle (GP_/VP_ je Band) abbildet.
+export function preisTiers(productKey, ga, gebiet) {
+  const d = getData();
+  const pp = plzRows('preise');
+  const source = [...(pp || []), ...d.preise];
+  // beste Zeile je Band: exakte PLZ > Gebiet > übrige
+  const rank = r => (r.plz && r.plz === S.plz) ? 3 : (r.gebiet === gebiet ? 2 : 1);
+  const byBand = {};
+  for (const r of source) {
+    if (r.ga !== ga || !r[productKey]) continue;
+    const okPlz    = r.plz ? r.plz === S.plz : true;
+    const okGebiet = r.plz ? true : (!r.gebiet || r.gebiet === gebiet || r.gebiet === 'übrige');
+    if (!okPlz || !okGebiet) continue;
+    if (r.zaehlerart && S.zaehlerart && r.zaehlerart !== S.zaehlerart) continue;
+    const key = r.vVon + '-' + r.vBis;
+    if (!byBand[key] || rank(r) > rank(byBand[key])) byBand[key] = r;
+  }
+  return Object.values(byBand)
+    .sort((a, b) => a.vVon - b.vVon)
+    .map(r => {
+      const { gp, ap } = ustVal(r[productKey], d);
+      return { vVon: r.vVon, vBis: r.vBis, ap, gp };
+    });
+}
+
+// Einzelpreis für einen konkreten Tarif/Zählerart (Heizstrom/SteuVE: eine Staffel).
+// zaehlerart optional — wenn gesetzt, muss die Zeile exakt passen. Liefert {gp,ap,apNt} oder null.
+export function lookupPrice(productKey, ga, gebiet, zaehlerart) {
+  const d = getData();
+  const pp = plzRows('preise');
+  const source = [...(pp || []), ...d.preise];
+  const rank = r => (r.plz && r.plz === S.plz) ? 3 : (r.gebiet === gebiet ? 2 : 1);
+  let best = null, bestRank = -1;
+  for (const r of source) {
+    if (r.ga !== ga || !r[productKey]) continue;
+    if (zaehlerart) { if (r.zaehlerart !== zaehlerart) continue; }
+    const okPlz    = r.plz ? r.plz === S.plz : true;
+    const okGebiet = r.plz ? true : (!r.gebiet || r.gebiet === gebiet || r.gebiet === 'übrige');
+    if (!okPlz || !okGebiet) continue;
+    const rk = rank(r);
+    if (rk > bestRank) { best = r; bestRank = rk; }
+  }
+  return best ? ustVal(best[productKey], d) : null;
+}
+
+// Konditions-Objekt (pid/aid/netzentgeltRed/…) für einen konkreten Tarif zu Gültigkeit/Gebiet.
+// Wie lookupPrice, aber über die Konditionen-Tabelle. Liefert das rohe Kond-Objekt oder null.
+export function lookupKond(productKey, ga, gebiet) {
+  const d = getData();
+  const pk = plzRows('konditionen');
+  const source = [...(pk || []), ...d.konditionen];
+  const rank = r => (r.plz && r.plz === S.plz) ? 3 : (r.gebiet === gebiet ? 2 : 1);
+  let best = null, bestRank = -1;
+  for (const r of source) {
+    if (r.ga !== ga || !r[productKey]) continue;
+    const okPlz    = r.plz ? r.plz === S.plz : true;
+    const okGebiet = r.plz ? true : (!r.gebiet || r.gebiet === gebiet || r.gebiet === 'übrige');
+    if (!okPlz || !okGebiet) continue;
+    const rk = rank(r);
+    if (rk > bestRank) { best = r; bestRank = rk; }
+  }
+  return best ? best[productKey] : null;
+}
+
 export function calcTarif(preis, kond, productKey, verbrauch, verbrauchNT) {
   const d = getData();
   const p = preis[productKey];

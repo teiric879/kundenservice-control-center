@@ -39,8 +39,8 @@ const DBS = [
     name: 'produkte',
     local: localUrl('produkte.sqlite'),
     urlEnv: 'PRODUKTE_DB_URL', tokenEnv: 'PRODUKTE_DB_AUTH_TOKEN',
-    ddl: [ddl.PRODUKTE_TABLES, ddl.PRODUKTE_POST_INDEXES, ddl.PRODUKTE_REGISTRY],
-    alters: ddl.PRODUKTE_ALTERS,
+    ddl: [ddl.PRODUKTE_TABLES, ddl.VERTRAGSFORMULARE_TABLE, ddl.PRODUKTE_POST_INDEXES, ddl.PRODUKTE_REGISTRY],
+    alters: [...ddl.PRODUKTE_ALTERS, ...ddl.VERTRAGSFORMULARE_ALTERS],
   },
   {
     name: 'besucher',

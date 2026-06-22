@@ -32,6 +32,15 @@ module.exports = {
     vals.push(id);
     await db().run(`UPDATE ep_agents SET ${fields.join(',')} WHERE id=?`, vals);
   },
+  // Berater endgültig löschen — inkl. aller Zuweisungen und Notizen (atomar).
+  deleteAgent(id) {
+    return db().transaction(async (tx) => {
+      await tx.run('DELETE FROM ep_assignments WHERE agent_id=?', [id]);
+      await tx.run('DELETE FROM ep_notes WHERE agent_id=?', [id]);
+      await tx.run('DELETE FROM ep_agents WHERE id=?', [id]);
+      return { ok: true };
+    });
+  },
 
   // ── Assignments ─────────────────────────────────────────────────────────────
   listAssignments({ monday, from, to } = {}) {

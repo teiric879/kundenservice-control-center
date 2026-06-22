@@ -23,6 +23,8 @@ async function ensureProdukte() {
   await tryAlters(db, ddl.PRODUKTE_ALTERS);
   await db.exec(ddl.PRODUKTE_POST_INDEXES);
   await db.exec(ddl.PRODUKTE_REGISTRY);
+  await db.exec(ddl.VERTRAGSFORMULARE_TABLE);
+  await tryAlters(db, ddl.VERTRAGSFORMULARE_ALTERS);
 }
 
 async function ensureBesucher() {

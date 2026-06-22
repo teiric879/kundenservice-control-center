@@ -90,6 +90,24 @@ const PRODUKTE_POST_INDEXES = `
 `;
 
 // Registry-Tabellen (Spiegel des SAP-/Access-Standes; alleinige Quelle für aid/pid).
+const VERTRAGSFORMULARE_TABLE = `
+  CREATE TABLE IF NOT EXISTS vertragsformulare (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    sparte       TEXT NOT NULL,
+    produkt_key  TEXT NOT NULL,
+    name         TEXT NOT NULL DEFAULT 'Standardvertrag',
+    source_type  TEXT NOT NULL DEFAULT 'upload',   -- 'upload' (file_data) | 'url' (source_value)
+    source_value TEXT NOT NULL DEFAULT '',          -- URL bei 'url', Dateiname bei 'upload'
+    file_data    TEXT,                              -- Base64-PDF bei source_type='upload'
+    sort_order   INTEGER NOT NULL DEFAULT 0
+  );
+`;
+
+// Migration für bereits existierende vertragsformulare-Tabellen.
+const VERTRAGSFORMULARE_ALTERS = [
+  'ALTER TABLE vertragsformulare ADD COLUMN file_data TEXT',
+];
+
 const PRODUKTE_REGISTRY = `
   -- Angebots-ID HT: Lookup über (sparte, AP_netto, GP_Jahr_netto). Quelle TB 602/702/802/502 (WERK=59).
   CREATE TABLE IF NOT EXISTS aid_registry (
@@ -186,6 +204,8 @@ module.exports = {
   PRODUKTE_ALTERS,
   PRODUKTE_POST_INDEXES,
   PRODUKTE_REGISTRY,
+  VERTRAGSFORMULARE_TABLE,
+  VERTRAGSFORMULARE_ALTERS,
   BESUCHER_TABLES,
   EINSATZPLAN_TABLES,
   INITIAL_AGENTS,

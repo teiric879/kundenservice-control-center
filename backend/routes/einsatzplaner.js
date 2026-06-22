@@ -19,6 +19,11 @@ module.exports = async function einsatzplanerRoutes(fastify) {
     return { ok: true };
   });
 
+  fastify.delete('/api/einsatzplaner/agents/:id', async (req) => {
+    await repo.deleteAgent(req.params.id);
+    return { ok: true };
+  });
+
   // ── Assignments ──────────────────────────────────────────────────────────
   fastify.get('/api/einsatzplaner/assignments', async (req) => {
     const { monday, from, to } = req.query;

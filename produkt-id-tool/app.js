@@ -1,16 +1,32 @@
 import { S } from './modules/state.js';
 import { plzToGebiet, plzToStadt } from './modules/plz.js';
 import { debounce, dateFmt, copyVal } from './modules/helpers.js';
-import { getData, findPreisRow, findKondRow, calcTarif, calcVergleich } from './modules/calc.js';
-import { buildCard } from './modules/render.js';
+import { getData, findPreisRow, findKondRow, calcTarif, calcVergleich } from './modules/calc.js?v=20260622h';
+import { buildCard } from './modules/render.js?v=20260622h';
+import { openPdfModal } from './modules/pdf-modal.js?v=20260622h';
 
-const API_BASE = location.hostname === '127.0.0.1' ? 'http://127.0.0.1:3001' : '';
+const LOCAL_HOSTS = ['127.0.0.1', 'localhost'];
+const API_BASE = LOCAL_HOSTS.includes(location.hostname) ? `http://${location.hostname}:3001` : '';
 
 // Produktdaten aus API laden (überschreibt data.js wenn API erreichbar)
 try {
   const resp = await fetch(`${API_BASE}/api/produktdaten`);
   if (resp.ok) window.PRODUKTDATEN = await resp.json();
 } catch { /* API nicht erreichbar – nutze data.js Fallback */ }
+
+// Vertragsformulare laden → window.VERTRAG_MAP['sparte-ProduktKey'] = [{id, name, ...}]
+window.VERTRAG_MAP = {};
+try {
+  const resp = await fetch(`${API_BASE}/api/vertragsformulare`);
+  if (resp.ok) {
+    const j = await resp.json();
+    for (const item of (j.items || [])) {
+      const key = `${item.sparte}-${item.produkt_key}`;
+      if (!window.VERTRAG_MAP[key]) window.VERTRAG_MAP[key] = [];
+      window.VERTRAG_MAP[key].push(item);
+    }
+  }
+} catch { /* offline – kein Formular-Popup */ }
 
 // Per-PLZ-Preise (volle Historie) werden on-demand je PLZ geladen und gecacht.
 window.PLZ_CACHE = window.PLZ_CACHE || {};
@@ -50,11 +66,15 @@ const tabStrip            = $('tabStrip');
 const mainContent         = $('mainContent');
 
 cardsGrid.addEventListener('click', e => {
-  const btn = e.target.closest('.copy-btn');
-  if (!btn) return;
-  copyVal(btn.dataset.copy);
-  btn.classList.add('copied');
-  setTimeout(() => btn.classList.remove('copied'), 1400);
+  const copyBtn = e.target.closest('.copy-btn');
+  if (copyBtn) {
+    copyVal(copyBtn.dataset.copy);
+    copyBtn.classList.add('copied');
+    setTimeout(() => copyBtn.classList.remove('copied'), 1400);
+    return;
+  }
+  const vertragBtn = e.target.closest('.btn-vertrag:not([disabled])');
+  if (vertragBtn) openPdfModal(vertragBtn);
 });
 
 // ── Tab ───────────────────────────────────────────────────────────────────────
@@ -105,13 +125,14 @@ function updatePanelForProduct() {
   const isHz = S.produkt === 'heizstrom';
   const isSV = S.produkt === 'steuve';
   const isNS = isHz && S.hzTyp === 'NS';
-  // DT: Gemeinsame Messung (immer DT) oder Nachtspeicher getrennt mit DT-Zähler
-  const isDT = isNS && (S.messung === 'gemeinschaft' || S.zaehlerart === 'Doppeltarif');
+  const isWP = isHz && S.hzTyp === 'WP';
+  // DT: WP mit Doppeltarifzähler, gemeinsame Messung (immer DT) oder NS getrennt mit DT-Zähler
+  const isDT = (isWP && S.zaehlerart === 'Doppeltarif') || (isNS && (S.messung === 'gemeinschaft' || S.zaehlerart === 'Doppeltarif'));
 
   $('grpHzTyp').style.display       = isHz ? '' : 'none';
   $('grpMessung').style.display     = isNS ? '' : 'none';
-  // Zählerart-Wahl nur bei Nachtspeicher + Getrennte Messung
-  $('grpZaehlerart').style.display  = (isNS && S.messung === 'getrennt') ? '' : 'none';
+  // Zählerart-Wahl für WP (ET/DT-Zähler) und für Nachtspeicher + Getrennte Messung
+  $('grpZaehlerart').style.display  = (isWP || (isNS && S.messung === 'getrennt')) ? '' : 'none';
   $('grpVerbrauchNT').style.display = isDT ? '' : 'none';
   $('grpSteuveTyp').style.display    = isSV ? '' : 'none';
   $('grpSteuveModul').style.display  = isSV ? '' : 'none';
@@ -272,14 +293,14 @@ $('hzTypPills').addEventListener('click', e => {
   S.hzTyp = btn.dataset.hztyp;
   $('hzTypPills').querySelectorAll('.pill-sm').forEach(b =>
     b.classList.toggle('active', b.dataset.hztyp === S.hzTyp));
-  // Bei Wechsel zu NS: Messung + Zählerart zurücksetzen
+  // Zählerart zurücksetzen; bei NS zusätzlich Messung zurücksetzen
+  S.zaehlerart = 'Einzeltarif';
+  $('zaehlerartPills').querySelectorAll('.pill-sm').forEach(b =>
+    b.classList.toggle('active', b.dataset.za === 'Einzeltarif'));
   if (S.hzTyp === 'NS') {
-    S.messung    = 'getrennt';
-    S.zaehlerart = 'Einzeltarif';
+    S.messung = 'getrennt';
     $('messungPills').querySelectorAll('.pill-sm').forEach(b =>
       b.classList.toggle('active', b.dataset.messung === 'getrennt'));
-    $('zaehlerartPills').querySelectorAll('.pill-sm').forEach(b =>
-      b.classList.toggle('active', b.dataset.za === 'Einzeltarif'));
   }
   updatePanelForProduct();
   calculate();

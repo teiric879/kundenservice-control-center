@@ -7631,8 +7631,8 @@ var require_stream4 = __commonJS({
         let promise;
         try {
           const request = createRequest();
-          const fetch = this.#fetch;
-          promise = fetch(request);
+          const fetch2 = this.#fetch;
+          promise = fetch2(request);
         } catch (error) {
           promise = Promise.reject(error);
         }
@@ -7864,11 +7864,11 @@ var require_client3 = __commonJS({
     };
     exports2.HttpClient = HttpClient;
     async function findEndpoint(customFetch, clientUrl) {
-      const fetch = customFetch;
+      const fetch2 = customFetch;
       for (const endpoint of exports2.checkEndpoints) {
         const url = new URL(endpoint.versionPath, clientUrl);
         const request = new Request(url.toString(), { method: "GET" });
-        const response = await fetch(request);
+        const response = await fetch2(request);
         await response.arrayBuffer();
         if (response.ok) {
           return endpoint;
@@ -9306,6 +9306,21 @@ var require_ddl = __commonJS({
   CREATE INDEX IF NOT EXISTS idx_preise_plz ON preise(plz, sparte);
   CREATE INDEX IF NOT EXISTS idx_kond_plz   ON konditionen(plz, sparte);
 `;
+    var VERTRAGSFORMULARE_TABLE = `
+  CREATE TABLE IF NOT EXISTS vertragsformulare (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    sparte       TEXT NOT NULL,
+    produkt_key  TEXT NOT NULL,
+    name         TEXT NOT NULL DEFAULT 'Standardvertrag',
+    source_type  TEXT NOT NULL DEFAULT 'upload',   -- 'upload' (file_data) | 'url' (source_value)
+    source_value TEXT NOT NULL DEFAULT '',          -- URL bei 'url', Dateiname bei 'upload'
+    file_data    TEXT,                              -- Base64-PDF bei source_type='upload'
+    sort_order   INTEGER NOT NULL DEFAULT 0
+  );
+`;
+    var VERTRAGSFORMULARE_ALTERS = [
+      "ALTER TABLE vertragsformulare ADD COLUMN file_data TEXT"
+    ];
     var PRODUKTE_REGISTRY = `
   -- Angebots-ID HT: Lookup \xFCber (sparte, AP_netto, GP_Jahr_netto). Quelle TB 602/702/802/502 (WERK=59).
   CREATE TABLE IF NOT EXISTS aid_registry (
@@ -9398,6 +9413,8 @@ var require_ddl = __commonJS({
       PRODUKTE_ALTERS,
       PRODUKTE_POST_INDEXES,
       PRODUKTE_REGISTRY,
+      VERTRAGSFORMULARE_TABLE,
+      VERTRAGSFORMULARE_ALTERS,
       BESUCHER_TABLES,
       EINSATZPLAN_TABLES,
       INITIAL_AGENTS
@@ -9424,6 +9441,8 @@ var require_schema = __commonJS({
       await tryAlters(db, ddl.PRODUKTE_ALTERS);
       await db.exec(ddl.PRODUKTE_POST_INDEXES);
       await db.exec(ddl.PRODUKTE_REGISTRY);
+      await db.exec(ddl.VERTRAGSFORMULARE_TABLE);
+      await tryAlters(db, ddl.VERTRAGSFORMULARE_ALTERS);
     }
     async function ensureBesucher() {
       const db = getDb("besucher");
@@ -44972,6 +44991,15 @@ var require_einsatzplanerRepo = __commonJS({
         vals.push(id);
         await db().run(`UPDATE ep_agents SET ${fields.join(",")} WHERE id=?`, vals);
       },
+      // Berater endgültig löschen — inkl. aller Zuweisungen und Notizen (atomar).
+      deleteAgent(id) {
+        return db().transaction(async (tx) => {
+          await tx.run("DELETE FROM ep_assignments WHERE agent_id=?", [id]);
+          await tx.run("DELETE FROM ep_notes WHERE agent_id=?", [id]);
+          await tx.run("DELETE FROM ep_agents WHERE id=?", [id]);
+          return { ok: true };
+        });
+      },
       // ── Assignments ─────────────────────────────────────────────────────────────
       listAssignments({ monday, from, to } = {}) {
         if (from && to) {
@@ -45079,6 +45107,10 @@ var require_einsatzplaner = __commonJS({
         await repo.updateAgent(req.params.id, req.body ?? {});
         return { ok: true };
       });
+      fastify.delete("/api/einsatzplaner/agents/:id", async (req) => {
+        await repo.deleteAgent(req.params.id);
+        return { ok: true };
+      });
       fastify.get("/api/einsatzplaner/assignments", async (req) => {
         const { monday, from, to } = req.query;
         return repo.listAssignments({ monday, from, to });
@@ -45112,6 +45144,136 @@ var require_einsatzplaner = __commonJS({
   }
 });
 
+// backend/data/repositories/vertragsformulareRepo.js
+var require_vertragsformulareRepo = __commonJS({
+  "backend/data/repositories/vertragsformulareRepo.js"(exports2, module2) {
+    var { getDb } = require_driver();
+    var db = () => getDb("produkte");
+    var META_COLS = "id, sparte, produkt_key, name, source_type, source_value, sort_order";
+    module2.exports = {
+      // Liste OHNE file_data (Base64 wäre zu groß für die Übersicht).
+      listAll() {
+        return db().all(
+          `SELECT ${META_COLS} FROM vertragsformulare ORDER BY sparte, produkt_key, sort_order, id`
+        );
+      },
+      // Vollständiger Datensatz inkl. file_data (für den /file-Endpoint).
+      getById(id) {
+        return db().get("SELECT * FROM vertragsformulare WHERE id=?", [id]);
+      },
+      async insert({ sparte, produkt_key, name, source_type, source_value, file_data, sort_order = 0 }) {
+        const r = await db().run(
+          "INSERT INTO vertragsformulare (sparte, produkt_key, name, source_type, source_value, file_data, sort_order) VALUES (?,?,?,?,?,?,?)",
+          [sparte, produkt_key, name, source_type, source_value, file_data ?? null, sort_order]
+        );
+        return r.lastInsertRowid;
+      },
+      // file_data nur überschreiben, wenn neue Bytes mitkommen (sonst bestehende behalten).
+      update(id, { name, source_type, source_value, file_data, sort_order }) {
+        if (file_data !== void 0 && file_data !== null) {
+          return db().run(
+            "UPDATE vertragsformulare SET name=?, source_type=?, source_value=?, file_data=?, sort_order=? WHERE id=?",
+            [name, source_type, source_value, file_data, sort_order ?? 0, id]
+          );
+        }
+        return db().run(
+          "UPDATE vertragsformulare SET name=?, source_type=?, source_value=?, sort_order=? WHERE id=?",
+          [name, source_type, source_value, sort_order ?? 0, id]
+        );
+      },
+      deleteById(id) {
+        return db().run("DELETE FROM vertragsformulare WHERE id=?", [id]);
+      }
+    };
+  }
+});
+
+// backend/routes/vertragsformulare.js
+var require_vertragsformulare = __commonJS({
+  "backend/routes/vertragsformulare.js"(exports2, module2) {
+    var fs = require("node:fs");
+    var path = require("node:path");
+    var repo = require_vertragsformulareRepo();
+    var BIG_BODY = { bodyLimit: 20 * 1024 * 1024 };
+    module2.exports = async function vertragsformulareRoutes(fastify) {
+      fastify.get("/api/vertragsformulare", async () => {
+        const items = await repo.listAll();
+        return { ok: true, items };
+      });
+      fastify.post("/api/vertragsformulare", BIG_BODY, async (req, reply) => {
+        const { sparte, produkt_key, name, source_type, source_value, file_base64, sort_order } = req.body || {};
+        if (!sparte || !produkt_key) {
+          return reply.code(400).send({ error: "sparte und produkt_key sind erforderlich" });
+        }
+        const type = source_type || "upload";
+        if (type === "url" && !source_value) {
+          return reply.code(400).send({ error: "source_value (URL) ist erforderlich" });
+        }
+        if (type === "upload" && !file_base64) {
+          return reply.code(400).send({ error: "file_base64 (Datei) ist erforderlich" });
+        }
+        const id = await repo.insert({
+          sparte,
+          produkt_key,
+          name: name || "Standardvertrag",
+          source_type: type,
+          source_value: source_value || "",
+          file_data: type === "upload" ? file_base64 : null,
+          sort_order: sort_order ?? 0
+        });
+        return { ok: true, id };
+      });
+      fastify.put("/api/vertragsformulare/:id", BIG_BODY, async (req, reply) => {
+        const id = parseInt(req.params.id, 10);
+        const { name, source_type, source_value, file_base64, sort_order } = req.body || {};
+        const row = await repo.getById(id);
+        if (!row) return reply.code(404).send({ error: "Nicht gefunden" });
+        const type = source_type || row.source_type;
+        await repo.update(id, {
+          name: name || row.name,
+          source_type: type,
+          source_value: source_value ?? row.source_value,
+          // Nur überschreiben, wenn eine neue Datei kommt; bei URL file_data leeren.
+          file_data: type === "url" ? "" : file_base64 || void 0,
+          sort_order: sort_order ?? row.sort_order
+        });
+        return { ok: true };
+      });
+      fastify.delete("/api/vertragsformulare/:id", async (req, reply) => {
+        const id = parseInt(req.params.id, 10);
+        const row = await repo.getById(id);
+        if (!row) return reply.code(404).send({ error: "Nicht gefunden" });
+        await repo.deleteById(id);
+        return { ok: true };
+      });
+      fastify.get("/api/vertragsformulare/:id/file", async (req, reply) => {
+        const id = parseInt(req.params.id, 10);
+        const row = await repo.getById(id);
+        if (!row) return reply.code(404).send({ error: "Nicht gefunden" });
+        reply.header("Content-Type", "application/pdf");
+        reply.header("Content-Disposition", `inline; filename="${encodeURIComponent(row.name || "formular")}.pdf"`);
+        if (row.source_type === "upload") {
+          if (!row.file_data) return reply.code(404).send({ error: "Keine Datei gespeichert" });
+          return reply.send(Buffer.from(row.file_data, "base64"));
+        }
+        if (row.source_type === "local") {
+          const filePath = path.resolve(row.source_value);
+          if (!fs.existsSync(filePath)) {
+            return reply.code(404).send({ error: "Lokale Datei nicht gefunden" });
+          }
+          return reply.send(fs.createReadStream(filePath));
+        }
+        const res = await fetch(row.source_value);
+        if (!res.ok) {
+          return reply.code(502).send({ error: `PDF-URL nicht erreichbar: ${res.status}` });
+        }
+        const buf = await res.arrayBuffer();
+        return reply.send(Buffer.from(buf));
+      });
+    };
+  }
+});
+
 // backend/app.js
 var require_app = __commonJS({
   "backend/app.js"(exports2, module2) {
@@ -45125,6 +45287,7 @@ var require_app = __commonJS({
       fastify.register(require_admin_preise());
       fastify.register(require_besucher());
       fastify.register(require_einsatzplaner());
+      fastify.register(require_vertragsformulare());
       fastify.get("/api/health", async () => ({ ok: true }));
       if (!process.env.VERCEL) await ensureSchemas();
       return fastify;

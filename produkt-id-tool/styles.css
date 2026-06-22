@@ -71,6 +71,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 /* Brand / Logo */
 .brand{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:4px 8px 18px}
 .wordmark{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.brand-logo{width:152px;max-width:100%;height:auto;display:block}
 .wm-e{color:#f5b800}
 .wm-regio{color:#fff}
 .brand-caption{font-size:11.5px;font-weight:400;color:rgba(180,210,200,.7);letter-spacing:.01em;line-height:1;padding-top:10px;margin-top:2px;border-top:1px solid rgba(191,146,0,.28);width:100%}
@@ -131,7 +132,9 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .mod-item .ext-dot{
   margin-left:auto;width:5px;height:5px;border-radius:50%;
   background:var(--stroke-hi);flex:0 0 5px;opacity:.5;
+  transition:background .15s,opacity .15s;
 }
+.mod-item:hover .ext-dot{background:var(--acc-hi);opacity:.8}
 
 /* Ext link arrow on module toggle */
 .mod-ext-arrow{
@@ -525,8 +528,8 @@ input[type=date].field-input::-webkit-calendar-picker-indicator{filter:invert(.6
 }
 
 /* Long-label groups: stack vertically so text doesn't cramp */
-#messungPills,#zaehlerartPills{flex-direction:column;gap:5px}
-#messungPills .pill-sm,#zaehlerartPills .pill-sm{
+#messungPills,#zaehlerartPills,#hzTypPills,#steuveTypPills{flex-direction:column;gap:5px}
+#messungPills .pill-sm,#zaehlerartPills .pill-sm,#hzTypPills .pill-sm,#steuveTypPills .pill-sm{
   flex:none;text-align:left;padding:9px 12px;
 }
 

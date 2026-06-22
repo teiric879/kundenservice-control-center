@@ -119,6 +119,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 }
 .brand{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:6px 10px 24px}
 .wordmark{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.brand-logo{width:152px;max-width:100%;height:auto;display:block}
 .wm-e{color:#f5b800}
 .wm-regio{color:#fff}
 .brand-caption{font-size:11.5px;font-weight:400;color:rgba(180,210,200,.7);letter-spacing:.01em;line-height:1;padding-top:10px;margin-top:2px;border-top:1px solid rgba(191,146,0,.28);width:100%}
@@ -152,7 +153,8 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .mod-item:hover{color:var(--ink);background:var(--glass)}
 .mod-item.active{color:var(--acc-hi);background:rgba(191,146,0,.10)}
 .mod-item.active svg{opacity:1}
-.mod-item .ext-dot{margin-left:auto;width:5px;height:5px;border-radius:50%;background:var(--stroke-hi);flex:0 0 5px;opacity:.5}
+.mod-item .ext-dot{margin-left:auto;width:5px;height:5px;border-radius:50%;background:var(--stroke-hi);flex:0 0 5px;opacity:.5;transition:background .15s,opacity .15s}
+.mod-item:hover .ext-dot{background:var(--acc-hi);opacity:.8}
 .side-foot{
   margin-top:auto;padding:10px 8px 0;
   color:var(--muted-2);font-size:10.5px;line-height:1.5;
@@ -511,6 +513,25 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
 }
 .pdf-entry input::placeholder{color:var(--muted-2)}
 .pdf-entry input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,255,255,.09)}
+.pdf-type-sel{
+  flex:0 0 auto;height:34px;padding:0 8px;font-size:12px;font-family:inherit;cursor:pointer;
+  background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--ink);border-radius:8px;
+}
+.pdf-type-sel:focus{outline:none;border-color:rgba(191,146,0,.4)}
+.pdf-source-cell{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.pdf-source-cell .pdf-path-in{flex:1}
+.pdf-file-btn{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;
+  background:rgba(191,146,0,.12);border:1px solid rgba(191,146,0,.3);color:var(--acc-hi);
+  transition:all .15s;
+}
+.pdf-file-btn:hover{background:rgba(191,146,0,.2);border-color:rgba(191,146,0,.5)}
+.pdf-file-btn svg{width:13px;height:13px}
+.pdf-file-name{
+  flex:1;min-width:0;font-size:12px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
 .pdf-entry-del{
   width:28px;height:28px;border-radius:7px;flex:0 0 28px;
   border:1px solid rgba(255,138,120,.2);background:rgba(255,138,120,.06);
@@ -586,7 +607,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="brand">
-      <div class="wordmark"><span class="wm-e">e</span><span class="wm-regio">regio</span></div>
+      <img src="../shared/eregio-logo.png" class="brand-logo" alt="e-regio">
       <div class="brand-caption">Kundenservice Control Center</div>
     </div>
 
@@ -843,7 +864,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             Alle PDFs speichern
           </button>
-          <span style="font-size:12px;color:var(--muted-2)">Lokale/UNC-Pfade · Im Tool erscheint ein Auswahlmenü wenn mehrere PDFs vorhanden</span>
+          <span style="font-size:12px;color:var(--muted-2)">Neue &amp; geänderte Einträge speichern · Löschen (✕) wirkt sofort</span>
         </div>
       </div>
 
@@ -854,9 +875,10 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
       <div class="card">
         <div class="card-title" style="margin-bottom:10px">Hinweis</div>
         <div style="font-size:13px;color:var(--muted);line-height:1.7">
-          Je Tarif können mehrere PDFs mit individuellem Namen hinterlegt werden.<br>
-          Beispiel: <code style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:5px;font-size:11.5px">H:\K-K-D\Formulare\Gas_Basis_2026.pdf</code><br>
-          Hat ein Produkt genau ein PDF, wird es direkt geöffnet. Bei mehreren erscheint eine Auswahl.
+          Je Tarif können mehrere PDFs hinterlegt werden. Das PDF sollte ausf&uuml;llbare Formularfelder (AcroForm) haben.<br>
+          Felder <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">ap</code>, <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">gp</code>, <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">plz</code>, <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">ort</code>, <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">verbrauch</code> werden automatisch bef&uuml;llt.<br>
+          <strong>Datei hochladen:</strong> PDF per Explorer w&auml;hlen &ndash; die Datei wird auf dem Server gespeichert (funktioniert lokal &amp; online).<br>
+          <strong>Online-URL:</strong> direkter Link zu einem PDF, z.B. <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">https://www.eregio.de/formulare/Gas_Basis.pdf</code>
         </div>
       </div>
 
@@ -1023,6 +1045,7 @@ function showTab(name){
   });
   if(name==='einsatzplaner') epLoadAgents();
   if(name==='gueltigkeiten') gueInit();
+  if(name==='formulare') renderPdfPanel();
 }
 
 // ── Sidebar Toggles ──────────────────────────────────────────────────────────
@@ -1234,11 +1257,27 @@ function saveProdukteVis(){
 // ── PDF per Produkt ───────────────────────────────────────────────────────────
 // Storage: { "gas-Basis": [{name:"Standardvertrag",path:"H:\..."}, ...], ... }
 
-function renderPdfPanel(){
-  const saved  = JSON.parse(localStorage.getItem(LS.pdfPaths)||'{}');
-  const pd     = window.PRODUKTDATEN;
-  const panel  = document.getElementById('pdfPanel');
+const VF_API = (['127.0.0.1','localhost'].includes(location.hostname) ? `http://${location.hostname}:3001` : '') + '/api/vertragsformulare';
+
+async function renderPdfPanel(){
+  const pd    = window.PRODUKTDATEN;
+  const panel = document.getElementById('pdfPanel');
   if(!panel || !pd) return;
+  panel.innerHTML = '<div style="padding:14px;color:var(--muted-2);font-size:13px">Lade…</div>';
+
+  // Alle Einträge aus der DB holen
+  let dbMap = {}; // key 'sparte-produkt_key' → [{id,name,source_type,source_value}]
+  try{
+    const r = await fetch(VF_API);
+    if(r.ok){
+      const j = await r.json();
+      for(const item of (j.items||[])){
+        const k = item.sparte+'-'+item.produkt_key;
+        if(!dbMap[k]) dbMap[k]=[];
+        dbMap[k].push(item);
+      }
+    }
+  }catch{}
 
   panel.innerHTML = SPARTEN_META.map(s=>{
     const d = pd[s.key];
@@ -1246,7 +1285,7 @@ function renderPdfPanel(){
     const produkte = d.produkte||[];
     const labels   = d.labels||{};
     const totalPdfs = produkte.reduce((n,p)=>{
-      const arr = saved[s.key+'-'+p]||[];
+      const arr = dbMap[s.key+'-'+p]||[];
       return n + arr.length;
     }, 0);
 
@@ -1260,7 +1299,7 @@ function renderPdfPanel(){
       <div class="pdf-sparte-body">
         ${produkte.map(p=>{
           const key = s.key+'-'+p;
-          const entries = saved[key]||[];
+          const entries = dbMap[key]||[];
           return `<div class="pdf-prod-block">
             <div class="pdf-prod-name">
               <span>${labels[p]||p}</span>
@@ -1270,9 +1309,9 @@ function renderPdfPanel(){
               </button>
             </div>
             <div class="pdf-entries" id="pdfentries-${key}">
-              ${entries.map((e,i)=>pdfEntryHtml(key,i,e.name,e.path)).join('')}
+              ${entries.map((e,i)=>pdfEntryHtml(key,i,e.id,e.name,e.source_type||'url',e.source_value||'')).join('')}
             </div>
-            ${entries.length===0?`<div style="font-size:11.5px;color:var(--muted-2);padding:4px 0">Noch keine PDFs hinterlegt</div>`:''}
+            ${entries.length===0?`<div class="pdf-empty-hint" style="font-size:11.5px;color:var(--muted-2);padding:4px 0">Noch keine PDFs hinterlegt</div>`:''}
           </div>`;
         }).join('')}
       </div>
@@ -1280,14 +1319,63 @@ function renderPdfPanel(){
   }).join('');
 }
 
-function pdfEntryHtml(key, idx, name, path){
-  return `<div class="pdf-entry" id="pdfrow-${key}-${idx}">
-    <input type="text" class="pdf-name-in" value="${escHtml(name)}" placeholder="Name (z.B. Standardvertrag)" oninput="markPdfDirty()">
-    <input type="text" class="pdf-path-in" value="${escHtml(path)}" placeholder="H:\\K-K-D\\Formulare\\Datei.pdf" oninput="markPdfDirty()">
+function pdfEntryHtml(key, idx, dbId, name, sourceType, sourceValue){
+  const type = (sourceType||'upload');
+  const isUrl = type === 'url';
+  return `<div class="pdf-entry" id="pdfrow-${key}-${idx}" data-db-id="${dbId||''}">
+    <input type="text" class="pdf-name-in" value="${escHtml(name)}" placeholder="Name (z.B. Standardvertrag)">
+    <select class="pdf-type-sel" onchange="pdfTypeChanged(this)">
+      <option value="upload" ${!isUrl?'selected':''}>Datei hochladen</option>
+      <option value="url"    ${isUrl ?'selected':''}>Online-URL</option>
+    </select>
+    <div class="pdf-source-cell">${pdfSourceCellHtml(type, sourceValue, !!dbId)}</div>
     <button class="pdf-entry-del" onclick="removePdfEntry('${key}',${idx})" title="Entfernen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>`;
+}
+
+// Quell-Zelle: bei 'upload' ein Datei-Picker (Explorer), bei 'url' ein Textfeld.
+function pdfSourceCellHtml(type, sourceValue, hasExisting){
+  if(type === 'url'){
+    return `<input type="text" class="pdf-path-in" value="${escHtml(sourceValue)}" placeholder="https://www.eregio.de/formulare/Datei.pdf">`;
+  }
+  const label = hasExisting && sourceValue ? sourceValue : (sourceValue || 'Keine Datei gewählt');
+  return `<button type="button" class="pdf-file-btn" onclick="this.nextElementSibling.click()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Datei wählen
+    </button>
+    <input type="file" accept="application/pdf,.pdf" class="pdf-file-in" style="display:none" onchange="pdfFileChosen(this)">
+    <span class="pdf-file-name" title="${escHtml(label)}">${escHtml(label)}</span>`;
+}
+
+function pdfTypeChanged(sel){
+  const row  = sel.closest('.pdf-entry');
+  const cell = row.querySelector('.pdf-source-cell');
+  const hasExisting = !!row.dataset.dbId;
+  cell.innerHTML = pdfSourceCellHtml(sel.value, '', hasExisting);
+  row._fileBase64 = null;  // bei Typwechsel evtl. gewählte Datei verwerfen
+}
+
+function pdfFileChosen(input){
+  const file = input.files && input.files[0];
+  const row  = input.closest('.pdf-entry');
+  const nameSpan = row.querySelector('.pdf-file-name');
+  if(!file){ return; }
+  if(file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')){
+    showToast('Bitte eine PDF-Datei wählen','err'); return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    // dataURL → reines Base64 extrahieren
+    row._fileBase64 = String(reader.result).split(',')[1] || '';
+    row._fileName   = file.name;
+    if(nameSpan){ nameSpan.textContent = file.name; nameSpan.title = file.name; }
+    // Name-Feld vorbelegen, falls leer
+    const nameIn = row.querySelector('.pdf-name-in');
+    if(nameIn && !nameIn.value.trim()) nameIn.value = file.name.replace(/\.pdf$/i,'');
+  };
+  reader.readAsDataURL(file);
 }
 
 function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
@@ -1298,45 +1386,75 @@ function togglePdfSection(key){
 }
 
 function addPdfEntry(key){
-  // ensure section is open
-  const parts = key.split('-');
-  const sec = document.getElementById('pdfsec-'+parts[0]);
+  // Sparte-Abschnitt aufklappen
+  const sparte = key.split('-')[0];
+  const sec = document.getElementById('pdfsec-'+sparte);
   if(sec && !sec.classList.contains('open')) sec.classList.add('open');
 
   const container = document.getElementById('pdfentries-'+key);
   if(!container) return;
   const idx = container.children.length;
-  container.insertAdjacentHTML('beforeend', pdfEntryHtml(key, idx, '', ''));
-  // hide "noch keine PDFs" hint
+  container.insertAdjacentHTML('beforeend', pdfEntryHtml(key, idx, '', '', 'upload', ''));
   const hint = container.nextElementSibling;
-  if(hint && hint.textContent.includes('Noch keine')) hint.style.display='none';
+  if(hint && hint.classList.contains('pdf-empty-hint')) hint.style.display='none';
 }
 
-function removePdfEntry(key, idx){
+async function removePdfEntry(key, idx){
   const container = document.getElementById('pdfentries-'+key);
   if(!container) return;
   const rows = container.querySelectorAll('.pdf-entry');
-  if(rows[idx]) rows[idx].remove();
+  const row = rows[idx];
+  if(!row) return;
+  const dbId = row.dataset.dbId;
+  if(dbId){
+    try{
+      const r = await fetch(`${VF_API}/${dbId}`, {method:'DELETE'});
+      if(!r.ok){ showToast('Löschen fehlgeschlagen','err'); return; }
+    }catch{ showToast('Löschen fehlgeschlagen','err'); return; }
+  }
+  row.remove();
 }
 
-function markPdfDirty(){ /* optional: mark save button as dirty */ }
-
-function savePdfPaths(){
-  const saved = JSON.parse(localStorage.getItem(LS.pdfPaths)||'{}');
-  // read all entries
-  document.querySelectorAll('[id^="pdfentries-"]').forEach(container=>{
+async function savePdfPaths(){
+  const rows = document.querySelectorAll('[id^="pdfentries-"] .pdf-entry');
+  let ok=0, err=0, skipped=0;
+  for(const row of rows){
+    const container = row.closest('[id^="pdfentries-"]');
     const key = container.id.replace('pdfentries-','');
-    const entries = [];
-    container.querySelectorAll('.pdf-entry').forEach(row=>{
-      const name = row.querySelector('.pdf-name-in')?.value?.trim()||'';
-      const path = row.querySelector('.pdf-path-in')?.value?.trim()||'';
-      if(path) entries.push({name, path});
-    });
-    if(entries.length) saved[key] = entries;
-    else delete saved[key];
-  });
-  localStorage.setItem(LS.pdfPaths, JSON.stringify(saved));
-  showToast('PDF-Zuordnungen gespeichert','ok');
+    const [sparte, ...pkParts] = key.split('-');
+    const produkt_key  = pkParts.join('-');
+    const name         = row.querySelector('.pdf-name-in')?.value?.trim()||'Standardvertrag';
+    const source_type  = row.querySelector('.pdf-type-sel')?.value||'upload';
+    const dbId         = row.dataset.dbId;
+
+    let source_value = '';
+    let file_base64  = null;
+    if(source_type === 'url'){
+      source_value = row.querySelector('.pdf-path-in')?.value?.trim()||'';
+      if(!source_value){ continue; } // leere URL-Zeile ignorieren
+    } else {
+      file_base64  = row._fileBase64 || null;
+      source_value = row._fileName || '';
+      // Neue Upload-Zeile ohne Datei → überspringen; bestehende ohne neue Datei → nur Metadaten
+      if(!dbId && !file_base64){ continue; }
+    }
+
+    const payload = { sparte, produkt_key, name, source_type, source_value };
+    if(file_base64) payload.file_base64 = file_base64;
+
+    try{
+      let r;
+      if(dbId){
+        r = await fetch(`${VF_API}/${dbId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      } else {
+        r = await fetch(VF_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if(r.ok){ const j = await r.json(); if(j.id) row.dataset.dbId = j.id; }
+      }
+      if(r.ok) ok++; else err++;
+    }catch{ err++; }
+  }
+  if(err) showToast(`${err} Fehler beim Speichern`,'err');
+  else showToast(`${ok} Einträge gespeichert`,'ok');
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -1571,6 +1689,10 @@ async function epLoadAgents() {
         class="btn ${a.active?'btn-green':'btn-ghost'}" style="padding:5px 12px;font-size:11.5px">
         ${a.active?'Aktiv':'Inaktiv'}
       </button>
+      <button onclick="epDelete(${a.id},'${a.name.replace(/'/g,"\\'")}')"
+        class="btn btn-danger" style="padding:5px 10px;font-size:11.5px" title="Berater endgültig löschen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+      </button>
     </div>`).join('');
 }
 
@@ -1578,6 +1700,13 @@ async function epToggle(id, active) {
   await epApi('/agents/'+id, {method:'PATCH', body:{active: active?0:1}});
   await epLoadAgents();
   showToast(active?'Berater deaktiviert':'Berater aktiviert','ok');
+}
+
+async function epDelete(id, name) {
+  if(!confirm(`Berater „${name}" endgültig löschen?\n\nAlle Zuweisungen und Notizen dieses Beraters werden ebenfalls entfernt. Dies kann nicht rückgängig gemacht werden.`)) return;
+  await epApi('/agents/'+id, {method:'DELETE'});
+  await epLoadAgents();
+  showToast(`${name} wurde gelöscht`,'ok');
 }
 
 async function epCreateAgent() {
