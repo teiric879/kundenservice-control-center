@@ -1,11 +1,8 @@
 {
   "functions": {
-    "api/vercel.js": {
-      "maxDuration": 30,
-      "includeFiles": "node_modules/@libsql/**"
-    }
+    "api/dist/index.js": { "maxDuration": 30 }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/vercel.js" }
+    { "source": "/api/(.*)", "destination": "/api/dist/index.js" }
   ]
 }
