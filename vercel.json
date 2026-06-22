@@ -1,6 +1,9 @@
 {
   "functions": {
-    "api/vercel.js": { "maxDuration": 30 }
+    "api/vercel.js": {
+      "maxDuration": 30,
+      "includeFiles": "node_modules/@libsql/**"
+    }
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/vercel.js" }

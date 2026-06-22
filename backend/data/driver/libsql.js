@@ -8,7 +8,16 @@
 // Param-Konvention: positionale '?'-Platzhalter + Array. (Bei einem MSSQL-Driver würde dieser
 // Driver '?' intern auf '@pN' mappen; deshalb laufen alle Queries durch diese Schicht.)
 
-const { createClient } = require('@libsql/client');
+// @libsql/client/http: pure-fetch variant — no native bindings, works in all serverless envs.
+// Locally (file: URL) falls back to the full client installed in backend/node_modules/.
+const isFileUrl = (url) => url && url.startsWith('file:');
+
+function getCreateClient(url) {
+  if (isFileUrl(url)) {
+    return require('@libsql/client').createClient;
+  }
+  return require('@libsql/client/http').createClient;
+}
 
 // libSQL-Row → schlichtes Plain-Object (Spaltenname → Wert), robust über die columns-Liste.
 function toObjects(result) {
@@ -49,6 +58,7 @@ function makeApi(exec) {
 }
 
 function makeDb(url, authToken) {
+  const createClient = getCreateClient(url);
   const client = createClient({ url, authToken: authToken || undefined, intMode: 'number' });
   const base = makeApi(client);
 
