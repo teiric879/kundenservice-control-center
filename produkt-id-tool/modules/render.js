@@ -61,20 +61,43 @@ export function buildCard(productKey, label, result, isVergleich = false, animDe
     const diffMon  = myRound(diffJahr / 12, 2);
     if (Math.abs(diffJahr) < 0.5) {
       saveBlock = `<div class="card-saving is-equal">
-        <span class="save-lbl">Vergleichstarif</span>
-        <span class="save-amt">Gleichauf</span>
+        <div class="save-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/>
+          </svg>
+        </div>
+        <div class="save-text">
+          <span class="save-lbl">Vergleichstarif</span>
+          <span class="save-amt">Gleichauf</span>
+        </div>
       </div>`;
     } else if (diffJahr > 0) {
       saveBlock = `<div class="card-saving is-plus">
-        <span class="save-lbl">Ersparnis ggü. Vergleichstarif</span>
-        <span class="save-amt">${eur(diffJahr)} <small>/ Jahr</small></span>
-        <span class="save-sub">≈ ${eur(diffMon)} / Monat günstiger</span>
+        <div class="save-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/>
+            <polyline points="16 17 22 17 22 11"/>
+          </svg>
+        </div>
+        <div class="save-text">
+          <span class="save-lbl">Ersparnis ggü. Vergleichstarif</span>
+          <span class="save-amt">${eur(diffJahr)} <small>/ Jahr</small></span>
+          <span class="save-sub">≈ ${eur(diffMon)} / Monat günstiger</span>
+        </div>
       </div>`;
     } else {
       saveBlock = `<div class="card-saving is-minus">
-        <span class="save-lbl">Mehrkosten ggü. Vergleichstarif</span>
-        <span class="save-amt">${eur(Math.abs(diffJahr))} <small>/ Jahr</small></span>
-        <span class="save-sub">≈ ${eur(Math.abs(diffMon))} / Monat teurer</span>
+        <div class="save-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 18"/>
+            <polyline points="16 7 22 7 22 13"/>
+          </svg>
+        </div>
+        <div class="save-text">
+          <span class="save-lbl">Mehrkosten ggü. Vergleichstarif</span>
+          <span class="save-amt">${eur(Math.abs(diffJahr))} <small>/ Jahr</small></span>
+          <span class="save-sub">≈ ${eur(Math.abs(diffMon))} / Monat teurer</span>
+        </div>
       </div>`;
     }
   }

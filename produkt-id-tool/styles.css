@@ -349,23 +349,54 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 
 /* Ersparnis-Band ggü. Vergleichstarif */
 .card-saving{
-  margin:0 16px 12px;padding:9px 12px;border-radius:12px;
-  display:flex;flex-direction:column;gap:2px;
+  margin:0 12px 12px;padding:13px 14px;border-radius:14px;
+  display:flex;flex-direction:row;align-items:center;gap:13px;
+  position:relative;overflow:hidden;
 }
-.card-saving .save-lbl{font-size:9px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
-.card-saving .save-amt{font-family:'Space Grotesk';font-size:18px;font-weight:700;line-height:1.05;color:var(--ink)}
+.card-saving::before{
+  content:'';position:absolute;width:100px;height:100px;border-radius:50%;
+  top:-40px;right:-20px;opacity:.22;filter:blur(30px);pointer-events:none;
+}
+.card-saving.is-plus::before{background:#3BE8A6}
+.card-saving.is-minus::before{background:#FF8A78}
+.card-saving.is-equal::before{background:var(--acc)}
+.save-icon{
+  flex:0 0 44px;width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;z-index:1;
+}
+.card-saving.is-plus .save-icon{
+  background:rgba(59,232,166,.14);border:1px solid rgba(59,232,166,.40);
+  box-shadow:0 0 18px rgba(59,232,166,.20);color:var(--pos);
+}
+.card-saving.is-minus .save-icon{
+  background:rgba(255,138,120,.12);border:1px solid rgba(255,138,120,.38);
+  box-shadow:0 0 18px rgba(255,138,120,.18);color:var(--neg);
+}
+.card-saving.is-equal .save-icon{
+  background:rgba(191,146,0,.10);border:1px solid rgba(191,146,0,.30);
+  color:var(--acc);
+}
+.save-text{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;position:relative;z-index:1}
+.card-saving .save-lbl{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.80}
+.card-saving .save-amt{font-family:'Space Grotesk';font-size:20px;font-weight:700;line-height:1.08}
 .card-saving .save-amt small{font-size:11px;font-weight:600;opacity:.65}
 .card-saving .save-sub{font-size:10px;color:var(--muted-2)}
 .card-saving.is-plus{
-  background:linear-gradient(135deg,rgba(59,232,166,.15),rgba(59,232,166,.04));
-  border:1px solid rgba(59,232,166,.30);
+  background:linear-gradient(135deg,rgba(59,232,166,.16),rgba(59,232,166,.05));
+  border:1px solid rgba(59,232,166,.33);
 }
 .card-saving.is-plus .save-lbl{color:var(--pos)}
 .card-saving.is-plus .save-amt{color:var(--pos)}
-.card-saving.is-minus{background:rgba(255,138,120,.08);border:1px solid rgba(255,138,120,.22)}
+.card-saving.is-minus{
+  background:linear-gradient(135deg,rgba(255,138,120,.13),rgba(255,138,120,.04));
+  border:1px solid rgba(255,138,120,.30);
+}
+.card-saving.is-minus .save-lbl{color:var(--neg)}
 .card-saving.is-minus .save-amt{color:var(--neg)}
 .card-saving.is-equal{background:var(--glass);border:1px solid var(--stroke)}
-.card-saving.is-equal .save-amt{font-size:14px;color:var(--muted)}
+.card-saving.is-equal .save-lbl{color:var(--muted)}
+.card-saving.is-equal .save-amt{font-size:15px;color:var(--muted)}
 
 /* Vergleich card accent */
 .price-card.is-vergleich{border-color:rgba(191,146,0,.30)}
