@@ -1,6 +1,6 @@
 import { S } from './state.js';
 import { myRound, eur, ct, fmtDate, escape, cardColors } from './helpers.js';
-import { getData, preisTiers, lookupPrice, lookupKond } from './calc.js?v=20260622h';
+import { getData, preisTiers, lookupPrice, lookupKond } from './calc.js?v=20260622i';
 import { plzToStadt } from './plz.js';
 
 export function bonusRow(bonusAmt, ustModus, ust) {
@@ -159,7 +159,6 @@ export function buildCard(productKey, label, result, isVergleich = false, animDe
     <div class="card-body">
       <div class="card-row pg-row">
         <span class="lbl" style="font-size:11.5px;font-style:italic">${result.pgLabel || 'Vergleichspreis'}</span>
-        ${result.vl ? `<span class="val" style="font-size:11.5px">${result.vl}&thinsp;Mon.</span>` : ''}
       </div>
       ${result.vl ? `<div class="card-row">
         <span class="lbl">Vertragslaufzeit</span>

@@ -1,9 +1,9 @@
 import { S } from './modules/state.js';
 import { plzToGebiet, plzToStadt } from './modules/plz.js';
 import { debounce, dateFmt, copyVal } from './modules/helpers.js';
-import { getData, findPreisRow, findKondRow, calcTarif, calcVergleich } from './modules/calc.js?v=20260622h';
-import { buildCard } from './modules/render.js?v=20260622h';
-import { openPdfModal } from './modules/pdf-modal.js?v=20260622h';
+import { getData, findPreisRow, findKondRow, calcTarif, calcVergleich } from './modules/calc.js?v=20260622i';
+import { buildCard } from './modules/render.js?v=20260622i';
+import { openPdfModal } from './modules/pdf-modal.js?v=20260622i';
 
 const LOCAL_HOSTS = ['127.0.0.1', 'localhost'];
 const API_BASE = LOCAL_HOSTS.includes(location.hostname) ? `http://${location.hostname}:3001` : '';

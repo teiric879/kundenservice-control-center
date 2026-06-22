@@ -248,6 +248,31 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.7)}
 .num-pop{animation:num-pop .32s cubic-bezier(.34,1.56,.64,1)}
 @keyframes num-pop{0%{transform:scale(1.55)}100%{transform:scale(1)}}
 
+/* Peak Hour Insights */
+.pi-hero{margin-bottom:14px}
+.pi-badge{background:rgba(191,146,0,.10);border:1px solid rgba(191,146,0,.22);border-radius:14px;padding:14px 16px;text-align:center}
+.pi-badge-top{display:flex;align-items:baseline;justify-content:center;gap:10px;margin-bottom:2px}
+.pi-bday{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:var(--acc-hi)}
+.pi-bhours{font-size:17px;font-weight:600;font-family:'Space Grotesk',sans-serif;color:var(--ink)}
+.pi-bpct{font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;color:var(--acc-hi);line-height:1.05}
+.pi-blabel{font-size:11px;color:var(--muted);margin-top:4px}
+.pi-subtitle{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 6px}
+.pi-rows{display:flex;flex-direction:column;gap:4px}
+.pi-row{display:grid;grid-template-columns:26px 72px 1fr 34px;align-items:center;gap:6px;font-size:12px}
+.pi-wd-lbl{font-weight:700;color:var(--acc-hi)}
+.pi-wd-time{color:var(--ink)}
+.pi-wd-bar{height:5px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+.pi-wd-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc-hi));border-radius:4px}
+.pi-wd-pct{text-align:right;color:var(--muted);font-size:11px}
+.pi-cats{display:flex;flex-direction:column;gap:7px}
+.pi-cat{display:grid;grid-template-columns:46px 1fr 36px;align-items:center;gap:8px}
+.pi-cat-n{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--acc-hi);text-align:right}
+.pi-cat-info{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pi-cat-name{font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pi-cat-bar{height:4px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+.pi-cat-bar i{display:block;height:100%;border-radius:4px}
+.pi-cat-pct{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--muted);text-align:right}
+
 .view{display:none}.view.active{display:block}
 
 @media(max-width:1180px){

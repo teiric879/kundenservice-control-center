@@ -138,6 +138,93 @@ function renderKat(rows,anim){
   if(anim&&!RM)raf(function(){box.querySelectorAll('.track i').forEach(function(el){el.style.width=el.dataset.w+'%';});});
 }
 
+/* ---------- kategorie donut ---------- */
+function renderKatDonut(rows,anim){
+  var box=document.getElementById('chartKatDonut');if(!box)return;
+  var counts={};rows.forEach(function(r){if(!r.kategorie)return;var k=stripPfx(r.kategorie);counts[k]=(counts[k]||0)+1;});
+  var items=Object.keys(counts).map(function(k){return {label:k,v:counts[k]};}).sort(function(a,b){return b.v-a.v;}).slice(0,8);
+  if(!items.length){box.innerHTML='<p class="sub" style="text-align:center;padding:24px 0">Keine Daten</p>';return;}
+  var total=items.reduce(function(s,x){return s+x.v;},0)||1;
+  var r=68,C=2*Math.PI*r,off=0;
+  var s='<svg viewBox="0 0 184 192" width="100%" style="height:196px"><g transform="rotate(-90 92 96)">';
+  s+='<circle cx="92" cy="96" r="'+r+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="22"/>';
+  items.forEach(function(it,i){var len=C*it.v/total,col=PAL[i%PAL.length];
+    s+='<circle class="d-seg" cx="92" cy="96" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="22" stroke-linecap="butt" stroke-dasharray="'+(anim&&!RM?0:len)+' '+(anim&&!RM?C:C-len)+'" data-len="'+len+'" data-c="'+C+'" stroke-dashoffset="'+(-off)+'" data-i="'+i+'"/>';off+=len;});
+  s+='</g><text x="92" y="90" text-anchor="middle" font-family="Space Grotesk" font-size="24" font-weight="600" fill="#EAF6F2">'+items.length+'</text>';
+  s+='<text x="92" y="109" text-anchor="middle" font-size="11.5" fill="#93B2AB">Themen</text></svg>';
+  box.innerHTML=s;
+  if(anim&&!RM){raf(function(){box.querySelectorAll('.d-seg').forEach(function(c,i){c.style.transition='stroke-dasharray .45s cubic-bezier(.22,.61,.36,1) '+(i*.04)+'s';c.style.strokeDasharray=c.dataset.len+' '+(c.dataset.c-c.dataset.len);});});}
+  var leg='';items.forEach(function(it,i){leg+='<span><i style="background:'+PAL[i%PAL.length]+'"></i>'+it.label+' · '+Math.round(it.v/total*100)+'% ('+nf(it.v)+')</span>';});
+  document.getElementById('legendKatDonut').innerHTML=leg;
+  box.querySelectorAll('.d-seg').forEach(function(c){c.addEventListener('mousemove',function(e){var it=items[+c.dataset.i];showTip(e,it.label+': <b>'+nf(it.v)+'</b> ('+Math.round(it.v/total*100)+'%)');});c.addEventListener('mouseleave',hideTip);});
+}
+
+/* ---------- peak hour insights ---------- */
+function renderPeakInsights(rows){
+  var box=document.getElementById('peakInsights');if(!box)return;
+  // stunde>0: 0 Uhr ist Platzhalter historischer Bulk-Importe (ohne Uhrzeit) – würde die %-Statistik verwässern.
+  var withHour=rows.filter(function(r){return r.stunde>0&&r.stunde!=null;});
+  var totalH=withHour.length||1;
+  var dowHc={};
+  withHour.forEach(function(r){var k=r.dow+'|'+r.stunde;dowHc[k]=(dowHc[k]||0)+1;});
+  // Overall peak 2-hour slot
+  var peakSlot=null,peakV=0;
+  for(var dow=0;dow<7;dow++){for(var h=7;h<=18;h++){var v=(dowHc[dow+'|'+h]||0)+(dowHc[dow+'|'+(h+1)]||0);if(v>peakV){peakV=v;peakSlot={dow:dow,h:h,v:v};}}}
+  // Per-day peaks (Mo–Fr = dow 0-4)
+  var dayPeaks=[];
+  for(var d=0;d<5;d++){
+    var dayTotal=0,dayHc={};
+    withHour.forEach(function(r){if(r.dow!==d)return;dayTotal++;dayHc[r.stunde]=(dayHc[r.stunde]||0)+1;});
+    if(!dayTotal){dayPeaks.push(null);continue;}
+    var best=null,bestV2=0;
+    for(var hh=7;hh<=18;hh++){var vv=(dayHc[hh]||0)+(dayHc[hh+1]||0);if(vv>bestV2){bestV2=vv;best=hh;}}
+    dayPeaks.push({dow:d,peak:best,pct:best!=null?Math.round(bestV2/dayTotal*100):0});
+  }
+  // Top 3 categories
+  var catCounts={};rows.forEach(function(r){if(r.kategorie){var k=stripPfx(r.kategorie);catCounts[k]=(catCounts[k]||0)+1;}});
+  var catTotal=rows.filter(function(r){return r.kategorie;}).length||1;
+  var topCats=Object.keys(catCounts).map(function(k){return {k:k,v:catCounts[k]};}).sort(function(a,b){return b.v-a.v;}).slice(0,3);
+
+  if(!peakSlot&&!topCats.length){box.innerHTML='<p class="sub" style="padding:24px 0;text-align:center">Keine Daten für den Zeitraum</p>';return;}
+
+  var html='';
+  // Hero badge
+  if(peakSlot){
+    var pct=Math.round(peakSlot.v/totalH*100);
+    html+='<div class="pi-hero"><div class="pi-badge">';
+    html+='<div class="pi-badge-top"><span class="pi-bday">'+WDF[peakSlot.dow]+'</span><span class="pi-bhours">'+peakSlot.h+'–'+(peakSlot.h+2)+' Uhr</span></div>';
+    html+='<div class="pi-bpct">'+pct+' %</div>';
+    html+='<div class="pi-blabel">der Besuche (mit Uhrzeit) fallen in diesen Slot</div>';
+    html+='</div></div>';
+  }
+  // Weekday rows
+  var hasDay=dayPeaks.some(function(p){return p&&p.peak!=null;});
+  if(hasDay){
+    html+='<div class="pi-subtitle">Peak-Fenster je Wochentag</div><div class="pi-rows">';
+    dayPeaks.forEach(function(p){
+      if(!p)return;
+      html+='<div class="pi-row"><span class="pi-wd-lbl">'+WD[p.dow]+'</span>';
+      if(p.peak!=null){html+='<span class="pi-wd-time">'+p.peak+'–'+(p.peak+2)+' Uhr</span><div class="pi-wd-bar"><i style="width:'+p.pct+'%"></i></div><span class="pi-wd-pct">'+p.pct+'%</span>';}
+      else{html+='<span class="pi-wd-time" style="opacity:.35">keine Daten</span><div class="pi-wd-bar"></div><span class="pi-wd-pct" style="opacity:.35">–</span>';}
+      html+='</div>';
+    });
+    html+='</div>';
+  }
+  // Top categories
+  if(topCats.length){
+    html+='<div class="pi-subtitle">Top-Anliegen im Zeitraum</div><div class="pi-cats">';
+    topCats.forEach(function(c,i){
+      var p2=Math.round(c.v/catTotal*100),col=PAL[i];
+      html+='<div class="pi-cat"><span class="pi-cat-n">'+nf(c.v)+'</span>';
+      html+='<div class="pi-cat-info"><span class="pi-cat-name">'+c.k+'</span>';
+      html+='<div class="pi-cat-bar"><i style="width:'+p2+'%;background:'+col+'"></i></div></div>';
+      html+='<span class="pi-cat-pct">'+p2+'%</span></div>';
+    });
+    html+='</div>';
+  }
+  box.innerHTML=html;
+}
+
 /* ---------- vertical bars (wday/hour) ---------- */
 function vbars(boxId,labels,values,full,anim){
   var box=document.getElementById(boxId);
@@ -274,7 +361,7 @@ function renderForecast(anim){
 function render(anim){
   var r=currentRange(),rows=rowsIn(r[0],r[1]);
   document.getElementById('rangeInfo').textContent=fmtDE(r[0])+' – '+fmtDE(r[1])+' · '+nf(rows.length)+' Besuche'+(state.standort!=='all'?' · '+state.standort:'');
-  renderKPIs(anim);renderLocKPIs(anim);renderForecast(anim);renderTrend(rows,r[0],r[1],anim);renderDonut(rows,anim);renderKat(rows,anim);renderWday(rows,anim);renderHour(rows,anim);
+  renderKPIs(anim);renderLocKPIs(anim);renderForecast(anim);renderTrend(rows,r[0],r[1],anim);renderDonut(rows,anim);renderKat(rows,anim);renderWday(rows,anim);renderHour(rows,anim);renderKatDonut(rows,anim);renderPeakInsights(rows);
 }
 
 /* ---------- controls ---------- */
