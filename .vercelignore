@@ -4,13 +4,9 @@ node_modules/
 backend/node_modules/
 api/node_modules/
 
-# ── ncc-Quelle (nicht als Function deployen — Bundle ist api/dist/index.js) ──
-api/vercel.js
-
 # ── Lokale SQLite-Dateien ────────────────────────────────────────────────────
 # Produktion liest aus Turso (ENV-Variablen). Lokale Dateien nie deployen.
 api/db/
-api/dist/db/
 
 # ── Access-Import-Pipeline (nur lokal) ───────────────────────────────────────
 api/migrate-*.js
