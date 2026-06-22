@@ -45126,7 +45126,7 @@ var require_app = __commonJS({
       fastify.register(require_besucher());
       fastify.register(require_einsatzplaner());
       fastify.get("/api/health", async () => ({ ok: true }));
-      await ensureSchemas();
+      if (!process.env.VERCEL) await ensureSchemas();
       return fastify;
     }
     module2.exports = buildApp2;

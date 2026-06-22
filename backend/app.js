@@ -1,6 +1,6 @@
 // Fastify-App-Factory — ohne .listen(). Wird von BEIDEN Entry-Points genutzt:
-//   api/server.js   → lokale Entwicklung (dauerhaft lauschend)
-//   api/vercel.js   → Vercel serverless (kein listen())
+//   backend/server.js          → lokale Entwicklung (dauerhaft lauschend)
+//   backend/serverless-entry.js → Vercel serverless (gebündelt zu api/index.js)
 
 const { ensureSchemas } = require('./data/schema');
 
@@ -18,7 +18,10 @@ async function buildApp() {
 
   fastify.get('/api/health', async () => ({ ok: true }));
 
-  await ensureSchemas();
+  // Schema-Setup NUR lokal. Auf Vercel (process.env.VERCEL gesetzt) sind die Turso-
+  // Tabellen bereits provisioniert — das Setup würde pro Cold-Start sonst mehrere
+  // Turso-Round-Trips kosten (u.a. 17 sequenzielle Agent-Seeds) und nur Latenz bringen.
+  if (!process.env.VERCEL) await ensureSchemas();
   return fastify;
 }
 
