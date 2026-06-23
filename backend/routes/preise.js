@@ -3,6 +3,13 @@
 
 const produkteRepo = require('../data/repositories/produkteRepo');
 
+// Kanonische Netzentgeltreduzierung §14a für SteuVE Modul 1 (WP-M1 / Wallbox-M1).
+// Fester regulatorischer Pauschalwert – in der Quell-/Import-Pipeline nicht enthalten,
+// daher hier (wie VERTRAGS_TERMS in calc.js) als Konstante gesetzt, falls die DB-Spalte
+// leer ist. So überlebt der Wert jeden rebuild-/migrate-Zyklus.
+const NETZENTGELT_M1 = '-134,85 €/a';
+const NETZENTGELT_M1_KEYS = new Set(['WP-M1', 'Wallbox-M1']);
+
 function groupRows(rows, produkte, isPreise) {
   // Group SQLite rows (one per product key) back into the original data.js format:
   // one object per (ga, v_von, v_bis, gebiet) with product keys as nested objects.
@@ -32,6 +39,7 @@ function groupRows(rows, produkte, isPreise) {
       if (r.aid_nt !== null) k.aidNt = r.aid_nt;
       if (r.alb) k.alb = r.alb;
       if (r.netzentgelt_red) k.netzentgeltRed = r.netzentgelt_red;
+      else if (r.sparte === 'steuve' && NETZENTGELT_M1_KEYS.has(r.produkt_key)) k.netzentgeltRed = NETZENTGELT_M1;
       entry[r.produkt_key] = k;
     }
   }

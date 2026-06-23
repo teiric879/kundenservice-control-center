@@ -44474,6 +44474,8 @@ var require_produkteRepo = __commonJS({
 var require_preise = __commonJS({
   "backend/routes/preise.js"(exports2, module2) {
     var produkteRepo = require_produkteRepo();
+    var NETZENTGELT_M1 = "-134,85 \u20AC/a";
+    var NETZENTGELT_M1_KEYS = /* @__PURE__ */ new Set(["WP-M1", "Wallbox-M1"]);
     function groupRows(rows, produkte, isPreise) {
       const map = /* @__PURE__ */ new Map();
       for (const r of rows) {
@@ -44501,6 +44503,7 @@ var require_preise = __commonJS({
           if (r.aid_nt !== null) k.aidNt = r.aid_nt;
           if (r.alb) k.alb = r.alb;
           if (r.netzentgelt_red) k.netzentgeltRed = r.netzentgelt_red;
+          else if (r.sparte === "steuve" && NETZENTGELT_M1_KEYS.has(r.produkt_key)) k.netzentgeltRed = NETZENTGELT_M1;
           entry[r.produkt_key] = k;
         }
       }
