@@ -253,13 +253,18 @@ function fillForm(form, fv, font) {
   if (font) styleTextFields(fields, font);
 }
 
+// Preisfelder = Grund-/Verbrauchspreis-Tabelle (GP_… / VP_… inkl. VP_HT_/VP_N_,
+// Staffeln, _M1/_M2). Nur diese werden horizontal zentriert; alle übrigen Felder
+// bleiben linksbündig. Vertikal mittig ist bei einzeiligen Feldern ohnehin Standard.
+const isPriceField = name => /^(GP|VP)_/.test(name);
+
 function styleTextFields(fields, font) {
   const { TextAlignment } = window.PDFLib;
   for (const f of fields) {
     if (typeof f.setText !== 'function') continue; // nur echte Textfelder
     try {
       const text = (f.getText && f.getText()) || '';
-      f.setAlignment(TextAlignment.Left);
+      f.setAlignment(isPriceField(f.getName()) ? TextAlignment.Center : TextAlignment.Left);
       f.setFontSize(fitFontSize(f, text, font));
       f.updateAppearances(font);
     } catch { /* Feld nicht stylebar → unverändert lassen */ }
