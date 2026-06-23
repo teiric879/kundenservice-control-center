@@ -15,6 +15,60 @@ const SLOT_LABELS = {
 };
 const DAYS = ['Mo','Di','Mi','Do','Fr'];
 
+/* Pflichtbesetzung: an jedem Werktag (Mo–Fr, kein Feiertag) müssen diese Slots
+   mindestens je einen Berater haben, sonst gilt der Tag als unterbesetzt. */
+const REQUIRED_SLOTS = [
+  { loc: 'kall',       slot: 'B1' },
+  { loc: 'kall',       slot: 'B2' },
+  { loc: 'euskirchen', slot: 'Z'  },
+  { loc: 'euskirchen', slot: 'B1' },
+  { loc: 'euskirchen', slot: 'B2' },
+];
+const REQUIRED_SET = new Set(REQUIRED_SLOTS.map(r => `${r.loc}|${r.slot}`));
+function isRequired(loc, slot) { return REQUIRED_SET.has(`${loc}|${slot}`); }
+
+/* Liefert den Besetzungsstatus eines Tages anhand einer Assignment-Map
+   (Wochenplan: S.assignments, Monatsplan: S.monthData). */
+function dayStaffing(date, map) {
+  if (isHoliday(date)) return { holiday: true, ok: true, missing: [] };
+  const missing = REQUIRED_SLOTS.filter(
+    r => !(map.get(assignKey(date, r.loc, r.slot))?.length)
+  );
+  return { holiday: false, ok: missing.length === 0, missing };
+}
+function locLabel(id) { return LOCATIONS.find(l => l.id === id)?.label ?? id; }
+function missingLabel(missing) {
+  return missing.map(r => `${locLabel(r.loc)} · ${SLOT_LABELS[r.slot] ?? r.slot}`).join(', ');
+}
+const WARN_ICON = '<svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.2 1.3 13.8h13.4L8 2.2Z"/><path d="M8 6.4v3"/><path d="M8 11.4h.01"/></svg>';
+
+/* ── Kern-Besetzungsfenster (08:00–16:00) ──────────────────────────────────
+   Ein Platz gilt als voll besetzt, wenn 08:00–16:00 lückenlos abgedeckt ist.
+   Zeiten nach 16:00 zählen für die Abdeckung nicht und werden in der
+   Übersicht auf 16:00 gekappt. */
+const CORE_FROM = '08:00';
+const CORE_TO   = '16:00';
+function tMin(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function tStr(min) { return `${pad2(Math.floor(min / 60))}:${pad2(min % 60)}`; }
+function clampTo16(t) { return t > CORE_TO ? CORE_TO : t; }   // Anzeige-/Editier-Kappung
+
+/* Unbesetzte Lücken innerhalb 08:00–16:00 (als [startMin,endMin]-Paare). */
+function coreGaps(list) {
+  const F = tMin(CORE_FROM), T = tMin(CORE_TO);
+  const ivs = (list ?? [])
+    .map(a => [Math.max(F, tMin(a.time_from)), Math.min(T, tMin(a.time_to))])
+    .filter(([s, e]) => e > s)
+    .sort((a, b) => a[0] - b[0]);
+  const gaps = []; let cursor = F;
+  for (const [s, e] of ivs) {
+    if (s > cursor) gaps.push([cursor, s]);
+    cursor = Math.max(cursor, e);
+  }
+  if (cursor < T) gaps.push([cursor, T]);
+  return gaps;
+}
+function hasCoreGap(list) { return coreGaps(list).length > 0; }
+
 /* ── State ──────────────────────────────────────────────────────────────── */
 const S = {
   monday: null,
@@ -221,16 +275,21 @@ function renderGrid() {
   const hasSel = !!S.selectedAgent;
 
   const dayHolidays = days.map(d => isHoliday(d));
+  const dayStatus   = days.map(d => dayStaffing(d, S.assignments));
 
   // Header row
   let html = `<div class="pg-header">
     <div class="pg-slot-col"></div>
     ${days.map((d, i) => {
-      const h = dayHolidays[i];
-      return `<div class="pg-day-hd${h ? ' holiday' : ''}">
+      const h  = dayHolidays[i];
+      const st = dayStatus[i];
+      const badge = h ? '' : (st.ok
+        ? `<span class="staff-badge ok" title="Pflichtbesetzung vollständig">besetzt</span>`
+        : `<span class="staff-badge under" title="Unterbesetzt – fehlt: ${esc(missingLabel(st.missing))}">${WARN_ICON} unterbesetzt</span>`);
+      return `<div class="pg-day-hd${h ? ' holiday' : (st.ok ? '' : ' understaffed')}">
         <b>${DAYS[i]}</b>
         <span>${fmtDate(d)}</span>
-        ${h ? `<span class="hday-name">${h}</span>` : ''}
+        ${h ? `<span class="hday-name">${h}</span>` : badge}
       </div>`;
     }).join('')}
   </div>`;
@@ -265,10 +324,11 @@ function cellHtml(date, loc, slot, list) {
       onclick="showCtx(event,${a.id},'${date}','${loc}','${slot}')">
       <span class="band-kz">${a.kuerzel}</span>
       <span class="band-name">${a.name}</span>
-      <span class="band-t">${a.time_from}–${a.time_to}</span>
+      <span class="band-t">${a.time_from}–${clampTo16(a.time_to)}</span>
     </div>`).join('');
 
-  const addBand = (hasAgent && list.length && loc !== 'homeoffice')
+  // Zweiten Berater nur anbieten, wenn 08:00–16:00 noch nicht lückenlos besetzt ist
+  const addBand = (hasAgent && list.length && loc !== 'homeoffice' && hasCoreGap(list))
     ? `<div class="time-band add-more" onclick="event.stopPropagation();openTimePickerForAdd('${date}','${loc}','${slot}')">＋ hinzufügen</div>`
     : '';
 
@@ -277,11 +337,12 @@ function cellHtml(date, loc, slot, list) {
   }
 
   // Empty cell
+  const req = isRequired(loc, slot);
   const clickAttr = hasAgent ? `onclick="assignDefault('${date}','${loc}','${slot}')"` : '';
   const inner = hasAgent
     ? `<span class="cell-plus">＋</span><span class="cell-hint">08:00–16:00</span>`
-    : `<span class="cell-plus">–</span>`;
-  return `<div class="pg-cell empty" ${clickAttr}>${inner}</div>`;
+    : (req ? `<span class="cell-req-miss">${WARN_ICON} fehlt</span>` : `<span class="cell-plus">–</span>`);
+  return `<div class="pg-cell empty${req ? ' req-missing' : ''}" ${clickAttr}${req ? ' title="Pflichtbesetzung fehlt"' : ''}>${inner}</div>`;
 }
 
 /* ── Assignment Actions ─────────────────────────────────────────────────── */
@@ -302,14 +363,16 @@ function openTimePickerForAdd(date, loc, slot) {
   document.getElementById('timeModalTitle').textContent =
     `Zeit – ${S.selectedAgent.name} (${SLOT_LABELS[slot] ?? slot})`;
 
-  // Default start = latest time_to of existing agents in this slot
+  // Nur die erste unbesetzte Lücke im Kernfenster 08:00–16:00 anbieten
   const existing = S.assignments.get(assignKey(date, loc, slot)) ?? [];
-  const latestTo = existing.reduce((max, a) => a.time_to > max ? a.time_to : max, '08:00');
-  const defaultFrom = latestTo < '16:00' ? latestTo : '08:00';
-  const defaultTo   = defaultFrom < '16:00' ? '16:00' : '18:00';
+  const gaps = coreGaps(existing);
+  const [g0, g1] = gaps[0] ?? [tMin(CORE_FROM), tMin(CORE_TO)];
+  const gapFrom = tStr(g0), gapTo = tStr(g1);
+  S.timeGap = { from: gapFrom, to: gapTo };
 
-  setSelectValue('tmFrom', defaultFrom);
-  setSelectValue('tmTo',   defaultTo);
+  // Auswahl auf die Lücke begrenzen (BIS nie über 16:00)
+  constrainTimeSelect('tmFrom', gapFrom, gapTo, gapFrom);
+  constrainTimeSelect('tmTo',   gapFrom, gapTo, gapTo);
   document.getElementById('timeModal').classList.remove('hidden');
 }
 
@@ -326,12 +389,21 @@ async function saveTime() {
     toast('Zeit aktualisiert');
   } else if (addTarget) {
     const { date, loc, slot } = addTarget;
+    // In die angebotene Lücke einpassen (kein Überschreiben besetzter Zeiten)
+    let tf = from, tt = to;
+    const g = S.timeGap;
+    if (g) {
+      if (tf < g.from) tf = g.from;
+      if (tt > g.to)   tt = g.to;
+      if (tf >= tt)    { tf = g.from; tt = g.to; }
+    }
     await api('/assignments', {
       method: 'PUT',
-      body: { date, location: loc, slot, agent_id: S.selectedAgent.id, time_from: from, time_to: to },
+      body: { date, location: loc, slot, agent_id: S.selectedAgent.id, time_from: tf, time_to: tt },
     });
     toast(`${S.selectedAgent.kuerzel} eingetragen`);
   }
+  S.timeGap = null;
   await loadWeek();
 }
 
@@ -393,27 +465,38 @@ function ctxEditTime() {
 
   S.timeEditId = S.ctxAssignmentId;
   S.timeAddTarget = null;
+  S.timeGap = null;
   document.getElementById('timeModalTitle').textContent =
     `Zeit – ${asgn.name} (${SLOT_LABELS[S.ctxSlot] ?? S.ctxSlot})`;
-  setSelectValue('tmFrom', asgn.time_from);
-  setSelectValue('tmTo',   asgn.time_to);
+  // Volle Auswahl, BIS jedoch nie über 16:00 (bestehende 16:30-Einträge → 16:00)
+  constrainTimeSelect('tmFrom', CORE_FROM, '15:00', clampTo16(asgn.time_from));
+  constrainTimeSelect('tmTo',   '09:00',   CORE_TO, clampTo16(asgn.time_to));
   document.getElementById('timeModal').classList.remove('hidden');
 }
 
-function setSelectValue(id, val) {
+/* Begrenzt ein Zeit-<select> auf das Fenster [minStr,maxStr], stellt die nötigen
+   (auch krummen) Optionen sicher und setzt den Wert. Optionen außerhalb des
+   Fensters werden ausgeblendet/deaktiviert. */
+function constrainTimeSelect(id, minStr, maxStr, value) {
   const sel = document.getElementById(id);
-  // Zuvor dynamisch ergänzte Zeiten (z. B. 13:30) wieder entfernen
+  // Zuvor dynamisch ergänzte Zeiten (z. B. 13:30) entfernen
   [...sel.options].filter(o => o.dataset.custom).forEach(o => o.remove());
-  // Krumme Zeiten (Halbstunden o. Ä.) sind keine Standard-Option → an passender
-  // Stelle einfügen, damit z. B. das exakte „bis"-Ende eines bereits eingetragenen
-  // Agenten als „von" gewählt werden kann.
-  if (![...sel.options].some(o => o.value === val)) {
-    const opt = new Option(val, val);
-    opt.dataset.custom = '1';
-    const before = [...sel.options].find(o => o.value > val);
-    sel.add(opt, before ?? null);
+  // Grenz- und Zielwerte als Option sicherstellen (Halbstunden etc.)
+  for (const v of [minStr, maxStr, value]) {
+    if (v && ![...sel.options].some(o => o.value === v)) {
+      const opt = new Option(v, v);
+      opt.dataset.custom = '1';
+      const before = [...sel.options].find(o => o.value > v);
+      sel.add(opt, before ?? null);
+    }
   }
-  sel.value = val;
+  // Optionen außerhalb des erlaubten Fensters sperren
+  for (const o of sel.options) {
+    const out = o.value < minStr || o.value > maxStr;
+    o.disabled = out;
+    o.hidden   = out;
+  }
+  sel.value = value;
 }
 
 async function ctxNote() {
@@ -577,7 +660,10 @@ function renderMonthGrid(workDays) {
     const [yr, mo, dy] = dt.split('-').map(Number);
     const wd = ['So','Mo','Di','Mi','Do','Fr','Sa'][new Date(yr, mo-1, dy).getDay()];
     const h = isHoliday(dt);
-    return `<div class="mg-day-hd${h ? ' holiday' : ''}" title="${h ?? ''}"><b>${wd}</b><span>${dy}.</span>${h ? '<span class="mg-hday-dot"></span>' : ''}</div>`;
+    const st = dayStaffing(dt, S.monthData);
+    const under = !h && !st.ok;
+    const title = h ? h : (under ? `Unterbesetzt – fehlt: ${missingLabel(st.missing)}` : 'Pflichtbesetzung vollständig');
+    return `<div class="mg-day-hd${h ? ' holiday' : (under ? ' understaffed' : '')}" title="${esc(title)}"><b>${wd}</b><span>${dy}.</span>${h ? '<span class="mg-hday-dot"></span>' : (under ? '<span class="mg-under-dot"></span>' : '')}</div>`;
   }).join('');
 
   let html = `<div class="mg-wrap${selId ? ' has-sel' : ''}" style="grid-template-columns:${cols}">
@@ -599,7 +685,9 @@ function renderMonthGrid(workDays) {
         // je Berater nur ein Badge (Mehrfach-Zeiten zusammenfassen)
         const seen = new Set(); const agents = [];
         for (const a of list) { if (!seen.has(a.agent_id)) { seen.add(a.agent_id); agents.push(a); } }
-        const cls = agents.length === 0 ? 'empty' : 'full';
+        const cls = agents.length === 0
+          ? (isRequired(loc.id, slot) ? 'empty req-missing' : 'empty')
+          : 'full';
         const mine = selId != null && agents.some(a => a.agent_id === selId);
         const inner = agents.length
           ? agents.map(a => `<span class="mg-kz${a.agent_id === selId ? ' mine' : ''}" style="--ac:${a.color}">${a.kuerzel}</span>`).join('')
@@ -609,7 +697,7 @@ function renderMonthGrid(workDays) {
         for (const a of list) {
           if (!a.time_from || !a.time_to) continue;
           if (!timesByAgent.has(a.agent_id)) timesByAgent.set(a.agent_id, []);
-          timesByAgent.get(a.agent_id).push(`${a.time_from}–${a.time_to}`);
+          timesByAgent.get(a.agent_id).push(`${a.time_from}–${clampTo16(a.time_to)}`);
         }
         const agentNames = agents.length > 0
           ? agents.map(a => {

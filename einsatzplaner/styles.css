@@ -520,6 +520,43 @@ select.form-input,.dash-select{color-scheme:dark}
     -45deg,transparent,transparent 5px,rgba(245,158,11,.05) 5px,rgba(245,158,11,.05) 10px);
   border:1px dashed rgba(245,158,11,.22);cursor:not-allowed;pointer-events:none}
 
+/* ── Pflichtbesetzung / Unterbesetzung ───────────────────────────────────────── */
+/* Mo–Fr müssen Kall B1+B2 und Euskirchen Zentrale+B1+B2 besetzt sein. */
+
+/* Week view — Tageskopf-Badge */
+.pg-day-hd.understaffed{background:rgba(255,138,120,.10);border-color:rgba(255,138,120,.34)}
+.pg-day-hd.understaffed b{color:var(--neg)}
+.staff-badge{display:inline-flex;align-items:center;gap:3px;margin-top:3px;
+  font-family:'Space Grotesk';font-size:9px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;padding:2px 6px;border-radius:999px;white-space:nowrap;line-height:1}
+.staff-badge svg{flex:0 0 auto;width:10px;height:10px}
+.staff-badge.under{color:var(--neg);background:rgba(255,138,120,.15);border:1px solid rgba(255,138,120,.42)}
+.staff-badge.ok{color:var(--pos);background:rgba(59,232,166,.10);border:1px solid rgba(59,232,166,.26)}
+
+/* Week view — Pflichtzelle ohne Besetzung (überschreibt empty-Styling) */
+#planerGrid .pg-cell.empty.req-missing{border-style:dashed;border-color:rgba(255,138,120,.5);
+  background:rgba(255,138,120,.07)}
+#planerGrid .pg-cell.empty.req-missing:hover{border-color:var(--neg);background:rgba(255,138,120,.13)}
+#planerGrid.has-sel .pg-cell.empty.req-missing{border-color:rgba(255,138,120,.55);background:rgba(255,138,120,.09)}
+#planerGrid.has-sel .pg-cell.empty.req-missing:hover{border-color:var(--neg);background:rgba(255,138,120,.18)}
+.cell-req-miss{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--neg);opacity:.9}
+.cell-req-miss svg{width:10px;height:10px;flex:0 0 auto}
+
+/* Month view — Tageskopf */
+.mg-day-hd.understaffed{background:rgba(255,138,120,.13);border-color:rgba(255,138,120,.4)}
+.mg-day-hd.understaffed b,.mg-day-hd.understaffed span{color:var(--neg)}
+.mg-under-dot{width:5px;height:5px;border-radius:50%;background:var(--neg);margin-top:3px;flex:0 0 5px}
+
+/* Month view — Pflichtzelle ohne Besetzung */
+.mg-wrap .mg-cell.empty.req-missing{background:rgba(255,138,120,.13);border:1px solid rgba(255,138,120,.45)}
+.mg-wrap .mg-cell.empty.req-missing:hover{background:rgba(255,138,120,.2)}
+.mg-wrap.has-sel .mg-cell.empty.req-missing{border-color:rgba(255,138,120,.5);background:rgba(255,138,120,.14)}
+.mg-wrap.has-sel .mg-cell.empty.req-missing:hover{border-color:var(--neg);background:rgba(255,138,120,.22)}
+
+/* Legend — Pflicht fehlt */
+.ml-item.under::before{background:rgba(255,138,120,.18);border:1px solid rgba(255,138,120,.5)}
+
 /* ── Misc ────────────────────────────────────────────────────────────────────── */
 .reveal{opacity:0;transform:translateY(12px);animation:rise .55s var(--ease) forwards}
 @keyframes rise{to{opacity:1;transform:none}}
