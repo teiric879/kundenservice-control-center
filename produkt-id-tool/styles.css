@@ -221,6 +221,37 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
   font-size:11px;font-weight:700;color:var(--muted-2);pointer-events:none;
 }
 
+/* ── Number-Stepper (ersetzt die nativen Browser-Pfeile) ─────────────────── */
+/* Native Spinner ausblenden – wir zeichnen eigene, edlere Hoch/Runter-Tasten. */
+input[type=number].field-input{-moz-appearance:textfield;appearance:textfield}
+input[type=number].field-input::-webkit-outer-spin-button,
+input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+/* Bare Number-Inputs (ohne Einheit) bekommen einen relativ positionierten Wrapper */
+.num-field{position:relative;display:block}
+.num-field .field-input{padding-right:34px}
+/* Bei Inputs mit Einheiten-Badge sitzt der Stepper links neben der Einheit
+   (genug Abstand, damit auch breite Badges wie „kWh/a" nicht kollidieren) */
+.input-unit.has-stepper .field-input{padding-right:80px}
+.num-stepper{
+  position:absolute;top:4px;bottom:4px;right:5px;width:22px;z-index:2;
+  display:flex;flex-direction:column;gap:2px;
+}
+.input-unit.has-stepper .num-stepper{right:54px}
+.num-step{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:0;border:1px solid var(--stroke);background:rgba(255,255,255,.05);
+  color:var(--muted);cursor:pointer;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.num-step:first-child{border-radius:7px 7px 2px 2px}
+.num-step:last-child{border-radius:2px 2px 7px 7px}
+.num-step svg{width:11px;height:11px;display:block;pointer-events:none}
+.num-step:hover{
+  background:rgba(191,146,0,.18);border-color:rgba(191,146,0,.45);color:var(--acc-hi);
+}
+.num-step:active{background:rgba(191,146,0,.30);transform:translateY(.5px)}
+.num-step:focus-visible{outline:2px solid rgba(191,146,0,.55);outline-offset:1px}
+
 .radio-row{display:flex;gap:8px;margin-top:2px}
 .radio-opt{
   flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
@@ -321,7 +352,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 
 /* ── Price Card ──────────────────────────────────────────────────────────── */
 .price-card{
-  flex:0 0 218px;
+  flex:0 0 246px;
   border-radius:18px;overflow:hidden;
   background:var(--glass);
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
@@ -418,10 +449,13 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
   padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px;
 }
 .card-row:last-child{border-bottom:none}
-.card-row .lbl{color:var(--muted-2);flex:1;min-width:0;padding-right:6px}
+.card-row .lbl{color:var(--muted);flex:1;min-width:0;padding-right:8px}
 .card-row .val{color:var(--ink);font-weight:600;white-space:nowrap;font-size:12.5px}
-.card-row.pg-row{padding-bottom:7px;margin-bottom:2px;border-bottom:1px solid var(--stroke)}
-.card-row.pg-row .lbl{color:var(--muted);font-size:12px;font-style:italic}
+.card-row.pg-row{padding-bottom:8px;margin-bottom:3px;border-bottom:1px solid var(--stroke)}
+.card-row.pg-row .lbl{
+  color:var(--gold);font-size:10.5px;font-weight:700;font-style:normal;
+  letter-spacing:.07em;text-transform:uppercase;line-height:1.35;
+}
 .card-row.full{flex-direction:column;gap:1px}
 .card-row.highlight .val{color:var(--acc-hi);font-size:13px}
 .card-row.highlight .lbl{color:var(--muted)}
@@ -442,7 +476,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .sach-id-row{
   display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:11.5px;gap:6px;
 }
-.sach-id-row .lbl{color:var(--muted-2);flex:1}
+.sach-id-row .lbl{color:var(--muted);flex:1}
 .sach-val-group{display:flex;align-items:center;gap:5px;flex:0 0 auto}
 .sach-id-row .val{
   font-family:'Space Grotesk';font-size:13px;font-weight:700;

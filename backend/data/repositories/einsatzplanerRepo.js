@@ -75,6 +75,33 @@ module.exports = {
     });
   },
 
+  // Inkrementeller Einsatzplan-Import aus dem Excel-Upload. Bestehende Zuweisungen
+  // bleiben dank UNIQUE(date,location,slot,time_from) + INSERT OR IGNORE unangetastet
+  // (im Tool manuell vorgenommene Änderungen werden NICHT überschrieben). Kürzel werden
+  // case-insensitiv auf agent_id gemappt; unbekannte Kürzel werden gemeldet.
+  // rows: [{ date, location, slot, kuerzel, time_from, time_to }]
+  async bulkInsertAssignments(rows) {
+    const agents = await db().all('SELECT id, kuerzel FROM ep_agents');
+    const byKz = Object.fromEntries(agents.map((a) => [String(a.kuerzel).toUpperCase().trim(), a.id]));
+    let added = 0, existing = 0;
+    const unknown = {};
+    await db().transaction(async (tx) => {
+      for (const r of (rows || [])) {
+        const kz = String(r.kuerzel || '').toUpperCase().trim();
+        const agentId = byKz[kz];
+        if (!agentId) { if (kz) unknown[kz] = (unknown[kz] || 0) + 1; continue; }
+        const res = await tx.run(
+          'INSERT OR IGNORE INTO ep_assignments (date, location, slot, agent_id, time_from, time_to) VALUES (?,?,?,?,?,?)',
+          [r.date, r.location, r.slot, agentId, r.time_from || '08:00', r.time_to || '16:00'],
+        );
+        if (res.changes > 0) added++; else existing++;
+      }
+    });
+    const unknownKuerzel = Object.entries(unknown).map(([kuerzel, count]) => ({ kuerzel, count }));
+    const unknownCount = unknownKuerzel.reduce((s, u) => s + u.count, 0);
+    return { added, existing, unknownCount, unknownKuerzel, skipped: existing + unknownCount };
+  },
+
   async patchAssignment(id, time_from, time_to) {
     await db().run('UPDATE ep_assignments SET time_from=?, time_to=? WHERE id=?', [time_from, time_to, id]);
   },

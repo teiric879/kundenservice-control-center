@@ -39,4 +39,35 @@ module.exports = {
     );
     return r.lastInsertRowid;
   },
+
+  // Spätestes bereits gespeichertes Datum (YYYYMMDD-Text). Cutoff für den Inkrement-Import.
+  async maxDatum() {
+    const r = await db().get('SELECT MAX(datum) AS m FROM besuche');
+    return r?.m ?? null;
+  },
+
+  // Inkrementeller Besucher-Import aus dem Access-Upload. Fügt NUR Besuche mit
+  // datum > cutoff (= bisher spätestes Datum) hinzu — bestehende (auch per App
+  // erfasste) Zeilen bleiben unangetastet, nichts wird doppelt gezählt.
+  // rows: [{ datum:'YYYYMMDD', standort, kategorie, stunde, ts }]
+  async bulkInsertVisits(rows) {
+    const cutoff = await this.maxDatum();
+    const neu = (rows || []).filter((r) => r && r.datum && (cutoff == null || String(r.datum) > String(cutoff)));
+    let added = 0;
+    const dates = [];
+    if (neu.length) {
+      await db().transaction(async (tx) => {
+        for (const r of neu) {
+          await tx.run(
+            'INSERT INTO besuche (datum, standort, kategorie, stunde, ts) VALUES (?,?,?,?,?)',
+            [String(r.datum), r.standort || '(ohne Angabe)', r.kategorie ?? null, r.stunde ?? -1, r.ts ?? null],
+          );
+          added++;
+          dates.push(String(r.datum));
+        }
+      });
+    }
+    const range = dates.length ? { min: dates.reduce((a, b) => a < b ? a : b), max: dates.reduce((a, b) => a > b ? a : b) } : null;
+    return { added, skipped: (rows?.length || 0) - added, cutoff, range };
+  },
 };

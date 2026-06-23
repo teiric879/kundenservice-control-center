@@ -12,7 +12,7 @@
   --glass-card:rgba(255,255,255,.06);
   --stroke:rgba(180,255,238,.10);--stroke-hi:rgba(180,255,238,.20);
   --acc:#bf9200;--acc-2:#8c6b00;--acc-hi:#e0ad1f;--gold:#E9C682;
-  --ink:#EAF6F2;--muted:#93B2AB;--muted-2:#5F827B;
+  --ink:#EAF6F2;--muted:#A4C2BB;--muted-2:#85A6A0;  /* Kontrast auf WCAG 4.5:1+ angehoben (vorher #93B2AB / #5F827B) */
   --pos:#3BE8A6;--neg:#FF8A78;--warn:#F59E0B;
   --radius:18px;--shadow:0 24px 60px rgba(0,12,10,.45);
   --ease:cubic-bezier(.22,.61,.36,1);
@@ -219,6 +219,17 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 /* Panel */
 .tab-panel{display:none}
 .tab-panel.active{display:block}
+.du-preview{margin-top:12px;padding:11px 13px;border-radius:10px;background:var(--glass);
+  border:1px solid var(--stroke);font-size:12.5px;line-height:1.6;color:var(--muted)}
+.du-preview b{color:var(--ink)}
+.du-preview .du-warn{color:var(--neg)}
+.du-preview .du-ok{color:var(--pos)}
+.du-hist-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12.5px}
+.du-hist-row:last-child{border-bottom:none}
+.du-hist-kind{font-family:'Space Grotesk';font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  padding:2px 8px;border-radius:7px;background:rgba(191,146,0,.12);border:1px solid rgba(191,146,0,.25);color:var(--acc-hi);flex:0 0 auto}
+.du-hist-when{color:var(--muted-2);flex:0 0 auto;font-variant-numeric:tabular-nums}
+.du-hist-info{flex:1;color:var(--muted)}
 
 /* Cards */
 .card{
@@ -229,8 +240,8 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
   margin-bottom:20px;
 }
 .card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
-.card-title{font-size:15px;font-weight:700;color:var(--ink)}
-.card-sub{color:var(--muted-2);font-size:12px;margin-top:3px}
+.card-title{font-size:16px;font-weight:700;color:var(--ink)}
+.card-sub{color:var(--muted);font-size:12.5px;margin-top:4px;line-height:1.45}
 .card-icon{
   width:38px;height:38px;border-radius:11px;
   display:flex;align-items:center;justify-content:center;
@@ -244,7 +255,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 
 /* Form elements */
 .field-row{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
-.field-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2)}
+.field-label{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .field-input,.field-select{
   width:100%;padding:10px 12px;border-radius:10px;font-size:13.5px;
   background:rgba(255,255,255,.055);border:1px solid var(--stroke);color:var(--ink);
@@ -253,7 +264,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 }
 .field-input:focus,.field-select:focus{outline:none;border-color:rgba(191,146,0,.45);background:rgba(255,255,255,.08)}
 .field-input::placeholder{color:var(--muted-2)}
-.field-hint{font-size:11px;color:var(--muted-2);margin-top:4px}
+.field-hint{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.45}
 .field-row-h{display:flex;gap:12px;margin-bottom:16px}
 .field-row-h .field-row{flex:1;margin-bottom:0}
 
@@ -276,6 +287,21 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
+/* Filter-Toolbar + Checkbox „Inaktive anzeigen" */
+.adm-toolbar{display:flex;align-items:center;justify-content:flex-end;margin-bottom:14px}
+.adm-check{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;
+  font-size:12.5px;font-weight:600;color:var(--muted);transition:color .15s var(--ease)}
+.adm-check:hover{color:var(--ink)}
+.adm-check:has(input:checked){color:var(--acc-hi)}
+.adm-check input{position:absolute;opacity:0;width:0;height:0}
+.adm-check .dc-box{width:18px;height:18px;border-radius:6px;border:1px solid var(--stroke-hi);
+  background:var(--glass);display:grid;place-items:center;flex:0 0 18px;transition:all .15s var(--ease)}
+.adm-check .dc-box svg{width:12px;height:12px;color:#022;opacity:0;transform:scale(.6);transition:all .15s var(--ease)}
+.adm-check input:checked + .dc-box{background:linear-gradient(135deg,var(--acc),var(--acc-2));border-color:transparent}
+.adm-check input:checked + .dc-box svg{opacity:1;transform:scale(1)}
+.adm-check input:focus-visible + .dc-box{outline:2px solid var(--acc);outline-offset:2px}
+.adm-note{margin-top:10px;font-size:11.5px;color:var(--muted-2);font-weight:600}
+
 /* Status indicators */
 .status-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px}
 .status-dot.ok{background:var(--pos);box-shadow:0 0 6px rgba(59,232,166,.5)}
@@ -287,8 +313,10 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
   display:flex;align-items:center;gap:10px;
   padding:12px 16px;border-radius:12px;
   background:rgba(255,255,255,.03);border:1px solid var(--stroke);
-  font-size:13px;margin-bottom:10px;
+  font-size:13.5px;margin-bottom:10px;
+  transition:border-color .15s var(--ease),background .15s var(--ease);
 }
+.info-row:hover{border-color:var(--stroke-hi);background:rgba(255,255,255,.05)}
 .info-row .info-label{color:var(--muted-2);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
 .info-row .info-val{color:var(--ink);font-weight:600;flex:1;word-break:break-all}
 .info-row .info-copy{
@@ -696,6 +724,10 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             Vertragsformulare
           </button>
+          <button class="mod-item" id="sideTab-datenupdate" onclick="showTab('datenupdate')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Datenaktualisierung
+          </button>
         </div>
       </div>
 
@@ -738,6 +770,10 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
       <button class="tab-btn" id="tab-einsatzplaner" onclick="showTab('einsatzplaner')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
         Einsatzplaner
+      </button>
+      <button class="tab-btn" id="tab-datenupdate" onclick="showTab('datenupdate')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Datenaktualisierung
       </button>
     </div>
 
@@ -911,10 +947,19 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
         <!-- Berater-Liste -->
         <div class="card">
           <div class="card-head">
-            <div><div class="card-title">Berater</div><div class="card-sub">Alle aktiven &amp; inaktiven Berater</div></div>
+            <div><div class="card-title">Berater</div><div class="card-sub">Aktive Berater · inaktive optional einblenden</div></div>
             <div class="card-icon icon-green">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
             </div>
+          </div>
+          <div class="adm-toolbar">
+            <label class="adm-check" for="epShowInactive">
+              <input type="checkbox" id="epShowInactive" onchange="epSetShowInactive(this.checked)">
+              <span class="dc-box" aria-hidden="true">
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5l3 3 6-7"/></svg>
+              </span>
+              Inaktive anzeigen
+            </label>
           </div>
           <div id="epAgentList"><div style="color:var(--muted-2);font-size:13px">Lade…</div></div>
         </div>
@@ -952,6 +997,81 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
 
       </div>
     </div><!-- /panel-einsatzplaner -->
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: Datenaktualisierung (Upload Access/Excel → inkrementeller Import)  -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-datenupdate">
+
+      <div class="sync-box" style="margin-bottom:20px">
+        <div class="card-icon icon-gold" style="margin-right:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="sync-box-text">
+          <div class="sync-title">Datenaktualisierung</div>
+          <div class="sync-sub">Access-/Excel-Dateien hochladen · es werden ausschließlich <b>neue</b> Einträge übernommen (nichts wird überschrieben)</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+
+        <!-- Besucher -->
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">Besuchertracking</div><div class="card-sub">persönliche Kundenbesuche.accdb</div></div>
+            <div class="card-icon icon-green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+            </div>
+          </div>
+          <input type="file" id="duBesucherFile" accept=".accdb" class="field-input" style="padding:7px;cursor:pointer">
+          <div id="duBesucherPreview" class="du-preview" style="display:none"></div>
+          <div class="btn-row" style="margin-top:10px">
+            <button class="btn btn-ghost" id="duBesucherParse" onclick="duParseBesucher()">Datei prüfen</button>
+            <button class="btn btn-primary" id="duBesucherImport" onclick="duImportBesucher()" disabled>Neue Besuche übernehmen</button>
+          </div>
+        </div>
+
+        <!-- Einsatzplan -->
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">Einsatzplan</div><div class="card-sub">NEU Einsatzplan_2026 inkl. Auswertung.xlsx</div></div>
+            <div class="card-icon icon-gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+            </div>
+          </div>
+          <input type="file" id="duEinsatzFile" accept=".xlsx" class="field-input" style="padding:7px;cursor:pointer">
+          <div id="duEinsatzPreview" class="du-preview" style="display:none"></div>
+          <div class="btn-row" style="margin-top:10px">
+            <button class="btn btn-ghost" id="duEinsatzParse" onclick="duParseEinsatz()">Datei prüfen</button>
+            <button class="btn btn-primary" id="duEinsatzImport" onclick="duImportEinsatz()" disabled>Neue Einträge übernehmen</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Preise: kommt mit SAP -->
+      <div class="card" style="margin-top:20px;opacity:.7">
+        <div class="card-head">
+          <div><div class="card-title">Preise / Gültigkeiten</div><div class="card-sub">Wird separat über die SAP-Anbindung gelöst – Upload hier folgt später</div></div>
+          <div class="card-icon icon-gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+        </div>
+        <div style="font-size:12.5px;color:var(--muted-2)">Preisupdates laufen bis auf Weiteres über den bestehenden Weg (Produkt-ID Tool .accdb + Produkte für Kundenportal.accdb).</div>
+      </div>
+
+      <!-- Historie -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-head">
+          <div><div class="card-title">Aktualisierungs-Historie</div><div class="card-sub">Letzte Importe – jüngste zuerst</div></div>
+          <div class="card-icon icon-green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+          </div>
+        </div>
+        <div id="duHistory"><div style="color:var(--muted-2);font-size:13px">Lade…</div></div>
+      </div>
+
+    </div><!-- /panel-datenupdate -->
 
   </main>
 </div><!-- /adminApp -->
@@ -1034,7 +1154,7 @@ function logout(){
 }
 
 // ── Tab Navigation ───────────────────────────────────────────────────────────
-const TABS = ['produkte','gueltigkeiten','formulare','einsatzplaner'];
+const TABS = ['produkte','gueltigkeiten','formulare','einsatzplaner','datenupdate'];
 function showTab(name){
   TABS.forEach(t=>{
     const panel = document.getElementById('panel-'+t);
@@ -1047,6 +1167,7 @@ function showTab(name){
   if(name==='einsatzplaner') epLoadAgents();
   if(name==='gueltigkeiten') gueInit();
   if(name==='formulare') renderPdfPanel();
+  if(name==='datenupdate') duInit();
 }
 
 // ── Sidebar Toggles ──────────────────────────────────────────────────────────
@@ -1676,10 +1797,28 @@ async function epApi(path, opts={}) {
   return r.json();
 }
 
+let _epAgents = [];            // letzte /agents-Antwort (Re-Render ohne Refetch)
+let _epShowInactive = false;   // inaktive Berater (active=0) standardmäßig ausblenden
+
+function epSetShowInactive(v) {
+  _epShowInactive = v;
+  epRenderAgents();
+}
+
 async function epLoadAgents() {
-  const agents = await epApi('/agents');
+  _epAgents = await epApi('/agents') || [];
+  epRenderAgents();
+}
+
+function epRenderAgents() {
   const el = document.getElementById('epAgentList');
-  if(!agents?.length) { el.innerHTML='<div style="color:var(--muted-2);font-size:13px">Keine Berater gefunden</div>'; return; }
+  if(!_epAgents.length) { el.innerHTML='<div style="color:var(--muted-2);font-size:13px">Keine Berater gefunden</div>'; return; }
+  const inactiveCount = _epAgents.filter(a => !a.active).length;
+  const agents = _epShowInactive ? _epAgents : _epAgents.filter(a => a.active);
+  const note = (!_epShowInactive && inactiveCount)
+    ? `<div class="adm-note">${inactiveCount} inaktive${inactiveCount === 1 ? 'r Berater' : ' Berater'} ausgeblendet</div>`
+    : '';
+  if(!agents.length) { el.innerHTML = `<div style="color:var(--muted-2);font-size:13px;padding:8px 0">Keine aktiven Berater</div>${note}`; return; }
   el.innerHTML = agents.map(a => `
     <div class="info-row" style="gap:12px">
       <span style="width:12px;height:12px;border-radius:50%;background:${a.color};flex:0 0 12px"></span>
@@ -1694,7 +1833,7 @@ async function epLoadAgents() {
         class="btn btn-danger" style="padding:5px 10px;font-size:11.5px" title="Berater endgültig löschen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
       </button>
-    </div>`).join('');
+    </div>`).join('') + note;
 }
 
 async function epToggle(id, active) {
@@ -1720,6 +1859,202 @@ async function epCreateAgent() {
   document.getElementById('epNewKuerzel').value='';
   await epLoadAgents();
   showToast(kuerzel+' wurde angelegt','ok');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Datenaktualisierung — Upload Access/Excel, browserseitig geparst, inkrementell.
+// ══════════════════════════════════════════════════════════════════════════════
+const IMPORT_API = (['127.0.0.1','localhost'].includes(location.hostname) ? `http://${location.hostname}:3001` : '') + '/api/admin';
+let _duBesucherRows = null;   // geparste NEUE Besuche (nach Cutoff)
+let _duEinsatzRows  = null;   // geparste Einsatzplan-Einträge
+
+function duInit(){ duLoadHistory(); }
+function duPad2(n){ return String(n).padStart(2,'0'); }
+function duFmtYmd(y){ y=String(y); return y.length>=8 ? `${y.slice(6,8)}.${y.slice(4,6)}.${y.slice(0,4)}` : y; }
+
+// ── CDN-Loader (lazy) ─────────────────────────────────────────────────────────
+let _xlsxPromise, _mdbPromise, _bufferPromise;
+function duLoadXLSX(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  if(!_xlsxPromise) _xlsxPromise = new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    s.onload=()=>res(window.XLSX); s.onerror=()=>rej(new Error('Excel-Bibliothek (SheetJS) konnte nicht geladen werden – Internetverbindung?'));
+    document.head.appendChild(s);
+  });
+  return _xlsxPromise;
+}
+function duLoadMDB(){
+  if(!_mdbPromise) _mdbPromise = import('https://esm.sh/mdb-reader@3.0.1')
+    .then(m=>m.default||m.MDBReader||m)
+    .catch(()=>{ throw new Error('Access-Bibliothek (mdb-reader) konnte nicht geladen werden – Internetverbindung?'); });
+  return _mdbPromise;
+}
+// mdb-reader erwartet einen Node-Buffer (.copy()), den der Browser nicht hat → Polyfill laden.
+function duLoadBuffer(){
+  if(window.Buffer) return Promise.resolve(window.Buffer);
+  if(!_bufferPromise) _bufferPromise = import('https://esm.sh/buffer@6.0.3')
+    .then(m=>{ window.Buffer = m.Buffer; return m.Buffer; })
+    .catch(()=>{ throw new Error('Buffer-Polyfill konnte nicht geladen werden – Internetverbindung?'); });
+  return _bufferPromise;
+}
+
+// ── Besucher (persönliche Kundenbesuche.accdb) ────────────────────────────────
+function duNormStandort(s){
+  if(s==null) return '(ohne Angabe)';
+  s=String(s).trim();
+  if(!s) return '(ohne Angabe)';
+  return s.charAt(0).toUpperCase()+s.slice(1).toLowerCase();
+}
+async function duParseBesucher(){
+  const f=document.getElementById('duBesucherFile').files[0];
+  const prev=document.getElementById('duBesucherPreview');
+  if(!f){ showToast('Bitte zuerst eine .accdb-Datei wählen','err'); return; }
+  prev.style.display='block'; prev.innerHTML='Datei wird gelesen…';
+  document.getElementById('duBesucherImport').disabled=true; _duBesucherRows=null;
+  try{
+    const [MDBReader, Buffer]=await Promise.all([duLoadMDB(), duLoadBuffer()]);
+    const reader=new MDBReader(Buffer.from(await f.arrayBuffer()));
+    const data=reader.getTable('Kundenbesuche').getData();
+    const rows=[];
+    for(const r of data){
+      const d=r['Datum']; if(!d) continue;
+      const dt=d instanceof Date?d:new Date(d); if(isNaN(dt)) continue;
+      const ymd=`${dt.getUTCFullYear()}${duPad2(dt.getUTCMonth()+1)}${duPad2(dt.getUTCDate())}`;
+      let stunde=-1, ts=null; const u=r['Uhrzeit'];
+      if(u){ const ut=u instanceof Date?u:new Date(u); if(!isNaN(ut)){ stunde=ut.getUTCHours(); ts=ut.toISOString(); } }
+      let kat=(r['Kategorie']==null?'':String(r['Kategorie'])).trim(); if(!kat) kat='(ohne)';
+      rows.push({ datum:ymd, standort:duNormStandort(r['Standort']), kategorie:kat, stunde, ts });
+    }
+    const cut=await fetch(IMPORT_API+'/import/besucher/cutoff').then(r=>r.json()).catch(()=>({cutoff:null}));
+    const cutoff=cut.cutoff;
+    const neu=rows.filter(r=> cutoff==null || r.datum > String(cutoff));
+    _duBesucherRows=neu;
+    const range=neu.length ? `${duFmtYmd(neu.reduce((a,b)=>a.datum<b.datum?a:b).datum)} – ${duFmtYmd(neu.reduce((a,b)=>a.datum>b.datum?a:b).datum)}` : '–';
+    prev.innerHTML=`Gesamt in Datei: <b>${rows.length.toLocaleString('de-DE')}</b> Besuche.<br>`+
+      `Bisheriger Stand: <b>${cutoff?duFmtYmd(cutoff):'leer'}</b>.<br>`+
+      (neu.length? `<span class="du-ok"><b>${neu.length.toLocaleString('de-DE')}</b> neue Besuche</span> (${range}) werden übernommen.`
+                 : `<span class="du-ok">Keine neuen Besuche</span> – alles bereits vorhanden.`);
+    document.getElementById('duBesucherImport').disabled = neu.length===0;
+  }catch(e){ prev.innerHTML=`<span class="du-warn">Fehler: ${escHtml(e.message)}</span>`; }
+}
+async function duImportBesucher(){
+  if(!_duBesucherRows||!_duBesucherRows.length) return;
+  const f=document.getElementById('duBesucherFile').files[0];
+  const btn=document.getElementById('duBesucherImport'); btn.disabled=true;
+  try{
+    const r=await fetch(IMPORT_API+'/import/besucher',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({source_file:f?.name||null, rows:_duBesucherRows})});
+    if(!r.ok) throw new Error('Server '+r.status+' – API neu gestartet?');
+    const res=await r.json();
+    showToast(`${res.added} neue Besuche übernommen`,'ok');
+    document.getElementById('duBesucherPreview').innerHTML=`<span class="du-ok"><b>${res.added}</b> Besuche importiert.</span>`;
+    _duBesucherRows=null; duLoadHistory();
+  }catch(e){ showToast('Import fehlgeschlagen: '+e.message,'err'); btn.disabled=false; }
+}
+
+// ── Einsatzplan (NEU Einsatzplan_2026 … .xlsx) – Port von import-einsatzplan.js ─
+const DU_SLOT_OFFSETS=[
+  {off:0,location:'kall',slot:'B1'},{off:1,location:'kall',slot:'B2'},
+  {off:3,location:'euskirchen',slot:'Z'},{off:4,location:'euskirchen',slot:'B1'},{off:5,location:'euskirchen',slot:'B2'},{off:6,location:'euskirchen',slot:'B3'},
+  {off:7,location:'euskirchen',slot:'BO1'},{off:8,location:'euskirchen',slot:'BO2'},{off:9,location:'euskirchen',slot:'BO3'},{off:10,location:'euskirchen',slot:'BO4'},{off:11,location:'euskirchen',slot:'BO5'},
+  {off:13,location:'homeoffice',slot:'H1'},{off:14,location:'homeoffice',slot:'H2'},{off:15,location:'homeoffice',slot:'H3'},{off:16,location:'homeoffice',slot:'H4'},{off:17,location:'homeoffice',slot:'H5'},{off:18,location:'homeoffice',slot:'H6'},{off:19,location:'homeoffice',slot:'H7'},
+];
+const DU_DAY_START_COLS=[2,22,42,62,82];
+const DU_MONTHS=['Januar','Februar ','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+function duExcelDateToISO(serial){ if(!serial||typeof serial!=='number'||serial<40000) return null; const d=new Date((serial-25569)*86400*1000); return `${d.getUTCFullYear()}-${duPad2(d.getUTCMonth()+1)}-${duPad2(d.getUTCDate())}`; }
+function duFracToTime(frac){ if(!frac||typeof frac!=='number') return null; const tot=Math.round(frac*24*60); return `${duPad2(Math.floor(tot/60))}:${duPad2(tot%60)}`; }
+function duIsWeekday(iso){ if(!iso) return false; const [y,m,d]=iso.split('-').map(Number); const day=new Date(y,m-1,d).getDay(); return day>=1&&day<=5; }
+async function duParseEinsatz(){
+  const f=document.getElementById('duEinsatzFile').files[0];
+  const prev=document.getElementById('duEinsatzPreview');
+  if(!f){ showToast('Bitte zuerst eine .xlsx-Datei wählen','err'); return; }
+  prev.style.display='block'; prev.innerHTML='Datei wird gelesen…';
+  document.getElementById('duEinsatzImport').disabled=true; _duEinsatzRows=null;
+  try{
+    const XLSX=await duLoadXLSX();
+    const wb=XLSX.read(new Uint8Array(await f.arrayBuffer()),{type:'array'});
+    const out=[];
+    for(const sheetName of DU_MONTHS){
+      if(!wb.SheetNames.includes(sheetName)) continue;
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,defval:''});
+      const kwRows=[];
+      for(let r=0;r<rows.length;r++){
+        const c0=String(rows[r][0]).toUpperCase().trim(),c1=rows[r][1],c2=rows[r][2];
+        if(c0==='KW' || (typeof c1==='number'&&c1>=1&&c1<=53&&typeof c2==='number'&&c2>40000&&c2<55000)) kwRows.push(r);
+      }
+      for(const kwRow of kwRows){
+        const dayDates=DU_DAY_START_COLS.map(col=>{ const v=rows[kwRow][col]; const iso=duExcelDateToISO(typeof v==='number'?v:null); return iso&&iso.startsWith('2026')&&duIsWeekday(iso)?iso:null; });
+        const nextKw=kwRows.find(r=>r>kwRow) ?? rows.length;
+        const dataRows=[];
+        for(let r=kwRow+3;r<nextKw;r++){ const tf=rows[r][0],tt=rows[r][1]; if(typeof tf==='number'&&tf>0&&tf<1) dataRows.push({r,timeFrom:duFracToTime(tf),timeTo:duFracToTime(tt)}); }
+        if(!dataRows.length) continue;
+        for(let dayIdx=0;dayIdx<5;dayIdx++){
+          const iso=dayDates[dayIdx]; if(!iso) continue;
+          const dayStartCol=DU_DAY_START_COLS[dayIdx];
+          for(const {off,location,slot} of DU_SLOT_OFFSETS){
+            const col=dayStartCol+off;
+            const runs=[]; let curKz=null,curFrom=null,curTo=null;
+            for(const dr of dataRows){
+              const kz=String(rows[dr.r]?.[col]||'').trim().toUpperCase();
+              if(!kz){ if(curKz){ runs.push({kz:curKz,timeFrom:curFrom,timeTo:curTo}); curKz=null; } continue; }
+              if(kz===curKz){ curTo=dr.timeTo; } else { if(curKz) runs.push({kz:curKz,timeFrom:curFrom,timeTo:curTo}); curKz=kz; curFrom=dr.timeFrom; curTo=dr.timeTo; }
+            }
+            if(curKz) runs.push({kz:curKz,timeFrom:curFrom,timeTo:curTo});
+            for(const run of runs) out.push({date:iso,location,slot,kuerzel:run.kz,time_from:run.timeFrom,time_to:run.timeTo});
+          }
+        }
+      }
+    }
+    _duEinsatzRows=out;
+    let unknown=[];
+    try{
+      const agents=await fetch(EP_API+'/agents').then(r=>r.json());
+      const known=new Set((agents||[]).map(a=>String(a.kuerzel).toUpperCase().trim()));
+      unknown=[...new Set(out.map(o=>o.kuerzel).filter(k=>k&&!known.has(k)))];
+    }catch{}
+    prev.innerHTML=`Geparst: <b>${out.length.toLocaleString('de-DE')}</b> Einsatz-Einträge.<br>`+
+      `Bestehende Zuweisungen bleiben erhalten – nur neue werden ergänzt.`+
+      (unknown.length? `<br><span class="du-warn">Unbekannte Kürzel (werden übersprungen): ${escHtml(unknown.join(', '))}</span>`:'');
+    document.getElementById('duEinsatzImport').disabled = out.length===0;
+  }catch(e){ prev.innerHTML=`<span class="du-warn">Fehler: ${escHtml(e.message)}</span>`; }
+}
+async function duImportEinsatz(){
+  if(!_duEinsatzRows||!_duEinsatzRows.length) return;
+  const f=document.getElementById('duEinsatzFile').files[0];
+  const btn=document.getElementById('duEinsatzImport'); btn.disabled=true;
+  try{
+    const r=await fetch(IMPORT_API+'/import/einsatzplan',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({source_file:f?.name||null, rows:_duEinsatzRows})});
+    if(!r.ok) throw new Error('Server '+r.status+' – API neu gestartet?');
+    const res=await r.json();
+    showToast(`${res.added} neue Einträge übernommen`,'ok');
+    let msg=`<span class="du-ok"><b>${res.added}</b> neu</span>, ${res.existing} bereits vorhanden`;
+    if(res.unknownCount) msg+=`, <span class="du-warn">${res.unknownCount} mit unbekanntem Kürzel übersprungen</span>`;
+    document.getElementById('duEinsatzPreview').innerHTML=msg+'.';
+    _duEinsatzRows=null; duLoadHistory();
+  }catch(e){ showToast('Import fehlgeschlagen: '+e.message,'err'); btn.disabled=false; }
+}
+
+// ── Historie ──────────────────────────────────────────────────────────────────
+async function duLoadHistory(){
+  const el=document.getElementById('duHistory'); if(!el) return;
+  try{
+    const r=await fetch(IMPORT_API+'/import-history?limit=50');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const {history}=await r.json();
+    if(!history||!history.length){ el.innerHTML='<div style="color:var(--muted-2);font-size:13px">Noch keine Importe.</div>'; return; }
+    el.innerHTML=history.map(h=>{
+      const when=new Date(h.ts).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      const kindLabel=h.kind==='besucher'?'Besucher':h.kind==='einsatzplan'?'Einsatzplan':h.kind;
+      let info=`<b>+${h.added}</b> neu`; if(h.skipped) info+=` · ${h.skipped} übersprungen`;
+      if(h.source_file) info+=` · ${escHtml(h.source_file)}`;
+      const d=h.detail;
+      if(d&&d.range&&d.range.min) info+=` · ${duFmtYmd(d.range.min)}–${duFmtYmd(d.range.max)}`;
+      if(d&&d.unknownKuerzel&&d.unknownKuerzel.length) info+=` · unbek.: ${escHtml(d.unknownKuerzel.map(u=>u.kuerzel).join(', '))}`;
+      return `<div class="du-hist-row"><span class="du-hist-kind">${kindLabel}</span><span class="du-hist-when">${when}</span><span class="du-hist-info">${info}</span></div>`;
+    }).join('');
+  }catch(e){ el.innerHTML='<div style="color:var(--muted-2);font-size:13px">Historie nicht verfügbar.</div>'; }
 }
 </script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=1">

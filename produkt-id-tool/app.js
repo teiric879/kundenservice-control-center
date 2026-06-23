@@ -2,8 +2,8 @@ import { S } from './modules/state.js';
 import { plzToGebiet, plzToStadt } from './modules/plz.js';
 import { debounce, dateFmt, copyVal } from './modules/helpers.js';
 import { getData, findPreisRow, findKondRow, calcTarif, calcVergleich } from './modules/calc.js?v=20260622i';
-import { buildCard } from './modules/render.js?v=20260622i';
-import { openPdfModal } from './modules/pdf-modal.js?v=20260623b';
+import { buildCard } from './modules/render.js?v=20260623d';
+import { openPdfModal } from './modules/pdf-modal.js?v=20260623c';
 
 const LOCAL_HOSTS = ['127.0.0.1', 'localhost'];
 const API_BASE = LOCAL_HOSTS.includes(location.hostname) ? `http://${location.hostname}:3001` : '';
@@ -413,8 +413,46 @@ vertragsbeginnInput.addEventListener('change', () => {
   calculate();
 });
 
+// ── Number-Stepper ──────────────────────────────────────────────────────────
+// Ersetzt die nativen, billig wirkenden Browser-Spinner durch eigene Hoch/Runter-
+// Tasten. Klick triggert ein 'input'-Event, damit die Live-Berechnung greift.
+const CHEVRON_UP   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>`;
+const CHEVRON_DOWN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+function enhanceNumberInputs() {
+  document.querySelectorAll('input[type=number].field-input').forEach(inp => {
+    if (inp.dataset.stepped) return;
+    inp.dataset.stepped = '1';
+
+    // Positionierungs-Kontext sicherstellen: vorhandene .input-unit nutzen,
+    // bare Inputs in einen .num-field-Wrapper packen.
+    let host = inp.closest('.input-unit');
+    if (host) host.classList.add('has-stepper');
+    else {
+      host = document.createElement('div');
+      host.className = 'num-field';
+      inp.parentNode.insertBefore(host, inp);
+      host.appendChild(inp);
+    }
+
+    const stepper = document.createElement('div');
+    stepper.className = 'num-stepper';
+    stepper.innerHTML =
+      `<button type="button" class="num-step up" tabindex="-1" aria-label="Wert erhöhen">${CHEVRON_UP}</button>` +
+      `<button type="button" class="num-step down" tabindex="-1" aria-label="Wert verringern">${CHEVRON_DOWN}</button>`;
+    host.appendChild(stepper);
+
+    const fire = fn => () => {
+      try { inp[fn](); } catch { /* min/max o. Ä. */ }
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    stepper.querySelector('.up').addEventListener('click', fire('stepUp'));
+    stepper.querySelector('.down').addEventListener('click', fire('stepDown'));
+  });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
+  enhanceNumberInputs();
   const today = new Date().toISOString().slice(0, 10);
   vertragsbeginnInput.value = today;
   S.vertragsbeginn = today;

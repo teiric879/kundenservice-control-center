@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>e-regio · Kundenservice Control Center</title>
-<link rel="stylesheet" href="styles.css?v=13">
+<link rel="stylesheet" href="styles.css?v=14">
 <link rel="stylesheet" href="../shared/sidebar.css?v=1">
 </head>
 <body>
@@ -169,8 +169,26 @@
           </div>
         </div>
         <div class="card reveal" style="animation-delay:.42s">
-          <div class="p-head"><div><h3>Peak-Stunden Analyse</h3><div class="sub">Stoßzeiten · Anliegen-Trends</div></div></div>
-          <div id="peakInsights"></div>
+          <div class="p-head"><div><h3>Themen nach Wochentag &amp; Uhrzeit</h3><div class="sub">Tag &amp; Uhrzeit filtern · Anliegen in Prozent und Summe</div></div></div>
+          <div class="te" id="themeExplorer">
+            <div class="te-filters">
+              <div class="te-frow">
+                <span class="te-flbl">Wochentag</span>
+                <div class="te-days" id="teDays" role="group" aria-label="Wochentag filtern"></div>
+              </div>
+              <div class="te-frow">
+                <span class="te-flbl">Uhrzeit</span>
+                <div class="te-slider" id="teSlider">
+                  <div class="te-track"><div class="te-fill" id="teFill"></div></div>
+                  <input type="range" id="teH0" aria-label="Uhrzeit von" autocomplete="off">
+                  <input type="range" id="teH1" aria-label="Uhrzeit bis" autocomplete="off">
+                </div>
+                <span class="te-range-lbl" id="teRangeLbl">–</span>
+              </div>
+            </div>
+            <div class="te-summary" id="teSummary"></div>
+            <div class="te-results" id="teResults"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -187,7 +205,7 @@
 </div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
-<script src="app.js?v=16"></script>
+<script src="app.js?v=18"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=1">
 <script src="../shared/erfass-bar.js?v=3"></script>
 </body>

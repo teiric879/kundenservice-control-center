@@ -135,6 +135,19 @@ const PRODUKTE_REGISTRY = `
     pg          INTEGER DEFAULT 12,
     PRIMARY KEY (sparte, produkt_key, zaehlerart)
   );
+
+  -- Protokoll der Daten-Uploads aus dem Admin (Besucher/Einsatzplan/Preise).
+  -- Liegt zentral in der produkte-DB; alle Import-Typen loggen hierhin.
+  CREATE TABLE IF NOT EXISTS import_history (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts          TEXT NOT NULL,        -- ISO-Zeitpunkt des Imports
+    kind        TEXT NOT NULL,        -- 'besucher' | 'einsatzplan' | 'preise'
+    source_file TEXT,                 -- hochgeladener Dateiname
+    added       INTEGER NOT NULL DEFAULT 0,
+    skipped     INTEGER NOT NULL DEFAULT 0,
+    detail      TEXT                  -- JSON: Bereich/Aufschlüsselung/unbekannte Kürzel …
+  );
+  CREATE INDEX IF NOT EXISTS idx_import_history_ts ON import_history(ts);
 `;
 
 const BESUCHER_TABLES = `
@@ -148,6 +161,12 @@ const BESUCHER_TABLES = `
   CREATE INDEX IF NOT EXISTS idx_besuche_datum    ON besuche(datum);
   CREATE INDEX IF NOT EXISTS idx_besuche_standort ON besuche(standort);
 `;
+
+// Migration für bestehende besucher-DBs: voller Zeitstempel (aus Access 'Uhrzeit').
+// Nur informativ/zukunftssicher — die Inkrement-Logik selbst dedupliziert per Datums-Cutoff.
+const BESUCHER_ALTERS = [
+  'ALTER TABLE besuche ADD COLUMN ts TEXT',
+];
 
 const EINSATZPLAN_TABLES = `
   CREATE TABLE IF NOT EXISTS ep_agents (
@@ -207,6 +226,7 @@ module.exports = {
   VERTRAGSFORMULARE_TABLE,
   VERTRAGSFORMULARE_ALTERS,
   BESUCHER_TABLES,
+  BESUCHER_ALTERS,
   EINSATZPLAN_TABLES,
   INITIAL_AGENTS,
 };

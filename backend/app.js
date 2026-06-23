@@ -16,6 +16,7 @@ async function buildApp() {
   fastify.register(require('./routes/besucher'));
   fastify.register(require('./routes/einsatzplaner'));
   fastify.register(require('./routes/vertragsformulare'));
+  fastify.register(require('./routes/admin-import'));
 
   fastify.get('/api/health', async () => ({ ok: true }));
 

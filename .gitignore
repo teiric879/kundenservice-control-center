@@ -5,10 +5,8 @@ backend/node_modules/
 package-lock.json
 
 # ── SQLite (lokal; Produktion nutzt Turso) ───────────────────────────────────
-api/db/*.sqlite
-api/db/*.sqlite-journal
-api/db/*.sqlite-wal
-api/db/*.sqlite-shm
+# Gesamtes lokales DB-Verzeichnis inkl. Backups/Unterordner — landet nie im Repo.
+api/db/
 
 # ── Umgebungsvariablen ───────────────────────────────────────────────────────
 .env

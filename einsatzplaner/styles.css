@@ -329,6 +329,21 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 }
 .dash-select:disabled{opacity:.38;pointer-events:none}
 
+/* Checkbox „Inaktive anzeigen" */
+.dash-check{display:inline-flex;align-items:center;gap:8px;margin-left:auto;cursor:pointer;
+  font-size:12.5px;font-weight:600;color:var(--muted);user-select:none;transition:color .15s var(--ease)}
+.dash-check:hover{color:var(--ink)}
+.dash-check input{position:absolute;opacity:0;width:0;height:0}
+.dash-check .dc-box{width:18px;height:18px;border-radius:6px;border:1px solid var(--stroke-hi);
+  background:var(--glass);display:grid;place-items:center;flex:0 0 18px;transition:all .15s var(--ease)}
+.dash-check .dc-box svg{width:12px;height:12px;color:#022;opacity:0;transform:scale(.6);transition:all .15s var(--ease)}
+.dash-check input:checked + .dc-box{background:linear-gradient(135deg,var(--acc),var(--acc-2));border-color:transparent}
+.dash-check input:checked + .dc-box svg{opacity:1;transform:scale(1)}
+.dash-check:has(input:checked){color:var(--acc-hi)}
+.dash-check input:focus-visible + .dc-box{outline:2px solid var(--acc);outline-offset:2px}
+
+.st-note{margin-top:12px;font-size:11.5px;color:var(--muted-2);font-weight:600}
+
 .stats-card{background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--stroke);
   border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow),var(--inner)}
 .stats-card h3{margin:0 0 16px;font-size:15px;font-weight:600}

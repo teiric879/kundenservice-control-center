@@ -30,6 +30,7 @@ async function ensureProdukte() {
 async function ensureBesucher() {
   const db = getDb('besucher');
   await db.exec(ddl.BESUCHER_TABLES);
+  await tryAlters(db, ddl.BESUCHER_ALTERS);
 }
 
 async function ensureEinsatzplan() {

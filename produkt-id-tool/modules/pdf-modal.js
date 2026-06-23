@@ -145,6 +145,9 @@ function fillForm(form, fv) {
   const _heute = new Date();
   const angebotGueltigBis = new Date(_heute.getFullYear(), _heute.getMonth(), _heute.getDate() + 14)
     .toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  // Tagesaktuelles Datum (TT.MM.JJJJ) – für die Datumsfelder bei Bankverbindung
+  // (SEPA-Lastschriftmandat) und am Seitenende (Unterschrift). Gilt für alle Sparten.
+  const heuteStr = _heute.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   // ── Heizstrom: GP_<cfg> / VP_HT_<cfg> / VP_N_<cfg> ─────────────────────────
   if (fv.heiz) {
@@ -205,6 +208,9 @@ function fillForm(form, fv) {
     else if (/(?:netz|nutz)entgelt/i.test(n)) { if (fv.netzentgeltRed) set(f, fv.netzentgeltRed); }
     // "Das Angebot ist gültig bis zum …" – Feld heißt in allen Formularen "Angebot".
     else if (/^angebot$/i.test(n) || /g(?:ü|ue)ltig.?bis/i.test(n)) set(f, angebotGueltigBis);
+    // Datum bei Bankverbindung (SEPA-Lastschriftmandat) + am Seitenende (Unterschrift)
+    // → tagesaktuelles Datum. Geburtsdatum/Lieferbeginn_Datum bleiben unberührt.
+    else if (/^Lastschrift_Datum$/i.test(n) || /^Datum_2$/i.test(n)) set(f, heuteStr);
   }
 }
 

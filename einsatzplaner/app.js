@@ -402,10 +402,18 @@ function ctxEditTime() {
 
 function setSelectValue(id, val) {
   const sel = document.getElementById(id);
-  // Find exact option or closest
-  const opt = [...sel.options].find(o => o.value === val);
-  if (opt) sel.value = val;
-  else sel.options[0].selected = true;
+  // Zuvor dynamisch ergänzte Zeiten (z. B. 13:30) wieder entfernen
+  [...sel.options].filter(o => o.dataset.custom).forEach(o => o.remove());
+  // Krumme Zeiten (Halbstunden o. Ä.) sind keine Standard-Option → an passender
+  // Stelle einfügen, damit z. B. das exakte „bis"-Ende eines bereits eingetragenen
+  // Agenten als „von" gewählt werden kann.
+  if (![...sel.options].some(o => o.value === val)) {
+    const opt = new Option(val, val);
+    opt.dataset.custom = '1';
+    const before = [...sel.options].find(o => o.value > val);
+    sel.add(opt, before ?? null);
+  }
+  sel.value = val;
 }
 
 async function ctxNote() {
@@ -596,7 +604,19 @@ function renderMonthGrid(workDays) {
         const inner = agents.length
           ? agents.map(a => `<span class="mg-kz${a.agent_id === selId ? ' mine' : ''}" style="--ac:${a.color}">${a.kuerzel}</span>`).join('')
           : (selId != null ? '<span class="mg-plus">＋</span>' : '');
-        const agentNames = agents.length > 0 ? agents.map(a => a.name).join(', ') + ' · ' : '';
+        // Tooltip: Name + Besetzungszeit(en) je Berater (Mehrfach-Zeiten zusammengefasst)
+        const timesByAgent = new Map();
+        for (const a of list) {
+          if (!a.time_from || !a.time_to) continue;
+          if (!timesByAgent.has(a.agent_id)) timesByAgent.set(a.agent_id, []);
+          timesByAgent.get(a.agent_id).push(`${a.time_from}–${a.time_to}`);
+        }
+        const agentNames = agents.length > 0
+          ? agents.map(a => {
+              const t = timesByAgent.get(a.agent_id) ?? [];
+              return t.length ? `${a.name} (${t.join(', ')})` : a.name;
+            }).join(', ') + ' · '
+          : '';
         const click = `onclick="monthCellClick('${date}','${loc.id}','${slot}')"`;
         html += `<div class="mg-cell ${cls}${mine ? ' mine' : ''}" ${click} title="${agentNames}${loc.label} · ${lbl} · ${fmtDate(date)}">${inner}</div>`;
       }
@@ -641,6 +661,14 @@ function toggleAlltime() {
   loadStats();
 }
 
+let dashAgents = [];          // letzte Stats-Antwort (für Re-Render ohne Refetch)
+let dashShowInactive = false; // "inaktiv" = keine Einsätze im Zeitraum (total === 0)
+
+function setShowInactive(v) {
+  dashShowInactive = v;
+  renderStatsTable();
+}
+
 async function loadStats() {
   let qs;
   if (dashAlltime) {
@@ -651,8 +679,19 @@ async function loadStats() {
     qs = m ? `year=${y}&month=${m}` : `year=${y}`;
   }
   const { agents } = await api(`/stats?${qs}`);
+  dashAgents = agents || [];
+  renderStatsTable();
+}
 
-  document.getElementById('dashTable').innerHTML = agents.length ? `
+function renderStatsTable() {
+  const inactiveCount = dashAgents.filter(a => !(a.total > 0)).length;
+  const list = dashShowInactive ? dashAgents : dashAgents.filter(a => a.total > 0);
+
+  const note = (!dashShowInactive && inactiveCount)
+    ? `<div class="st-note">${inactiveCount} inaktive ${inactiveCount === 1 ? 'Berater' : 'Berater'} ohne Einsätze ausgeblendet</div>`
+    : '';
+
+  document.getElementById('dashTable').innerHTML = list.length ? `
     <table class="st">
       <thead><tr>
         <th>Berater</th>
@@ -662,7 +701,7 @@ async function loadStats() {
         <th style="text-align:right">Gesamt</th>
         <th>Standortverteilung</th>
       </tr></thead>
-      <tbody>${agents.map(a => {
+      <tbody>${list.map(a => {
         const tot = a.total || 0;
         const kQ = tot ? Math.round(a.kall        / tot * 100) : 0;
         const eQ = tot ? Math.round(a.euskirchen  / tot * 100) : 0;
@@ -689,8 +728,8 @@ async function loadStats() {
           <td><div class="dist-wrap">${distCell}</div></td>
         </tr>`;
       }).join('')}</tbody>
-    </table>
-  ` : '<div style="color:var(--muted);padding:16px 0;font-size:13px">Keine Daten</div>';
+    </table>${note}
+  ` : `<div style="color:var(--muted);padding:16px 0;font-size:13px">Keine aktiven Berater im Zeitraum</div>${note}`;
 }
 
 /* ── Admin ──────────────────────────────────────────────────────────────── */

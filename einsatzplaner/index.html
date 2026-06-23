@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Einsatzplaner · e-regio</title>
-<link rel="stylesheet" href="styles.css?v=7">
+<link rel="stylesheet" href="styles.css?v=8">
 <link rel="stylesheet" href="../shared/sidebar.css?v=1">
 </head>
 <body>
@@ -216,6 +216,13 @@
           <option value="11">November</option><option value="12">Dezember</option>
         </select>
         <button class="btn-alltime" id="btnAlltime" onclick="toggleAlltime()">Gesamt (Allzeit)</button>
+        <label class="dash-check" for="dashShowInactive">
+          <input type="checkbox" id="dashShowInactive" onchange="setShowInactive(this.checked)">
+          <span class="dc-box" aria-hidden="true">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5l3 3 6-7"/></svg>
+          </span>
+          Inaktive anzeigen
+        </label>
       </div>
 
       <div class="stats-card reveal" style="animation-delay:.08s">
@@ -334,7 +341,7 @@ function toggleModItems(btn, id) {
   btn.classList.toggle('collapsed');
 }
 </script>
-<script src="app.js?v=20260621c"></script>
+<script src="app.js?v=20260623b"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=1">
 <script src="../shared/erfass-bar.js?v=3"></script>
 </body>

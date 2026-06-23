@@ -158,7 +158,7 @@ export function buildCard(productKey, label, result, isVergleich = false, animDe
     </div>
     <div class="card-body">
       <div class="card-row pg-row">
-        <span class="lbl" style="font-size:11.5px;font-style:italic">${result.pgLabel || 'Vergleichspreis'}</span>
+        <span class="lbl">${result.pgLabel || 'Vergleichspreis'}</span>
       </div>
       ${result.vl ? `<div class="card-row">
         <span class="lbl">Vertragslaufzeit</span>

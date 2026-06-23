@@ -1,7 +1,8 @@
 // SYNC Schema-Setup (node:sqlite) — ausschließlich für die Access-Import-Pipeline (migrate-*.js).
-// Der Server nutzt den async-Pfad in data/schema.js. Beide teilen sich die DDL aus data/ddl.js.
+// Der Server nutzt den async-Pfad in data/schema.js. Beide teilen sich die DDL aus backend/data/ddl.js
+// (Single Source of Truth seit dem Backend-Refactor 2026-06-21; früheres api/data/ddl.js existiert nicht mehr).
 const { getProdukte, getBesucher, getEinsatzplaner } = require('./db');
-const ddl = require('./data/ddl');
+const ddl = require('../backend/data/ddl');
 
 function initProdukte() {
   const db = getProdukte();
