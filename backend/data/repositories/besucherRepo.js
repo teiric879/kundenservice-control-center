@@ -46,18 +46,54 @@ module.exports = {
     return r?.m ?? null;
   },
 
-  // Inkrementeller Besucher-Import aus dem Access-Upload. Fügt NUR Besuche mit
-  // datum > cutoff (= bisher spätestes Datum) hinzu — bestehende (auch per App
-  // erfasste) Zeilen bleiben unangetastet, nichts wird doppelt gezählt.
+  // Inkrementeller Besucher-Import aus dem Access-Upload.
+  //  • Zeilen NACH dem bisher spätesten Datum (datum > cutoff) sind garantiert neu → werden eingefügt.
+  //  • Zeilen AUF dem Grenztag (datum == cutoff, i.d.R. heute) werden per natürlichem Schlüssel
+  //    (Datum+Standort+Kategorie+Stunde+Zeitstempel) gegen den Bestand dedupliziert. So kommt
+  //    „heute" mit rein, ohne dass ein zweiter Import desselben Tages doppelt zählt. Es wird
+  //    nichts gelöscht; per App erfasste Besuche (ts = NULL) bleiben unangetastet.
+  //  • Ältere Zeilen (datum < cutoff) gelten als bereits vorhanden und werden übersprungen.
   // rows: [{ datum:'YYYYMMDD', standort, kategorie, stunde, ts }]
   async bulkInsertVisits(rows) {
     const cutoff = await this.maxDatum();
-    const neu = (rows || []).filter((r) => r && r.datum && (cutoff == null || String(r.datum) > String(cutoff)));
+    const norm = (r) => [
+      String(r.datum),
+      r.standort || '(ohne Angabe)',
+      r.kategorie ?? '',
+      r.stunde ?? -1,
+      r.ts ?? '',
+    ].join('|');
+
+    const newer = [];
+    const boundary = [];
+    for (const r of (rows || [])) {
+      if (!r || !r.datum) continue;
+      const d = String(r.datum);
+      if (cutoff == null || d > String(cutoff)) newer.push(r);
+      else if (d === String(cutoff)) boundary.push(r);
+    }
+
+    // Bestehende Zeilen des Grenztags laden → Dedup-Schlüssel.
+    const seen = new Set();
+    if (boundary.length) {
+      const have = await db().all(
+        'SELECT datum, standort, kategorie, stunde, ts FROM besuche WHERE datum = ?',
+        [String(cutoff)],
+      );
+      have.forEach((r) => seen.add(norm(r)));
+    }
+
+    const toInsert = newer.slice();
+    for (const r of boundary) {
+      const k = norm(r);
+      if (!seen.has(k)) { seen.add(k); toInsert.push(r); }
+    }
+
     let added = 0;
     const dates = [];
-    if (neu.length) {
+    if (toInsert.length) {
       await db().transaction(async (tx) => {
-        for (const r of neu) {
+        for (const r of toInsert) {
           await tx.run(
             'INSERT INTO besuche (datum, standort, kategorie, stunde, ts) VALUES (?,?,?,?,?)',
             [String(r.datum), r.standort || '(ohne Angabe)', r.kategorie ?? null, r.stunde ?? -1, r.ts ?? null],

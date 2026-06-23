@@ -1928,12 +1928,14 @@ async function duParseBesucher(){
     }
     const cut=await fetch(IMPORT_API+'/import/besucher/cutoff').then(r=>r.json()).catch(()=>({cutoff:null}));
     const cutoff=cut.cutoff;
-    const neu=rows.filter(r=> cutoff==null || r.datum > String(cutoff));
+    // Grenztag (= bisher spätestes Datum, i.d.R. heute) wird mit eingeschlossen – der Server
+    // dedupliziert dort pro Zeile, damit ein erneuter Import nichts doppelt zählt.
+    const neu=rows.filter(r=> cutoff==null || r.datum >= String(cutoff));
     _duBesucherRows=neu;
     const range=neu.length ? `${duFmtYmd(neu.reduce((a,b)=>a.datum<b.datum?a:b).datum)} – ${duFmtYmd(neu.reduce((a,b)=>a.datum>b.datum?a:b).datum)}` : '–';
     prev.innerHTML=`Gesamt in Datei: <b>${rows.length.toLocaleString('de-DE')}</b> Besuche.<br>`+
       `Bisheriger Stand: <b>${cutoff?duFmtYmd(cutoff):'leer'}</b>.<br>`+
-      (neu.length? `<span class="du-ok"><b>${neu.length.toLocaleString('de-DE')}</b> neue Besuche</span> (${range}) werden übernommen.`
+      (neu.length? `<span class="du-ok"><b>${neu.length.toLocaleString('de-DE')}</b> Besuche</span> (${range}) werden geprüft und übernommen – bereits vorhandene des Grenztags überspringt der Server.`
                  : `<span class="du-ok">Keine neuen Besuche</span> – alles bereits vorhanden.`);
     document.getElementById('duBesucherImport').disabled = neu.length===0;
   }catch(e){ prev.innerHTML=`<span class="du-warn">Fehler: ${escHtml(e.message)}</span>`; }

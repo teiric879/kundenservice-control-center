@@ -32,7 +32,7 @@ function ymdToISO(y){return Math.floor(y/10000)+'-'+(''+(Math.floor(y/100)%100))
 /* ---------- state ---------- */
 var minYmd=20160101, maxYmd=20260101, dataMaxYmd=20260101;
 var nowYmd=dateToYmd(new Date()), nowDate=ymdToDate(nowYmd);
-var state={standort:'all',period:'ytd',from:null,to:null};
+var state={standort:'all',period:'heute',from:null,to:null};
 
 /* ---------- filter ---------- */
 function matchStand(s){return state.standort==='all'||s===state.standort;}
@@ -435,10 +435,16 @@ function initControls(){
 }
 
 /* ---------- Erfassen ---------- */
-var _capToday=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
-var _capKey='eregio_cap_'+_capToday;
-var capCounts=(function(){try{var s=localStorage.getItem(_capKey);return s?JSON.parse(s):{};}catch(e){return {};}}());
-function _persistCap(){try{localStorage.setItem(_capKey,JSON.stringify(capCounts));}catch(e){}}
+// Das Tracking je Standort/Kategorie zeigt ausschließlich die Besuche des HEUTIGEN Tages.
+// Quelle ist V (live aus SQLite, inkl. Datei-Import) – nicht localStorage. Dadurch rollt es
+// um 0 Uhr automatisch auf den neuen Tag um (frisches Datum bei jedem Aufruf) und enthält
+// auch importierte Besuche, nicht nur die in der App angetippten.
+function todayCounts(){
+  var t=dateToYmd(new Date()),m={};
+  for(var i=0;i<V.length;i++){var r=V[i];if(r.ymd!==t||!r.kategorie)continue;var k=r.standort+'|'+r.kategorie;m[k]=(m[k]||0)+1;}
+  return m;
+}
+var redrawErfassGrid=null;   // von initErfassen gesetzt – erlaubt Grid-Refresh nach Live-Reload
 var _erfassenSelfFired=false;
 function initErfassen(){
   var locBox=document.getElementById('capLoc'),grid=document.getElementById('capGrid');
@@ -461,25 +467,24 @@ function initErfassen(){
     locBox.querySelectorAll('button').forEach(function(b){b.onclick=function(){sel=b.dataset.s;drawLoc();drawGrid();};});
   }
   function drawGrid(){
+    var tc=todayCounts();
     grid.innerHTML=allKats.map(function(kat){
-      var locsHtml=locs.map(function(s){var c=capCounts[s+'|'+kat]||0;return '<span class="cn-loc'+(c>0?' has-c':'')+'"><span class="cn-nm">'+s+'</span><b>'+c+'</b></span>';}).join('');
+      var locsHtml=locs.map(function(s){var c=tc[s+'|'+kat]||0;return '<span class="cn-loc'+(c>0?' has-c':'')+'"><span class="cn-nm">'+s+'</span><b>'+c+'</b></span>';}).join('');
       return '<button class="cat" data-k="'+encodeURIComponent(kat)+'"><span class="pop"></span><span class="ct">'+stripPfx(kat)+'</span><div class="cn-split">'+locsHtml+'</div></button>';
     }).join('');
     grid.querySelectorAll('.cat').forEach(function(b){
       b.onclick=function(){
-        var kat=decodeURIComponent(b.dataset.k),key=sel+'|'+kat;
-        capCounts[key]=(capCounts[key]||0)+1;
-        _persistCap();
+        var kat=decodeURIComponent(b.dataset.k);
         var now=new Date();
         var entry={ymd:dateToYmd(now),standort:sel,kategorie:kat,stunde:now.getHours(),dow:(now.getDay()+6)%7};
-        V.push(entry);
+        V.push(entry);   // optimistisch – Live-Reload (POST→Event) gleicht V danach mit der DB ab
         if(window.erfassBesuch){_erfassenSelfFired=true;window.erfassBesuch(sel,kat).catch(function(){});}
         render(false);
         b.classList.add('bump');
         toast('✓ '+stripPfx(kat)+' · '+sel+' erfasst');
-        var cnLocs=b.querySelectorAll('.cn-loc');
+        var tc2=todayCounts(),cnLocs=b.querySelectorAll('.cn-loc');
         locs.forEach(function(s,li){
-          var c=capCounts[s+'|'+kat]||0,row=cnLocs[li];if(!row)return;
+          var c=tc2[s+'|'+kat]||0,row=cnLocs[li];if(!row)return;
           var bEl=row.querySelector('b');
           bEl.textContent=c;row.classList.toggle('has-c',c>0);
           if(s===sel){bEl.classList.remove('num-pop');void bEl.offsetWidth;bEl.classList.add('num-pop');}
@@ -489,16 +494,7 @@ function initErfassen(){
     });
   }
   drawLoc();drawGrid();
-  window.addEventListener('eregio:besuch-erfasst',function(e){
-    if(_erfassenSelfFired){_erfassenSelfFired=false;return;}
-    var d=e&&e.detail;
-    if(!d||!d.standort||!d.kategorie)return;
-    var key=d.standort+'|'+d.kategorie;
-    if(allKats.indexOf(d.kategorie)===-1)return;
-    capCounts[key]=(capCounts[key]||0)+1;
-    _persistCap();
-    drawGrid();
-  });
+  redrawErfassGrid=drawGrid;   // Live-Reload (loadVisits) zeichnet das Grid aus frischem V neu
 }
 
 var toastT;function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},1800);}
@@ -521,6 +517,8 @@ function loadVisits(){
   return fetch(API_BESUCHER, { cache:'no-store' })
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(rows){
+      // „Heute" bei jedem Reload frisch bestimmen → KPIs + Tracking rollen um 0 Uhr automatisch um.
+      nowYmd=dateToYmd(new Date());nowDate=ymdToDate(nowYmd);
       V.length=0;
       rows.forEach(function(r){V.push(parseApiRow(r));});
       if(V.length){
@@ -538,6 +536,7 @@ function loadVisits(){
         var rz;window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){render(false);},160);});
       } else {
         render(false);
+        if(redrawErfassGrid)redrawErfassGrid();
       }
     });
 }
