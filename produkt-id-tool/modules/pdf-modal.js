@@ -140,6 +140,12 @@ function fillForm(form, fv) {
   const check = field => { try { field.check(); } catch { /* keine Checkbox */ } };
   const isCheckbox = f => typeof f.check === 'function' && typeof f.uncheck === 'function';
 
+  // Angebotsgültigkeit: ab dem Tag des Ausfüllens 14 Tage gültig
+  // (z. B. erstellt am 15.06. → gültig bis 29.06.). Gilt für alle Sparten.
+  const _heute = new Date();
+  const angebotGueltigBis = new Date(_heute.getFullYear(), _heute.getMonth(), _heute.getDate() + 14)
+    .toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
   // ── Heizstrom: GP_<cfg> / VP_HT_<cfg> / VP_N_<cfg> ─────────────────────────
   if (fv.heiz) {
     for (const f of fields) {
@@ -197,6 +203,8 @@ function fillForm(form, fv) {
     // SteuVE Modul 1: max. pauschale Netzentgeltreduzierung (§14a)
     // Formularfeld heißt teils "Nutzentgeltreduzierung" (Tippfehler im PDF) → beide Schreibweisen.
     else if (/(?:netz|nutz)entgelt/i.test(n)) { if (fv.netzentgeltRed) set(f, fv.netzentgeltRed); }
+    // "Das Angebot ist gültig bis zum …" – Feld heißt in allen Formularen "Angebot".
+    else if (/^angebot$/i.test(n) || /g(?:ü|ue)ltig.?bis/i.test(n)) set(f, angebotGueltigBis);
   }
 }
 
