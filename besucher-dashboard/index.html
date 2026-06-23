@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>e-regio · Kundenservice Control Center</title>
-<link rel="stylesheet" href="styles.css?v=11">
+<link rel="stylesheet" href="styles.css?v=13">
+<link rel="stylesheet" href="../shared/sidebar.css?v=1">
 </head>
 <body>
 <div class="app">
@@ -162,8 +163,10 @@
       <div class="panels" style="margin-top:18px">
         <div class="card reveal" style="animation-delay:.36s">
           <div class="p-head"><div><h3>Themen-Anteile</h3><div class="sub">Anteil je Anliegen im Zeitraum</div></div></div>
-          <div id="chartKatDonut"></div>
-          <div class="legend" id="legendKatDonut"></div>
+          <div class="donut-layout">
+            <div id="chartKatDonut" class="donut-canvas"></div>
+            <div class="legend donut-legend" id="legendKatDonut"></div>
+          </div>
         </div>
         <div class="card reveal" style="animation-delay:.42s">
           <div class="p-head"><div><h3>Peak-Stunden Analyse</h3><div class="sub">Stoßzeiten · Anliegen-Trends</div></div></div>
@@ -184,7 +187,7 @@
 </div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
-<script src="app.js?v=14"></script>
+<script src="app.js?v=16"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=1">
 <script src="../shared/erfass-bar.js?v=3"></script>
 </body>

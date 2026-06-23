@@ -141,21 +141,30 @@ function renderKat(rows,anim){
 /* ---------- kategorie donut ---------- */
 function renderKatDonut(rows,anim){
   var box=document.getElementById('chartKatDonut');if(!box)return;
+  var leg=document.getElementById('legendKatDonut');
   var counts={};rows.forEach(function(r){if(!r.kategorie)return;var k=stripPfx(r.kategorie);counts[k]=(counts[k]||0)+1;});
   var items=Object.keys(counts).map(function(k){return {label:k,v:counts[k]};}).sort(function(a,b){return b.v-a.v;}).slice(0,8);
-  if(!items.length){box.innerHTML='<p class="sub" style="text-align:center;padding:24px 0">Keine Daten</p>';return;}
+  if(!items.length){box.innerHTML='<p class="sub" style="text-align:center;padding:24px 0">Keine Daten</p>';if(leg)leg.innerHTML='';return;}
   var total=items.reduce(function(s,x){return s+x.v;},0)||1;
-  var r=68,C=2*Math.PI*r,off=0;
-  var s='<svg viewBox="0 0 184 192" width="100%" style="height:196px"><g transform="rotate(-90 92 96)">';
-  s+='<circle cx="92" cy="96" r="'+r+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="22"/>';
-  items.forEach(function(it,i){var len=C*it.v/total,col=PAL[i%PAL.length];
-    s+='<circle class="d-seg" cx="92" cy="96" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="22" stroke-linecap="butt" stroke-dasharray="'+(anim&&!RM?0:len)+' '+(anim&&!RM?C:C-len)+'" data-len="'+len+'" data-c="'+C+'" stroke-dashoffset="'+(-off)+'" data-i="'+i+'"/>';off+=len;});
-  s+='</g><text x="92" y="90" text-anchor="middle" font-family="Space Grotesk" font-size="24" font-weight="600" fill="#EAF6F2">'+items.length+'</text>';
-  s+='<text x="92" y="109" text-anchor="middle" font-size="11.5" fill="#93B2AB">Themen</text></svg>';
+  var r=70,C=2*Math.PI*r,sw=20,off=0;
+  var gap=items.length>1?sw+4:0;   // Lücke = Strichbreite (für runde Kappen) + 4px Spalt
+  var s='<svg viewBox="0 0 192 192" width="100%" style="height:206px;overflow:visible">';
+  s+='<defs><filter id="dGlow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="3.5" flood-color="#000" flood-opacity=".4"/></filter></defs>';
+  s+='<g transform="rotate(-90 96 96)">';
+  s+='<circle cx="96" cy="96" r="'+r+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="'+sw+'"/>';
+  items.forEach(function(it,i){var full=C*it.v/total,len=Math.max(2,full-gap),col=PAL[i%PAL.length];
+    s+='<circle class="d-seg" cx="96" cy="96" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" stroke-linecap="round" stroke-dasharray="'+(anim&&!RM?0:len)+' '+(anim&&!RM?C:C-len)+'" data-len="'+len+'" data-c="'+C+'" stroke-dashoffset="'+(-off)+'" data-i="'+i+'" style="filter:url(#dGlow);cursor:pointer"/>';off+=full;});
+  s+='</g>';
+  s+='<text x="96" y="90" text-anchor="middle" font-family="Space Grotesk" font-size="30" font-weight="700" letter-spacing="-.5" fill="#EAF6F2">'+nf(total)+'</text>';
+  s+='<text x="96" y="108" text-anchor="middle" font-size="10.5" font-weight="600" letter-spacing=".5" fill="#93B2AB">BESUCHE</text></svg>';
   box.innerHTML=s;
-  if(anim&&!RM){raf(function(){box.querySelectorAll('.d-seg').forEach(function(c,i){c.style.transition='stroke-dasharray .45s cubic-bezier(.22,.61,.36,1) '+(i*.04)+'s';c.style.strokeDasharray=c.dataset.len+' '+(c.dataset.c-c.dataset.len);});});}
-  var leg='';items.forEach(function(it,i){leg+='<span><i style="background:'+PAL[i%PAL.length]+'"></i>'+it.label+' · '+Math.round(it.v/total*100)+'% ('+nf(it.v)+')</span>';});
-  document.getElementById('legendKatDonut').innerHTML=leg;
+  if(anim&&!RM){raf(function(){box.querySelectorAll('.d-seg').forEach(function(c,i){c.style.transition='stroke-dasharray .5s cubic-bezier(.22,.61,.36,1) '+(i*.05)+'s';c.style.strokeDasharray=c.dataset.len+' '+(c.dataset.c-c.dataset.len);});});}
+  if(leg){var l='';items.forEach(function(it,i){var p=Math.round(it.v/total*100);
+    l+='<div class="lg-item" data-i="'+i+'"><span class="lg-dot" style="background:'+PAL[i%PAL.length]+'"></span><span class="lg-name">'+it.label+'</span><span class="lg-pct">'+p+'%</span><span class="lg-val">'+nf(it.v)+'</span></div>';});
+    leg.innerHTML=l;
+    leg.querySelectorAll('.lg-item').forEach(function(el){var i=+el.dataset.i;
+      el.addEventListener('mouseenter',function(){box.querySelectorAll('.d-seg').forEach(function(c){c.style.opacity=(+c.dataset.i===i?'1':'.3');});});
+      el.addEventListener('mouseleave',function(){box.querySelectorAll('.d-seg').forEach(function(c){c.style.opacity='1';});});});}
   box.querySelectorAll('.d-seg').forEach(function(c){c.addEventListener('mousemove',function(e){var it=items[+c.dataset.i];showTip(e,it.label+': <b>'+nf(it.v)+'</b> ('+Math.round(it.v/total*100)+'%)');});c.addEventListener('mouseleave',hideTip);});
 }
 
@@ -192,9 +201,12 @@ function renderPeakInsights(rows){
   if(peakSlot){
     var pct=Math.round(peakSlot.v/totalH*100);
     html+='<div class="pi-hero"><div class="pi-badge">';
-    html+='<div class="pi-badge-top"><span class="pi-bday">'+WDF[peakSlot.dow]+'</span><span class="pi-bhours">'+peakSlot.h+'–'+(peakSlot.h+2)+' Uhr</span></div>';
-    html+='<div class="pi-bpct">'+pct+' %</div>';
-    html+='<div class="pi-blabel">der Besuche (mit Uhrzeit) fallen in diesen Slot</div>';
+    html+='<div class="pi-badge-info">';
+    html+='<div class="pi-badge-cap">Stärkster Zeit-Slot</div>';
+    html+='<div class="pi-badge-when"><span class="pi-bday">'+WDF[peakSlot.dow]+'</span><span class="pi-bdot">·</span><span class="pi-bhours">'+peakSlot.h+'–'+(peakSlot.h+2)+' Uhr</span></div>';
+    html+='<div class="pi-blabel">der Besuche mit Uhrzeit fallen in diesen Slot</div>';
+    html+='</div>';
+    html+='<div class="pi-badge-num"><span class="pi-bpct">'+pct+'</span><span class="pi-bunit">%</span></div>';
     html+='</div></div>';
   }
   // Weekday rows
@@ -217,7 +229,7 @@ function renderPeakInsights(rows){
       var p2=Math.round(c.v/catTotal*100),col=PAL[i];
       html+='<div class="pi-cat"><span class="pi-cat-n">'+nf(c.v)+'</span>';
       html+='<div class="pi-cat-info"><span class="pi-cat-name">'+c.k+'</span>';
-      html+='<div class="pi-cat-bar"><i style="width:'+p2+'%;background:'+col+'"></i></div></div>';
+      html+='<div class="pi-cat-bar"><i style="width:'+p2+'%;background:linear-gradient(90deg,'+col+',#ffffff22)"></i></div></div>';
       html+='<span class="pi-cat-pct">'+p2+'%</span></div>';
     });
     html+='</div>';

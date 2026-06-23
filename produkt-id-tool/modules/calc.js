@@ -1,5 +1,5 @@
 import { S } from './state.js';
-import { myRound, addMonthsLastDay } from './helpers.js';
+import { myRound, addMonthsLastDay, addMonthsPriceGuarantee } from './helpers.js';
 
 // Verbindliche Vertragskonditionen je Produktlinie (vl = Vertragslaufzeit, pg = Preisgarantie, in Monaten).
 // Gilt spartenübergreifend für die jeweilige Produktlinie und hat Vorrang vor evtl. abweichenden DB-Werten.
@@ -195,7 +195,7 @@ export function calcTarif(preis, kond, productKey, verbrauch, verbrauchNT) {
     netzentgeltRed:  k ? k.netzentgeltRed  : null,
     alb:             k ? k.alb             : null,
     vertragsende:    vb && vl ? addMonthsLastDay(vb, vl) : null,
-    pgEnde:          vb && pg > 0 ? addMonthsLastDay(vb, pg) : null,
+    pgEnde:          vb && pg > 0 ? addMonthsPriceGuarantee(vb, pg) : null,
   };
 }
 

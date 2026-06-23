@@ -11,6 +11,25 @@ export function addMonthsLastDay(dateStr, months) {
   return d;
 }
 
+// Preisgarantie-Ende. Zwei Fälle, abhängig vom gewählten Vertragsbeginn-Tag:
+//  • Beginn = 1. ODER letzter Tag des Monats → Laufzeitende minus 1 Tag (364 Tage, wie bisher).
+//  • Beginn = irgendein anderer Tag         → bis zum letzten Tag des End-Monats (Beginn + months).
+export function addMonthsPriceGuarantee(dateStr, months) {
+  if (!dateStr) return null;
+  const start = new Date(dateStr);
+  const y = start.getFullYear(), m = start.getMonth(), day = start.getDate();
+  const lastDayOfStartMonth = new Date(y, m + 1, 0).getDate();
+
+  if (day === 1 || day === lastDayOfStartMonth) {
+    const d = new Date(dateStr);
+    d.setMonth(d.getMonth() + months);
+    d.setDate(d.getDate() - 1);
+    return d;
+  }
+  // Tag 0 des Folgemonats = letzter Tag des End-Monats (Jahres-Überlauf wird automatisch behandelt)
+  return new Date(y, m + months + 1, 0);
+}
+
 export function fmtDate(d) {
   if (!d) return '–';
   return d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
