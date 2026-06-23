@@ -6,6 +6,34 @@ const API_BASE = LOCAL_HOSTS.includes(location.hostname) ? `http://${location.ho
 
 let activeBlobUrl = null;
 
+// ── Schrift: Carlito (metrisch Calibri-kompatibel) für alle Textfelder ────────
+// Einmal geladen und gecacht. Pfad relativ zu diesem Modul, damit er lokal wie
+// auf Vercel (statische Auslieferung aus dem Repo-Root) gleichermaßen aufgeht.
+const FIELD_FONT_SIZE = 11;   // Standard
+const FIELD_FONT_MIN  = 9;    // Fallback, wenn Inhalt nicht in die Feldbreite passt
+let _fontBytesPromise = null;
+function loadFieldFont() {
+  if (!_fontBytesPromise) {
+    const url = new URL('../fonts/Carlito-Regular.ttf', import.meta.url);
+    _fontBytesPromise = fetch(url).then(r => {
+      if (!r.ok) throw new Error(`Font HTTP ${r.status}`);
+      return r.arrayBuffer();
+    });
+  }
+  return _fontBytesPromise;
+}
+
+// Wählt 11 pt, sofern der Text in die Feldbreite passt, sonst 9 pt.
+function fitFontSize(field, text, font) {
+  let avail = Infinity;
+  try {
+    const rect = field.acroField.getWidgets()[0]?.getRectangle();
+    if (rect) avail = rect.width - 4; // ~2 pt Innenabstand je Seite
+  } catch { /* keine Geometrie ermittelbar → Standardgröße */ }
+  const w = font.widthOfTextAtSize(text, FIELD_FONT_SIZE);
+  return w <= avail ? FIELD_FONT_SIZE : FIELD_FONT_MIN;
+}
+
 function injectStyles() {
   if (document.getElementById('pdf-modal-css')) return;
   const style = document.createElement('style');
@@ -134,8 +162,10 @@ const fmtInt = v => Number(v).toLocaleString('de-DE', { maximumFractionDigits: 0
 //  • heiz    (Heizstrom): GP_<cfg> / VP_HT_<cfg> / VP_N_<cfg> mit cfg=Eintarif|Doppel[_getrennt|_gemeinsam].
 //  • modules (SteuVE):    GP_..._M1/M2 / VP_..._M1/M2.
 // Dazu: Checkboxen je nach Auswahl, "PLZ / Ort", "Jahresverbrauch".
-function fillForm(form, fv) {
+function fillForm(form, fv, font) {
   const fields = form.getFields();
+  // Setzt nur den Inhalt – das einheitliche Styling (Font/Größe/Ausrichtung)
+  // übernimmt styleTextFields() am Ende für ALLE Textfelder gemeinsam.
   const set = (field, value) => { try { field.setText(String(value)); } catch { /* kein Textfeld */ } };
   const check = field => { try { field.check(); } catch { /* keine Checkbox */ } };
   const isCheckbox = f => typeof f.check === 'function' && typeof f.uncheck === 'function';
@@ -212,6 +242,44 @@ function fillForm(form, fv) {
     // → tagesaktuelles Datum. Geburtsdatum/Lieferbeginn_Datum bleiben unberührt.
     else if (/^Lastschrift_Datum$/i.test(n) || /^Datum_2$/i.test(n)) set(f, heuteStr);
   }
+
+  // ── Einheitliches Styling für ALLE Textfelder ──────────────────────────────
+  // Gilt für von uns befüllte UND leere, vom Berater später ausgefüllte Felder:
+  // Carlito, linksbündig, vertikal mittig, 11 pt (9 pt falls Inhalt nicht passt).
+  // updateAppearances(font) schreibt zudem die Default-Appearance + registriert
+  // Carlito in den AcroForm-Default-Resources → auch nachträgliche Eingaben im
+  // Viewer erscheinen in Carlito. Checkboxen/Radios (kein setText) bleiben außen
+  // vor, damit ihre Häkchen echte Häkchen bleiben und keine Textzeichen werden.
+  if (font) styleTextFields(fields, font);
+}
+
+function styleTextFields(fields, font) {
+  const { TextAlignment } = window.PDFLib;
+  for (const f of fields) {
+    if (typeof f.setText !== 'function') continue; // nur echte Textfelder
+    try {
+      const text = (f.getText && f.getText()) || '';
+      f.setAlignment(TextAlignment.Left);
+      f.setFontSize(fitFontSize(f, text, font));
+      f.updateAppearances(font);
+    } catch { /* Feld nicht stylebar → unverändert lassen */ }
+  }
+}
+
+// Registriert den eingebetteten Font unter seinem Namen in den AcroForm-Default-
+// Resources (/DR /Font). Ohne diesen Eintrag verweist zwar die Default-Appearance
+// der Felder auf Carlito, der Viewer findet die Schrift aber nicht und fällt bei
+// neuen Eingaben auf eine Standardschrift zurück.
+function registerFontInDR(doc, form, font) {
+  const { PDFName, PDFDict } = window.PDFLib;
+  try {
+    const acro = form.acroForm.dict;
+    let dr = acro.lookup(PDFName.of('DR'), PDFDict);
+    if (!dr) { dr = doc.context.obj({}); acro.set(PDFName.of('DR'), dr); }
+    let drFont = dr.lookup(PDFName.of('Font'), PDFDict);
+    if (!drFont) { drFont = doc.context.obj({}); dr.set(PDFName.of('Font'), drFont); }
+    drFont.set(PDFName.of(font.name), font.ref);
+  } catch (e) { console.warn('Font-DR-Registrierung übersprungen:', e); }
 }
 
 async function loadAndShow(entry, fieldValues) {
@@ -237,9 +305,27 @@ async function loadAndShow(entry, fieldValues) {
   try {
     const { PDFDocument } = window.PDFLib;
     const doc  = await PDFDocument.load(bytes, { ignoreEncryption: true });
+
+    // Carlito einbetten (für alle Textfelder). Schlägt das fehl, wird ohne
+    // Custom-Font weitergemacht (Standard-Helvetica), damit das Befüllen nie bricht.
+    let font = null;
+    try {
+      const fontBytes = await loadFieldFont();
+      doc.registerFontkit(window.fontkit);
+      font = await doc.embedFont(fontBytes, { subset: false });
+    } catch (e) { console.warn('Carlito nicht geladen – Standardschrift:', e); }
+
     const form = doc.getForm();
-    fillForm(form, fieldValues);
-    form.updateFieldAppearances?.();
+    // Carlito in die AcroForm-Default-Resources eintragen, damit der Viewer die
+    // Schrift auch bei NACHTRÄGLICHEN Eingaben des Beraters auflösen kann (die
+    // Default-Appearance der Felder verweist auf diesen Font-Namen).
+    if (font) registerFontInDR(doc, form, font);
+    fillForm(form, fieldValues, font);
+    // Mit Custom-Font werden Textfeld-Appearances einzeln in fillForm erzeugt.
+    // KEIN globales updateFieldAppearances mit Font – das würde Checkbox-Häkchen
+    // (ZapfDingbats) in die Textschrift umschreiben und als Zeichen statt Haken
+    // rendern. Ohne Custom-Font einmalig global (alte Default-Logik).
+    if (!font) form.updateFieldAppearances?.();
     bytes = await doc.save();
   } catch (e) {
     // pdf-lib nicht verfügbar oder kein AcroForm → unbearbeitetes PDF anzeigen
