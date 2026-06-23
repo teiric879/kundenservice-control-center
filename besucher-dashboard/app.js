@@ -50,7 +50,7 @@ function currentRange(){
   if(state.period==='heute')return [nowYmd,nowYmd];
   if(state.period==='month')return [dateToYmd(new Date(nowDate.getFullYear(),nowDate.getMonth(),1)),nowYmd];
   if(state.period==='ytd')return [nowDate.getFullYear()*10000+101,nowYmd];
-  if(state.period==='12m')return [dateToYmd(addDays(addMonths(nowDate,-12),1)),nowYmd];
+  if(state.period==='gestern'){var g=dateToYmd(addDays(nowDate,-1));return [g,g];}
   if(state.period==='custom')return [state.from||minYmd,state.to||maxYmd];
   return [minYmd,maxYmd];
 }
