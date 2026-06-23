@@ -684,11 +684,13 @@ async function loadStats() {
 }
 
 function renderStatsTable() {
-  const inactiveCount = dashAgents.filter(a => !(a.total > 0)).length;
-  const list = dashShowInactive ? dashAgents : dashAgents.filter(a => a.total > 0);
+  // "aktiv" in dieser Ansicht = nicht deaktiviert (Admin-Flag) UND Einsätze im Zeitraum
+  const isActiveRow = a => a.active !== 0 && a.total > 0;
+  const inactiveCount = dashAgents.filter(a => !isActiveRow(a)).length;
+  const list = dashShowInactive ? dashAgents : dashAgents.filter(isActiveRow);
 
   const note = (!dashShowInactive && inactiveCount)
-    ? `<div class="st-note">${inactiveCount} inaktive ${inactiveCount === 1 ? 'Berater' : 'Berater'} ohne Einsätze ausgeblendet</div>`
+    ? `<div class="st-note">${inactiveCount} inaktive Berater ausgeblendet</div>`
     : '';
 
   document.getElementById('dashTable').innerHTML = list.length ? `
@@ -719,8 +721,9 @@ function renderStatsTable() {
             <span class="dist-sep">·</span>
             <span style="color:#5FD6A0">Homeoffice</span>&thinsp;${hQ}%
           </div>` : '<span style="color:var(--muted-2);font-size:11px">–</span>';
-        return `<tr>
-          <td><span class="adot" style="background:${a.color}"></span>${esc(a.name)}</td>
+        const inactiveTag = a.active === 0 ? ' <span class="st-inactive-tag">inaktiv</span>' : '';
+        return `<tr${a.active === 0 ? ' class="st-row-inactive"' : ''}>
+          <td><span class="adot" style="background:${a.color}"></span>${esc(a.name)}${inactiveTag}</td>
           <td class="num">${a.kall}</td>
           <td class="num">${a.euskirchen}</td>
           <td class="num">${a.homeoffice}</td>

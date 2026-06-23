@@ -141,14 +141,13 @@ module.exports = {
     else if (year)     { dateCond = 'AND a.date LIKE ?'; dateParam = `${year}-%`; }
 
     const sql = `
-      SELECT ag.id, ag.name, ag.kuerzel, ag.color,
+      SELECT ag.id, ag.name, ag.kuerzel, ag.color, ag.active,
         COUNT(DISTINCT CASE WHEN a.location='kall'       THEN a.date||a.slot END) AS kall,
         COUNT(DISTINCT CASE WHEN a.location='euskirchen' THEN a.date||a.slot END) AS euskirchen,
         COUNT(DISTINCT CASE WHEN a.location='homeoffice' THEN a.date||a.slot END) AS homeoffice,
         COUNT(DISTINCT a.date||a.slot) AS total
       FROM ep_agents ag
       LEFT JOIN ep_assignments a ON ag.id = a.agent_id ${dateCond}
-      WHERE ag.active = 1
       GROUP BY ag.id ORDER BY ag.name
     `;
     return dateParam ? db().all(sql, [dateParam]) : db().all(sql);
