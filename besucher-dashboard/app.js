@@ -494,7 +494,7 @@ function initErfassen(){
     });
   }
   drawLoc();drawGrid();
-  redrawErfassGrid=drawGrid;   // Live-Reload (loadVisits) zeichnet das Grid aus frischem V neu
+  redrawErfassGrid=drawGrid;   // Live-Refresh (refreshToday) zeichnet das Grid aus frischem V neu
 }
 
 var toastT;function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},1800);}
@@ -511,48 +511,64 @@ kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:32px 0
 var API_BESUCHER=(location.hostname === '127.0.0.1' ? 'http://127.0.0.1:3001' : '') + '/api/besucher';
 var _booted=false;
 
-// Lädt die Besuche frisch aus SQLite und rendert neu. Beim ersten Aufruf wird zusätzlich
-// die UI initialisiert; spätere Aufrufe aktualisieren nur die Daten (Live-Refresh).
-function loadVisits(){
-  return fetch(API_BESUCHER, { cache:'no-store' })
+function _applyMaxima(){
+  if(V.length){V.sort(function(a,b){return a.ymd-b.ymd;});minYmd=V[0].ymd;dataMaxYmd=V[V.length-1].ymd;maxYmd=Math.max(dataMaxYmd,nowYmd);}
+}
+
+// Erst-Last: komplette Historie. Der Endpunkt ist am Vercel-Edge gecacht, daher kommen
+// Folgeaufrufe (Reload/andere Nutzer) blitzschnell aus dem CDN statt aus Funktion+Turso.
+// Initialisiert zusätzlich die UI.
+function bootLoad(){
+  return fetch(API_BESUCHER, { cache:'default' })
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(rows){
-      // „Heute" bei jedem Reload frisch bestimmen → KPIs + Tracking rollen um 0 Uhr automatisch um.
       nowYmd=dateToYmd(new Date());nowDate=ymdToDate(nowYmd);
-      V.length=0;
-      rows.forEach(function(r){V.push(parseApiRow(r));});
-      if(V.length){
-        V.sort(function(a,b){return a.ymd-b.ymd;});
-        minYmd=V[0].ymd;
-        dataMaxYmd=V[V.length-1].ymd;
-        maxYmd=Math.max(dataMaxYmd,nowYmd);
-      }
-      if(!_booted){
-        _booted=true;
-        initControls();
-        initThemeExplorer();
-        render(true);
-        initErfassen();
-        var rz;window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){render(false);},160);});
-      } else {
-        render(false);
-        if(redrawErfassGrid)redrawErfassGrid();
-      }
+      V.length=0;rows.forEach(function(r){V.push(parseApiRow(r));});
+      _applyMaxima();
+      _booted=true;
+      initControls();
+      initThemeExplorer();
+      render(true);
+      initErfassen();
+      var rz;window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){render(false);},160);});
+      refreshToday(); // heutige Zeilen sofort frisch nachladen (korrigiert evtl. gecachten Verlauf)
     });
 }
 
-loadVisits().catch(function(err){
+// Live-Refresh: lädt NUR die Besuche ab heute (winziger, ungecachter Request) und ersetzt den
+// Heute-Teil von V. Dadurch bleibt das Dashboard live, ohne die ~4,7-MB-Historie neu zu ziehen.
+// „Heute" wird dabei frisch bestimmt → KPIs + Tracking rollen um 0 Uhr automatisch um.
+var _refreshing=false;
+function refreshToday(){
+  if(!_booted||_refreshing)return Promise.resolve();
+  _refreshing=true;
+  nowYmd=dateToYmd(new Date());nowDate=ymdToDate(nowYmd);
+  return fetch(API_BESUCHER+'?von='+nowYmd, { cache:'no-store' })
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(rows){
+      for(var i=V.length-1;i>=0;i--){if(V[i].ymd>=nowYmd)V.splice(i,1);} // alten Heute-Teil entfernen
+      rows.forEach(function(r){V.push(parseApiRow(r));});               // frischen Heute-Teil anhängen (bleibt sortiert)
+      dataMaxYmd=V.length?V[V.length-1].ymd:nowYmd;maxYmd=Math.max(dataMaxYmd,nowYmd);
+      render(false);
+      if(redrawErfassGrid)redrawErfassGrid();
+    })
+    ['catch'](function(){})
+    ['finally'](function(){_refreshing=false;});
+}
+
+bootLoad().catch(function(err){
   kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:32px 0;color:#ff8a78">'+
     'Fehler beim Laden ('+err.message+'). Ist der API-Server (Port 3001) gestartet?</div>';
 });
 
-// Neu erfasste Besuche zeitnah ins Dashboard holen – ohne manuelles Neuladen:
+// Neu erfasste Besuche zeitnah ins Dashboard holen – ohne manuelles Neuladen. Es wird nur der
+// heutige Tag nachgeladen (günstig), daher unproblematisch häufig:
 //  • wenn der Tab wieder sichtbar/fokussiert wird (z.B. Rückkehr vom Produkt-ID Tool)
 //  • per Event direkt nach einer Schnellerfassung (erfass-bar.js)
 //  • als Fallback alle 20s, solange das Dashboard sichtbar ist
-function refreshVisits(){ if(_booted && document.visibilityState==='visible') loadVisits().catch(function(){}); }
+function refreshVisits(){ if(_booted && document.visibilityState==='visible') refreshToday(); }
 document.addEventListener('visibilitychange', refreshVisits);
 window.addEventListener('focus', refreshVisits);
-window.addEventListener('eregio:besuch-erfasst', function(){ if(_booted) loadVisits().catch(function(){}); });
+window.addEventListener('eregio:besuch-erfasst', function(){ refreshToday(); });
 setInterval(refreshVisits, 20000);
 })();

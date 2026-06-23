@@ -44518,7 +44518,8 @@ var require_preise = __commonJS({
       return Array.from(map.values());
     }
     module2.exports = async function preiseRoutes(fastify) {
-      fastify.get("/api/produktdaten", async () => {
+      fastify.get("/api/produktdaten", async (req, reply) => {
+        reply.header("Cache-Control", "public, s-maxage=60, stale-while-revalidate=600");
         const [sparten, gueltig, preisRows, kondRows] = await Promise.all([
           produkteRepo.allSparten(),
           produkteRepo.allGueltigkeiten(),
@@ -44902,7 +44903,7 @@ var require_besucherRepo = __commonJS({
     module2.exports = {
       // Besuche optional nach Datumsbereich (von/bis, YYYYMMDD bzw. ISO – wie gespeichert).
       listBesuche({ von, bis } = {}) {
-        let sql = "SELECT * FROM besuche";
+        let sql = "SELECT datum, standort, kategorie, stunde FROM besuche";
         const params = [];
         const conds = [];
         if (von) {
@@ -45014,8 +45015,13 @@ var require_besucher = __commonJS({
   "backend/routes/besucher.js"(exports2, module2) {
     var besucherRepo = require_besucherRepo();
     module2.exports = async function besucherRoutes(fastify) {
-      fastify.get("/api/besucher", async (req) => {
+      fastify.get("/api/besucher", async (req, reply) => {
         const { von, bis } = req.query;
+        if (!von && !bis) {
+          reply.header("Cache-Control", "public, s-maxage=120, stale-while-revalidate=86400");
+        } else {
+          reply.header("Cache-Control", "no-store");
+        }
         return besucherRepo.listBesuche({ von, bis });
       });
       fastify.get("/api/besucher/erfass-config", async (req) => {

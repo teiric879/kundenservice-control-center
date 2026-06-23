@@ -47,7 +47,10 @@ function groupRows(rows, produkte, isPreise) {
 }
 
 module.exports = async function preiseRoutes(fastify) {
-  fastify.get('/api/produktdaten', async () => {
+  fastify.get('/api/produktdaten', async (req, reply) => {
+    // Preise/Gültigkeiten ändern sich selten (nur per Admin-Pflege) → am Edge cachen.
+    // Folge-Aufrufe kommen sofort aus dem CDN statt Funktion+Turso zu treffen.
+    reply.header('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
     const [sparten, gueltig, preisRows, kondRows] = await Promise.all([
       produkteRepo.allSparten(),
       produkteRepo.allGueltigkeiten(),

@@ -3,8 +3,16 @@
 const besucherRepo = require('../data/repositories/besucherRepo');
 
 module.exports = async function besucherRoutes(fastify) {
-  fastify.get('/api/besucher', async (req) => {
+  fastify.get('/api/besucher', async (req, reply) => {
     const { von, bis } = req.query;
+    // Vollständige Historie (ohne Filter) ändert sich kaum → am Vercel-Edge cachen, damit
+    // Folge-Aufrufe sofort aus Frankfurt kommen statt jedes Mal Funktion+Turso (~1,5s) zu
+    // treffen. Gefilterte Abfragen (Live-Refresh „?von=heute") bleiben immer frisch.
+    if (!von && !bis) {
+      reply.header('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=86400');
+    } else {
+      reply.header('Cache-Control', 'no-store');
+    }
     return besucherRepo.listBesuche({ von, bis });
   });
 

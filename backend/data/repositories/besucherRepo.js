@@ -6,7 +6,8 @@ const db = () => getDb('besucher');
 module.exports = {
   // Besuche optional nach Datumsbereich (von/bis, YYYYMMDD bzw. ISO – wie gespeichert).
   listBesuche({ von, bis } = {}) {
-    let sql = 'SELECT * FROM besuche';
+    // Nur die vom Dashboard genutzten Spalten (kein id/ts) → kleinere Turso-Antwort + Payload.
+    let sql = 'SELECT datum, standort, kategorie, stunde FROM besuche';
     const params = [];
     const conds = [];
     if (von) { conds.push('datum >= ?'); params.push(von); }
