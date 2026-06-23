@@ -9168,6 +9168,14 @@ var require_libsql = __commonJS({
         async exec(sql) {
           await client.executeMultiple(sql);
         },
+        // Mehrere parametrisierte Statements in EINEM Round-Trip (transaktional: commit bei
+        // Erfolg, sonst Rollback). Entscheidend für große Bulk-Imports gegen Turso – statt N
+        // einzelner HTTP-Requests (→ 504-Timeout auf Vercel) nur einer. statements: [{sql,args}].
+        async batch(statements, mode = "write") {
+          const stmts = (statements || []).map((s) => typeof s === "string" ? { sql: s, args: [] } : { sql: s.sql, args: normArgs(s.args) });
+          const results = await client.batch(stmts, mode);
+          return (results || []).map((r) => ({ lastInsertRowid: lastId(r), changes: Number(r.rowsAffected || 0) }));
+        },
         // Atomare Transaktion. fn bekommt dasselbe { all, get, run }-Interface, gebunden an die Tx.
         // Commit bei Erfolg, Rollback bei Fehler.
         async transaction(fn) {
@@ -44979,16 +44987,20 @@ var require_besucherRepo = __commonJS({
         let added = 0;
         const dates = [];
         if (toInsert.length) {
-          await db().transaction(async (tx) => {
-            for (const r of toInsert) {
-              await tx.run(
-                "INSERT INTO besuche (datum, standort, kategorie, stunde, ts) VALUES (?,?,?,?,?)",
-                [String(r.datum), r.standort || "(ohne Angabe)", r.kategorie ?? null, r.stunde ?? -1, r.ts ?? null]
-              );
-              added++;
+          const CHUNK = 100;
+          const stmts = [];
+          for (let i = 0; i < toInsert.length; i += CHUNK) {
+            const slice = toInsert.slice(i, i + CHUNK);
+            const sql = "INSERT INTO besuche (datum, standort, kategorie, stunde, ts) VALUES " + slice.map(() => "(?,?,?,?,?)").join(",");
+            const args = [];
+            slice.forEach((r) => {
+              args.push(String(r.datum), r.standort || "(ohne Angabe)", r.kategorie ?? null, r.stunde ?? -1, r.ts ?? null);
               dates.push(String(r.datum));
-            }
-          });
+            });
+            stmts.push({ sql, args });
+          }
+          const results = await db().batch(stmts);
+          added = results.reduce((s, r) => s + (r.changes || 0), 0);
         }
         const range = dates.length ? { min: dates.reduce((a, b) => a < b ? a : b), max: dates.reduce((a, b) => a > b ? a : b) } : null;
         return { added, skipped: (rows?.length || 0) - added, cutoff, range };
@@ -45127,24 +45139,30 @@ var require_einsatzplanerRepo = __commonJS({
       async bulkInsertAssignments(rows) {
         const agents = await db().all("SELECT id, kuerzel FROM ep_agents");
         const byKz = Object.fromEntries(agents.map((a) => [String(a.kuerzel).toUpperCase().trim(), a.id]));
-        let added = 0, existing = 0;
         const unknown = {};
-        await db().transaction(async (tx) => {
-          for (const r of rows || []) {
-            const kz = String(r.kuerzel || "").toUpperCase().trim();
-            const agentId = byKz[kz];
-            if (!agentId) {
-              if (kz) unknown[kz] = (unknown[kz] || 0) + 1;
-              continue;
-            }
-            const res = await tx.run(
-              "INSERT OR IGNORE INTO ep_assignments (date, location, slot, agent_id, time_from, time_to) VALUES (?,?,?,?,?,?)",
-              [r.date, r.location, r.slot, agentId, r.time_from || "08:00", r.time_to || "16:00"]
-            );
-            if (res.changes > 0) added++;
-            else existing++;
+        const tuples = [];
+        for (const r of rows || []) {
+          const kz = String(r.kuerzel || "").toUpperCase().trim();
+          const agentId = byKz[kz];
+          if (!agentId) {
+            if (kz) unknown[kz] = (unknown[kz] || 0) + 1;
+            continue;
           }
-        });
+          tuples.push([r.date, r.location, r.slot, agentId, r.time_from || "08:00", r.time_to || "16:00"]);
+        }
+        let added = 0;
+        const CHUNK = 100;
+        const stmts = [];
+        for (let i = 0; i < tuples.length; i += CHUNK) {
+          const slice = tuples.slice(i, i + CHUNK);
+          const sql = "INSERT OR IGNORE INTO ep_assignments (date, location, slot, agent_id, time_from, time_to) VALUES " + slice.map(() => "(?,?,?,?,?,?)").join(",");
+          stmts.push({ sql, args: slice.flat() });
+        }
+        if (stmts.length) {
+          const results = await db().batch(stmts);
+          added = results.reduce((s, r) => s + (r.changes || 0), 0);
+        }
+        const existing = tuples.length - added;
         const unknownKuerzel = Object.entries(unknown).map(([kuerzel, count]) => ({ kuerzel, count }));
         const unknownCount = unknownKuerzel.reduce((s, u) => s + u.count, 0);
         return { added, existing, unknownCount, unknownKuerzel, skipped: existing + unknownCount };

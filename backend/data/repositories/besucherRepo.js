@@ -92,16 +92,23 @@ module.exports = {
     let added = 0;
     const dates = [];
     if (toInsert.length) {
-      await db().transaction(async (tx) => {
-        for (const r of toInsert) {
-          await tx.run(
-            'INSERT INTO besuche (datum, standort, kategorie, stunde, ts) VALUES (?,?,?,?,?)',
-            [String(r.datum), r.standort || '(ohne Angabe)', r.kategorie ?? null, r.stunde ?? -1, r.ts ?? null],
-          );
-          added++;
+      // Chunked Multi-Row-INSERT in EINEM batch()-Round-Trip (transaktional) – sonst drohen
+      // bei großen (Erst-)Importen ~N HTTP-Requests gegen Turso → 504 auf Vercel.
+      const CHUNK = 100;
+      const stmts = [];
+      for (let i = 0; i < toInsert.length; i += CHUNK) {
+        const slice = toInsert.slice(i, i + CHUNK);
+        const sql = 'INSERT INTO besuche (datum, standort, kategorie, stunde, ts) VALUES '
+          + slice.map(() => '(?,?,?,?,?)').join(',');
+        const args = [];
+        slice.forEach((r) => {
+          args.push(String(r.datum), r.standort || '(ohne Angabe)', r.kategorie ?? null, r.stunde ?? -1, r.ts ?? null);
           dates.push(String(r.datum));
-        }
-      });
+        });
+        stmts.push({ sql, args });
+      }
+      const results = await db().batch(stmts);
+      added = results.reduce((s, r) => s + (r.changes || 0), 0);
     }
     const range = dates.length ? { min: dates.reduce((a, b) => a < b ? a : b), max: dates.reduce((a, b) => a > b ? a : b) } : null;
     return { added, skipped: (rows?.length || 0) - added, cutoff, range };

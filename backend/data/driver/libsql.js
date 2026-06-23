@@ -74,6 +74,16 @@ function makeDb(url, authToken) {
       await client.executeMultiple(sql);
     },
 
+    // Mehrere parametrisierte Statements in EINEM Round-Trip (transaktional: commit bei
+    // Erfolg, sonst Rollback). Entscheidend für große Bulk-Imports gegen Turso – statt N
+    // einzelner HTTP-Requests (→ 504-Timeout auf Vercel) nur einer. statements: [{sql,args}].
+    async batch(statements, mode = 'write') {
+      const stmts = (statements || []).map((s) =>
+        typeof s === 'string' ? { sql: s, args: [] } : { sql: s.sql, args: normArgs(s.args) });
+      const results = await client.batch(stmts, mode);
+      return (results || []).map((r) => ({ lastInsertRowid: lastId(r), changes: Number(r.rowsAffected || 0) }));
+    },
+
     // Atomare Transaktion. fn bekommt dasselbe { all, get, run }-Interface, gebunden an die Tx.
     // Commit bei Erfolg, Rollback bei Fehler.
     async transaction(fn) {

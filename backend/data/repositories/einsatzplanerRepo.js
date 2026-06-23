@@ -83,20 +83,33 @@ module.exports = {
   async bulkInsertAssignments(rows) {
     const agents = await db().all('SELECT id, kuerzel FROM ep_agents');
     const byKz = Object.fromEntries(agents.map((a) => [String(a.kuerzel).toUpperCase().trim(), a.id]));
-    let added = 0, existing = 0;
     const unknown = {};
-    await db().transaction(async (tx) => {
-      for (const r of (rows || [])) {
-        const kz = String(r.kuerzel || '').toUpperCase().trim();
-        const agentId = byKz[kz];
-        if (!agentId) { if (kz) unknown[kz] = (unknown[kz] || 0) + 1; continue; }
-        const res = await tx.run(
-          'INSERT OR IGNORE INTO ep_assignments (date, location, slot, agent_id, time_from, time_to) VALUES (?,?,?,?,?,?)',
-          [r.date, r.location, r.slot, agentId, r.time_from || '08:00', r.time_to || '16:00'],
-        );
-        if (res.changes > 0) added++; else existing++;
-      }
-    });
+    const tuples = [];
+    for (const r of (rows || [])) {
+      const kz = String(r.kuerzel || '').toUpperCase().trim();
+      const agentId = byKz[kz];
+      if (!agentId) { if (kz) unknown[kz] = (unknown[kz] || 0) + 1; continue; }
+      tuples.push([r.date, r.location, r.slot, agentId, r.time_from || '08:00', r.time_to || '16:00']);
+    }
+
+    // Chunked Multi-Row-INSERT OR IGNORE, alle Chunks in EINEM batch()-Round-Trip (transaktional).
+    // Verhindert das 504-Timeout, das bei ~1600 Einzel-Inserts gegen Turso auftrat. `changes`
+    // (= tatsächlich eingefügte Zeilen) liefert die added-Zahl; bestehende werden via IGNORE
+    // übersprungen, im Tool manuell vorgenommene Änderungen bleiben dank UNIQUE unangetastet.
+    let added = 0;
+    const CHUNK = 100;
+    const stmts = [];
+    for (let i = 0; i < tuples.length; i += CHUNK) {
+      const slice = tuples.slice(i, i + CHUNK);
+      const sql = 'INSERT OR IGNORE INTO ep_assignments (date, location, slot, agent_id, time_from, time_to) VALUES '
+        + slice.map(() => '(?,?,?,?,?,?)').join(',');
+      stmts.push({ sql, args: slice.flat() });
+    }
+    if (stmts.length) {
+      const results = await db().batch(stmts);
+      added = results.reduce((s, r) => s + (r.changes || 0), 0);
+    }
+    const existing = tuples.length - added;
     const unknownKuerzel = Object.entries(unknown).map(([kuerzel, count]) => ({ kuerzel, count }));
     const unknownCount = unknownKuerzel.reduce((s, u) => s + u.count, 0);
     return { added, existing, unknownCount, unknownKuerzel, skipped: existing + unknownCount };
