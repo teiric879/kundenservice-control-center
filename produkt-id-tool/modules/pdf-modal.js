@@ -6,6 +6,123 @@ const API_BASE = LOCAL_HOSTS.includes(location.hostname) ? `http://${location.ho
 
 let activeBlobUrl = null;
 
+// ── pdf.js: interaktiver Formular-Viewer ──────────────────────────────────────
+// Der native iframe-PDF-Viewer von Chrome gibt seine Formulareingaben nicht an
+// uns zurück – beim Speichern landeten daher nur die Autofill-Werte im PDF. Mit
+// pdf.js rendern wir die AcroForm-Felder als echte HTML-Inputs; saveDocument()
+// schreibt anschließend ALLE Eingaben (Autofill + manuell getippt) ins PDF.
+const PDFJS_VER  = '4.0.379';
+const PDFJS_BASE = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}`;
+const PDFJS_SCALE = 1.5;             // Render-Maßstab (Schärfe)
+let _pdfjsPromise = null;
+let currentPdfDoc = null;            // aktuell angezeigtes PDFDocumentProxy
+
+function loadPdfJs() {
+  if (!_pdfjsPromise) {
+    // Stylesheet für die Annotation-/Formular-Ebene (Positionierung der Widgets)
+    if (!document.getElementById('pdfjs-viewer-css')) {
+      const link = document.createElement('link');
+      link.id = 'pdfjs-viewer-css';
+      link.rel = 'stylesheet';
+      link.href = `${PDFJS_BASE}/web/pdf_viewer.css`;
+      document.head.appendChild(link);
+    }
+    _pdfjsPromise = import(/* @vite-ignore */ `${PDFJS_BASE}/build/pdf.min.mjs`).then(lib => {
+      lib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/build/pdf.worker.min.mjs`;
+      return lib;
+    });
+  }
+  return _pdfjsPromise;
+}
+
+// Minimaler LinkService-Stub – Formular-Widgets brauchen keinen echten Service,
+// die AnnotationLayer.render() erwartet ihn aber als Objekt.
+const linkServiceStub = {
+  externalLinkEnabled: true, externalLinkTarget: null, externalLinkRel: null,
+  getDestinationHash: () => '#', getAnchorUrl: () => '#',
+  addLinkAttributes() {}, navigateTo() {}, goToDestination() {}, goToPage() {},
+};
+
+// Rendert alle Seiten mit interaktiver Formular-Ebene in den Scroll-Container.
+async function renderInteractive(pdfjsLib, bytes, scroll) {
+  const pdfDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+  scroll.innerHTML = '';
+  for (let n = 1; n <= pdfDoc.numPages; n++) {
+    const page     = await pdfDoc.getPage(n);
+    const viewport = page.getViewport({ scale: PDFJS_SCALE });
+
+    const pageDiv = document.createElement('div');
+    pageDiv.className = 'pdfjs-page';
+    pageDiv.style.width  = `${Math.floor(viewport.width)}px`;
+    pageDiv.style.height = `${Math.floor(viewport.height)}px`;
+    // setLayerDimensions() in pdf.js dimensioniert die Ebene über var(--scale-factor)
+    // → muss hier gesetzt werden, sonst sitzen die Felder falsch / sind unsichtbar.
+    pageDiv.style.setProperty('--scale-factor', String(PDFJS_SCALE));
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'pdfjs-canvas';
+    canvas.width  = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    pageDiv.appendChild(canvas);
+
+    const annoDiv = document.createElement('div');
+    annoDiv.className = 'annotationLayer';
+    pageDiv.appendChild(annoDiv);
+    scroll.appendChild(pageDiv);
+
+    // annotationMode DISABLE: Canvas zeichnet NUR den Seiteninhalt (Linien, Tabelle,
+    // Labels), KEINE Formularfeld-Appearances. Die Werte kommen ausschließlich aus den
+    // HTML-Inputs der AnnotationLayer → sonst Doppel-Layer (gebackene Appearance + Input).
+    await page.render({
+      canvasContext: canvas.getContext('2d'),
+      viewport,
+      annotationMode: pdfjsLib.AnnotationMode.DISABLE,
+    }).promise;
+
+    const annotations = await page.getAnnotations({ intent: 'display' });
+    const layer = new pdfjsLib.AnnotationLayer({
+      div: annoDiv, accessibilityManager: null, annotationCanvasMap: null,
+      page, viewport: viewport.clone({ dontFlip: true }),
+    });
+    await layer.render({
+      annotations,
+      linkService:       linkServiceStub,
+      downloadManager:   null,
+      annotationStorage: pdfDoc.annotationStorage,
+      renderForms:       true,
+      imageResourcesPath: '',
+    });
+  }
+  return pdfDoc;
+}
+
+// Lädt bytes als Download an (PDF).
+function downloadBytes(bytes, filename) {
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+// Druckt das PDF inkl. aller aktuellen Formulareingaben (über ein verstecktes iframe).
+async function printCurrent() {
+  if (!currentPdfDoc) {                    // Fallback: native iframe-Anzeige drucken
+    const frame = document.getElementById('pdfModalFrame');
+    if (frame && frame.contentWindow) frame.contentWindow.print();
+    return;
+  }
+  const bytes = await currentPdfDoc.saveDocument();
+  const url   = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+  const ifr   = document.createElement('iframe');
+  ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  ifr.src = url;
+  ifr.onload = () => {
+    try { ifr.contentWindow.focus(); ifr.contentWindow.print(); } catch { /* ignore */ }
+    setTimeout(() => { ifr.remove(); URL.revokeObjectURL(url); }, 60000);
+  };
+  document.body.appendChild(ifr);
+}
+
 // ── Schrift: Carlito (metrisch Calibri-kompatibel) für alle Textfelder ────────
 // Einmal geladen und gecacht. Pfad relativ zu diesem Modul, damit er lokal wie
 // auf Vercel (statische Auslieferung aus dem Repo-Root) gleichermaßen aufgeht.
@@ -81,6 +198,28 @@ function injectStyles() {
     #pdfModalFrame {
       flex: 1; border: none; background: #525659;
     }
+    #pdfModalScroll {
+      flex: 1; overflow: auto; background: #525659;
+      padding: 20px 0; display: flex; flex-direction: column;
+      align-items: center; gap: 16px;
+    }
+    #pdfModalScroll .pdfjs-page {
+      position: relative; background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,.45);
+    }
+    #pdfModalScroll .pdfjs-canvas { display: block; }
+    /* Formularfelder hervorheben, damit Berater sie sofort erkennen */
+    #pdfModalScroll .annotationLayer .textWidgetAnnotation input,
+    #pdfModalScroll .annotationLayer .textWidgetAnnotation textarea,
+    #pdfModalScroll .annotationLayer .choiceWidgetAnnotation select {
+      background: rgba(191,146,0,.10);
+      outline: 1px solid rgba(191,146,0,.35);
+    }
+    #pdfModalScroll .annotationLayer .textWidgetAnnotation input:focus,
+    #pdfModalScroll .annotationLayer .textWidgetAnnotation textarea:focus,
+    #pdfModalScroll .annotationLayer .choiceWidgetAnnotation select:focus {
+      background: #fff; outline: 2px solid #bf9200;
+    }
     #pdfModalSpinner {
       flex: 1; display: flex; align-items: center; justify-content: center;
       color: #94a3b8; font-size: 14px; gap: 10px;
@@ -135,6 +274,7 @@ function buildOverlay() {
       </svg>
       PDF wird geladen…
     </div>
+    <div id="pdfModalScroll" style="display:none"></div>
     <iframe id="pdfModalFrame" style="display:none"></iframe>
   `;
   if (!document.getElementById('spin-kf')) {
@@ -150,6 +290,7 @@ function closeModal() {
   const ov = document.getElementById('pdfModalOverlay');
   if (ov) ov.remove();
   if (activeBlobUrl) { URL.revokeObjectURL(activeBlobUrl); activeBlobUrl = null; }
+  if (currentPdfDoc) { try { currentPdfDoc.destroy(); } catch { /* ignore */ } currentPdfDoc = null; }
 }
 
 // Deutsche Zahlformate
@@ -337,21 +478,40 @@ async function loadAndShow(entry, fieldValues) {
     console.warn('PDF-Autofill übersprungen:', e);
   }
 
-  if (activeBlobUrl) URL.revokeObjectURL(activeBlobUrl);
-  activeBlobUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-
   const filename = `Vertrag_${fieldValues.sparte || ''}_${fieldValues.tarif || ''}.pdf`;
-  btnSave.onclick = () => {
-    const a = document.createElement('a');
-    a.href = activeBlobUrl;
-    a.download = filename;
-    a.click();
-  };
 
-  frame.src = activeBlobUrl;
-  frame.onload = () => {
+  // Interaktiv mit pdf.js rendern: AcroForm-Felder werden zu echten HTML-Inputs.
+  // saveDocument() schreibt anschließend Autofill UND manuell getippte Eingaben ins PDF.
+  const scroll = document.getElementById('pdfModalScroll');
+  let usingPdfJs = false;
+  try {
+    const pdfjsLib = await loadPdfJs();
+    if (currentPdfDoc) { try { await currentPdfDoc.destroy(); } catch { /* ignore */ } currentPdfDoc = null; }
+    // bytes kopieren – getDocument() überträgt den Buffer an den Worker (detached).
+    const copy = bytes instanceof ArrayBuffer ? bytes.slice(0) : new Uint8Array(bytes).slice();
+    currentPdfDoc = await renderInteractive(pdfjsLib, copy, scroll);
+    usingPdfJs = true;
     spinner.style.display = 'none';
+    scroll.style.display = 'flex';
+  } catch (e) {
+    // pdf.js nicht ladbar → unbearbeitbare, aber sichtbare iframe-Anzeige als Fallback.
+    console.warn('pdf.js-Viewer nicht verfügbar – Fallback iframe (Eingaben werden NICHT gespeichert):', e);
+    if (activeBlobUrl) URL.revokeObjectURL(activeBlobUrl);
+    activeBlobUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    frame.src = activeBlobUrl;
     frame.style.display = 'block';
+    frame.onload = () => { spinner.style.display = 'none'; };
+  }
+
+  btnSave.onclick = async () => {
+    try {
+      // Mit pdf.js: aktuelle Formulareingaben serialisieren. Sonst: Autofill-Bytes.
+      const out = usingPdfJs && currentPdfDoc ? await currentPdfDoc.saveDocument() : bytes;
+      downloadBytes(out, filename);
+    } catch (e) {
+      console.warn('Speichern fehlgeschlagen:', e);
+      downloadBytes(bytes, filename);
+    }
   };
 }
 
@@ -376,10 +536,7 @@ export async function openPdfModal(btn) {
   document.body.appendChild(overlay);
 
   document.getElementById('pdfBtnClose').onclick = closeModal;
-  document.getElementById('pdfBtnPrint').onclick = () => {
-    const frame = document.getElementById('pdfModalFrame');
-    if (frame && frame.contentWindow) frame.contentWindow.print();
-  };
+  document.getElementById('pdfBtnPrint').onclick = () => { printCurrent(); };
 
   overlay.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
   overlay.tabIndex = -1;

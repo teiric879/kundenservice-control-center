@@ -1,9 +1,9 @@
 import { S } from './modules/state.js';
 import { plzToGebiet, plzToStadt } from './modules/plz.js';
 import { debounce, dateFmt, copyVal } from './modules/helpers.js';
-import { getData, findPreisRow, findKondRow, calcTarif, calcVergleich } from './modules/calc.js?v=20260622i';
-import { buildCard } from './modules/render.js?v=20260623d';
-import { openPdfModal } from './modules/pdf-modal.js?v=20260623f';
+import { getData, findPreisRow, findKondRow, calcTarif, calcVergleich } from './modules/calc.js?v=20260624c';
+import { buildCard } from './modules/render.js?v=20260624c';
+import { openPdfModal } from './modules/pdf-modal.js?v=20260624c';
 
 const LOCAL_HOSTS = ['127.0.0.1', 'localhost'];
 const API_BASE = LOCAL_HOSTS.includes(location.hostname) ? `http://${location.hostname}:3001` : '';
@@ -54,6 +54,7 @@ const chkAB               = $('chkAB');
 const grpAktionsbonusWert = $('grpAktionsbonusWert');
 const aktionsbonusWert    = $('aktionsbonusWert');
 const vergleichAP         = $('vergleichAP');
+const vergleichAPNT       = $('vergleichAPNT');
 const vergleichGP         = $('vergleichGP');
 const vergleichBonus      = $('vergleichBonus');
 const emptyState          = $('emptyState');
@@ -134,6 +135,8 @@ function updatePanelForProduct() {
   // Zählerart-Wahl für WP (ET/DT-Zähler) und für Nachtspeicher + Getrennte Messung
   $('grpZaehlerart').style.display  = (isWP || (isNS && S.messung === 'getrennt')) ? '' : 'none';
   $('grpVerbrauchNT').style.display = isDT ? '' : 'none';
+  // NT-Arbeitspreis des Vergleichstarifs nur bei HT/NT-Tarifen (Doppeltarif) anbieten
+  $('grpVergleichNT').style.display = isDT ? '' : 'none';
   $('grpSteuveTyp').style.display    = isSV ? '' : 'none';
   $('grpSteuveModul').style.display  = isSV ? '' : 'none';
 
@@ -212,7 +215,7 @@ function calculate() {
   }
 
   // Vergleichstarif vorab berechnen → jede e-regio-Karte zeigt die Ersparnis dagegen.
-  const vgl = calcVergleich(v);
+  const vgl = calcVergleich(v, vNT);
 
   let html = '';
   let delay = 0;
@@ -225,7 +228,7 @@ function calculate() {
 
   if (vgl) {
     html += buildCard('__vgl__', 'Vergleichstarif', {
-      ...vgl, pgLabel:'Vergleichspreis', vl:null, pid:null, aid:null, apNt:null,
+      ...vgl, pgLabel:'Vergleichspreis', vl:null, pid:null, aid:null,
     }, true, delay * 0.06);
   }
 
@@ -334,26 +337,47 @@ $('btnCalc').addEventListener('click', () => {
   calculate();
 });
 
+// Vergleichstarif-Labels an die aktuelle Steuerbasis anpassen
+function updateVergleichLabels() {
+  const t = S.ustModus; // 'brutto' | 'netto'
+  $('lblVglAP').textContent   = `AP (ct/kWh ${t})`;
+  $('lblVglGP').textContent   = `GP (€/Monat ${t})`;
+  $('lblVglAPNT').textContent = `AP NT (ct/kWh ${t})`;
+}
+
+// Steuerbasis wechseln. Rechnet die Vergleichstarif-Eingaben (AP, GP, AP NT) in die
+// neue Basis um, damit sie weiter zur jeweils gewählten Steuer passen. Der Bonus
+// (€ einmalig) bleibt als Pauschalbetrag unverändert. Der Guard verhindert doppelte
+// Umrechnung, wenn Label-Klick UND Radio-„change" denselben Wechsel auslösen.
+function switchUstMode(mode) {
+  if (mode === S.ustModus) return;
+  const factor = 1 + getData().ust / 100;
+  const conv = v => mode === 'brutto'
+    ? Math.round(v * factor * 100) / 100
+    : Math.round(v / factor * 100) / 100;
+  for (const el of [vergleichAP, vergleichGP, vergleichAPNT]) {
+    const raw = parseFloat(el.value);
+    if (!isNaN(raw) && raw !== 0) el.value = String(conv(raw));
+  }
+  S.vergleichFrei = {
+    ap:    parseFloat(vergleichAP.value)    || null,
+    apNt:  parseFloat(vergleichAPNT.value)  || null,
+    gp:    parseFloat(vergleichGP.value)    || null,
+    bonus: parseFloat(vergleichBonus.value) || 0,
+  };
+  S.ustModus = mode;
+  document.querySelector(`input[name="ust"][value="${mode}"]`).checked = true;
+  radioNetto.classList.toggle('sel', mode === 'netto');
+  radioBrutto.classList.toggle('sel', mode === 'brutto');
+  updateVergleichLabels();
+  calculate();
+}
+
 document.querySelectorAll('input[name="ust"]').forEach(radio => {
-  radio.addEventListener('change', () => {
-    S.ustModus = radio.value;
-    radioNetto.classList.toggle('sel', S.ustModus === 'netto');
-    radioBrutto.classList.toggle('sel', S.ustModus === 'brutto');
-    calculate();
-  });
+  radio.addEventListener('change', () => switchUstMode(radio.value));
 });
-radioNetto.addEventListener('click', () => {
-  document.querySelector('input[name="ust"][value="netto"]').checked = true;
-  S.ustModus = 'netto';
-  radioNetto.classList.add('sel'); radioBrutto.classList.remove('sel');
-  calculate();
-});
-radioBrutto.addEventListener('click', () => {
-  document.querySelector('input[name="ust"][value="brutto"]').checked = true;
-  S.ustModus = 'brutto';
-  radioBrutto.classList.add('sel'); radioNetto.classList.remove('sel');
-  calculate();
-});
+radioNetto.addEventListener('click', () => switchUstMode('netto'));
+radioBrutto.addEventListener('click', () => switchUstMode('brutto'));
 
 function bindCheckbox(labelEl, inputId, onToggle) {
   const input = $(inputId);
@@ -392,10 +416,11 @@ $('steuveModulPills').addEventListener('click', e => {
   calculate();
 });
 
-[vergleichAP, vergleichGP, vergleichBonus].forEach(el => {
+[vergleichAP, vergleichAPNT, vergleichGP, vergleichBonus].forEach(el => {
   el.addEventListener('input', debounce(() => {
     S.vergleichFrei = {
       ap:    parseFloat(vergleichAP.value)    || null,
+      apNt:  parseFloat(vergleichAPNT.value)  || null,
       gp:    parseFloat(vergleichGP.value)    || null,
       bonus: parseFloat(vergleichBonus.value) || 0,
     };

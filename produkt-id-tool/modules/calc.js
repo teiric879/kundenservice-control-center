@@ -199,19 +199,22 @@ export function calcTarif(preis, kond, productKey, verbrauch, verbrauchNT) {
   };
 }
 
-export function calcVergleich(verbrauch) {
-  const apB      = S.vergleichFrei.ap;
-  const gpB      = S.vergleichFrei.gp;
+export function calcVergleich(verbrauch, verbrauchNT = 0) {
+  // Die Eingabefelder werden beim Netto/Brutto-Wechsel umgerechnet (siehe switchUstMode
+  // in app.js) und liegen daher immer schon in der aktuell gewählten Steuerbasis vor –
+  // hier also direkt verwenden, keine erneute Umrechnung. So passt der Vergleich zur
+  // gleich berechneten e-regio-Karte (beide netto bzw. beide brutto).
+  const ap       = S.vergleichFrei.ap;
+  const apNt     = S.vergleichFrei.apNt;
+  const gp       = S.vergleichFrei.gp;
   const bonusAmt = S.vergleichFrei.bonus || 0;
-  if (!apB && !gpB) return null;
+  if (!ap && !gp) return null;
 
-  const d        = getData();
-  const isBrutto = S.ustModus === 'brutto';
-  const ap       = isBrutto ? (apB || 0) : myRound((apB || 0) / (1 + d.ust / 100), 4);
-  const gp       = isBrutto ? (gpB || 0) : myRound((gpB || 0) / (1 + d.ust / 100), 4);
-  const energyEur   = myRound(ap * verbrauch / 100, 2);
-  const jahrespreis = myRound(energyEur + gp * 12 - bonusAmt, 2);
+  let energyEur = myRound((ap || 0) * verbrauch / 100, 2);
+  // NT-Arbeitspreis nur berücksichtigen, wenn ein NT-Verbrauch existiert (HT/NT-Tarif).
+  if (apNt != null && verbrauchNT > 0) energyEur += myRound(apNt * verbrauchNT / 100, 2);
+  const jahrespreis = myRound(energyEur + (gp || 0) * 12 - bonusAmt, 2);
   const monatspreis = myRound(jahrespreis / 12, 2);
 
-  return { name:'Vergleichstarif', ap, gp, bonus:bonusAmt, jahrespreis, monatspreis };
+  return { name:'Vergleichstarif', ap:(ap || 0), apNt: apNt != null ? apNt : null, gp:(gp || 0), bonus:bonusAmt, jahrespreis, monatspreis };
 }

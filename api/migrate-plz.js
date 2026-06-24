@@ -102,7 +102,8 @@ try {
     for (const pk of STROM_PROD) {
       if (r[`${pk}_apB`] == null) continue;
       if (e.price[pk] == null) e.price[pk] = { apB: r[`${pk}_apB`], gpB: r[`${pk}_gpB`] };
-      if (pk === 'Direkt') e.direktBands.push({ vVon: r.vVon, vBis: r.vBis, bonus: r.bonus ?? 0 });
+      // Bonus ist ganzzahlig (€); Netto×1,19 kann durch Rundung 0,01 daneben liegen → auf € runden.
+      if (pk === 'Direkt') e.direktBands.push({ vVon: r.vVon, vBis: r.vBis, bonus: Math.round(r.bonus ?? 0) });
     }
   }
   const kondPg = {}; // plz|ga → {pk:{pid,aid,pidNt,aidNt,vl,pg,alb}}

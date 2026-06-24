@@ -57,13 +57,13 @@
 @keyframes eb-bump{ 0%{transform:scale(1)} 40%{transform:scale(1.06); background:rgba(255,195,0,.35); border-color:var(--eb-gold-hi)} 100%{transform:scale(1)} }
 
 .eb-toast{
-  position:fixed; top:66px; left:50%; transform:translateX(-50%) translateY(-8px); z-index:10001;
-  background:var(--eb-green); color:#fff; border:1px solid rgba(15,110,86,.55);
-  border-radius:12px; padding:9px 16px; font-size:13px; font-weight:600;
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(24px); z-index:10001;
+  background:linear-gradient(135deg,#ffc300,#dea600); color:#3d2f00;
+  border-radius:14px; padding:13px 22px; font-size:13px; font-weight:700;
   font-family:'DM Sans',system-ui,sans-serif; opacity:0; pointer-events:none;
-  box-shadow:0 10px 30px rgba(20,46,40,.25); transition:opacity .2s, transform .2s;
+  box-shadow:0 14px 34px rgba(222,166,0,.42); transition:opacity .3s, transform .3s;
 }
-.eb-toast.err{ border-color:rgba(153,60,29,.6) }
+.eb-toast.err{ background:linear-gradient(135deg,#e05c30,#c44a1e); color:#fff; box-shadow:0 14px 34px rgba(180,60,30,.35) }
 .eb-toast.show{ opacity:1; transform:translateX(-50%) translateY(0) }
 
 @media (max-width:560px){ .eb-cats{ grid-template-columns:repeat(2,1fr) } .eb-panel{ min-width:94vw } }

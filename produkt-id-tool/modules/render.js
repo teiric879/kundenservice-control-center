@@ -1,6 +1,6 @@
 import { S } from './state.js';
 import { myRound, eur, ct, fmtDate, escape, cardColors } from './helpers.js';
-import { getData, preisTiers, lookupPrice, lookupKond } from './calc.js?v=20260622i';
+import { getData, preisTiers, lookupPrice, lookupKond } from './calc.js?v=20260624c';
 import { plzToStadt } from './plz.js';
 
 export function bonusRow(bonusAmt, ustModus, ust) {

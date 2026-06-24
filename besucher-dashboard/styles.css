@@ -271,7 +271,7 @@ input[type=date]{border:1px solid var(--stroke);background:var(--glass);color:va
 .cn-loc{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:600;color:var(--muted-2);line-height:1.4}
 .cn-loc b{font-family:'Space Grotesk';font-size:12px;color:var(--muted-2);transition:color .2s,transform .2s;display:inline-block}
 .cn-loc.has-c{color:var(--muted)}
-.cn-loc.has-c b{color:var(--acc-ink)}
+.cn-loc.has-c b{color:var(--acc)}
 
 /* Count pop on increment */
 .num-pop{animation:num-pop .32s cubic-bezier(.34,1.56,.64,1)}

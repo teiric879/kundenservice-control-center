@@ -14,6 +14,6 @@ export const S = {
   steuveModul:      1,
   messung:          'getrennt',   // 'getrennt' | 'gemeinschaft'
   zaehlerart:       'Einzeltarif', // 'Einzeltarif' | 'Doppeltarif' (passt zu DB-Spalte zaehlerart)
-  vergleichFrei:    { ap: null, gp: null, bonus: 0 },
+  vergleichFrei:    { ap: null, apNt: null, gp: null, bonus: 0 },
   vertragsbeginn:   '',
 };

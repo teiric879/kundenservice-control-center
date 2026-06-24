@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>e-regio · Produkt-ID Tool</title>
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=8">
 <link rel="stylesheet" href="../shared/sidebar.css?v=2">
 </head>
 <body>
@@ -238,13 +238,17 @@
       <div class="field-label" style="margin-bottom:8px">Vergleichstarif</div>
       <div class="frei-grid">
         <div class="form-group" style="margin-bottom:0">
-          <div class="frei-label">AP (ct/kWh brutto)</div>
+          <div class="frei-label" id="lblVglAP">AP (ct/kWh brutto)</div>
           <input type="number" id="vergleichAP" class="field-input" placeholder="0,00" min="0" step="0.01" style="margin-top:3px">
         </div>
         <div class="form-group" style="margin-bottom:0">
-          <div class="frei-label">GP (€/Monat brutto)</div>
+          <div class="frei-label" id="lblVglGP">GP (€/Monat brutto)</div>
           <input type="number" id="vergleichGP" class="field-input" placeholder="0,00" min="0" step="0.01" style="margin-top:3px">
         </div>
+      </div>
+      <div class="form-group" id="grpVergleichNT" style="display:none;margin-top:8px;margin-bottom:0">
+        <div class="frei-label" id="lblVglAPNT">AP NT (ct/kWh brutto)</div>
+        <input type="number" id="vergleichAPNT" class="field-input" placeholder="0,00" min="0" step="0.01" style="margin-top:3px">
       </div>
       <div class="form-group" style="margin-top:8px;margin-bottom:0">
         <div class="frei-label">Bonus (€ einmalig)</div>
@@ -280,8 +284,8 @@
 <script src="data.js"></script>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.min.js"></script>
-<script type="module" src="app.js?v=20260623f"></script>
-<link rel="stylesheet" href="../shared/erfass-bar.css?v=2">
+<script type="module" src="app.js?v=20260624c"></script>
+<link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=3"></script>
 </body>
 </html>
