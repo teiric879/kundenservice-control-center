@@ -7,36 +7,39 @@
 <link rel="stylesheet" href="besucher-dashboard/fonts.css">
 <style>
 :root{
-  --ci:#003431;--bg0:#021614;--bg1:#00302C;
-  --acc:#bf9200;--ink:#EAF6F2;--muted:#93B2AB;
+  --ci:#004442;--bg0:#f1ede0;--bg1:#ece7d7;
+  --acc:#ffc300;--ink:#063b37;--muted:#5d7d77;
+  --glass:#fffdf7;--glass-hi:#f6f2e6;--stroke:#e6e1d2;
+  --turq:#c8e6e1;--turq-2:#a0c8c2;
   --radius:18px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);
-  background:linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#002a27 100%);
+  background:radial-gradient(1100px 760px at 100% -10%, #e7f2ee 0%, transparent 55%),
+             radial-gradient(820px 640px at -10% 110%, #f6efdc 0%, transparent 50%),
+             linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#efe9d8 100%);
   display:flex;align-items:center;justify-content:center;
   -webkit-font-smoothing:antialiased}
 .wrap{text-align:center;padding:2rem}
-.logo{font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.25rem}
-.logo span{color:var(--acc)}
+.brand-logo{width:230px;max-width:80vw;height:auto;display:block;margin:0 auto .5rem}
 .sub{color:var(--muted);font-size:.95rem;margin-bottom:3rem}
 .cards{display:flex;gap:1.25rem;justify-content:center;flex-wrap:wrap}
 .card{
-  background:rgba(255,255,255,.06);border:1px solid rgba(180,255,238,.10);
+  background:var(--glass);border:1px solid var(--stroke);
   border-radius:var(--radius);padding:2rem 2.5rem;text-decoration:none;
-  color:var(--ink);transition:background .18s,border-color .18s,transform .18s;
-  min-width:200px;
+  color:var(--ink);transition:background .18s,border-color .18s,transform .18s,box-shadow .18s;
+  min-width:200px;box-shadow:0 10px 26px rgba(20,46,40,.06);
 }
-.card:hover{background:rgba(255,255,255,.10);border-color:rgba(180,255,238,.22);transform:translateY(-3px)}
+.card:hover{background:var(--glass-hi);border-color:var(--turq-2);transform:translateY(-3px);box-shadow:0 16px 34px rgba(20,46,40,.10)}
 .card-icon{font-size:2rem;margin-bottom:.75rem}
-.card-title{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:600;margin-bottom:.3rem}
+.card-title{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:600;margin-bottom:.3rem;color:var(--ci)}
 .card-desc{font-size:.82rem;color:var(--muted);line-height:1.4}
-.footer{margin-top:3rem;font-size:.78rem;color:var(--muted);opacity:.6}
+.footer{margin-top:3rem;font-size:.78rem;color:var(--muted);opacity:.7}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="logo">e<span>-regio</span> Kundencenter</div>
+  <img class="brand-logo" src="shared/eregio-logo-gruen.png" alt="e-regio Kundencenter">
   <div class="sub">Control Center · Port 8124</div>
   <div class="cards">
     <a class="card" href="/besucher-dashboard/">

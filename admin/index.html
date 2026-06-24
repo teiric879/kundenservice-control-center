@@ -7,15 +7,22 @@
 <link rel="stylesheet" href="../besucher-dashboard/fonts.css">
 <style>
 :root{
-  --ci:#003431;--bg0:#021614;--bg1:#00302C;--bg2:#004B43;
-  --glass:rgba(255,255,255,.045);--glass-hi:rgba(255,255,255,.075);
-  --glass-card:rgba(255,255,255,.06);
-  --stroke:rgba(180,255,238,.10);--stroke-hi:rgba(180,255,238,.20);
-  --acc:#bf9200;--acc-2:#8c6b00;--acc-hi:#e0ad1f;--gold:#E9C682;
-  --ink:#EAF6F2;--muted:#A4C2BB;--muted-2:#85A6A0;  /* Kontrast auf WCAG 4.5:1+ angehoben (vorher #93B2AB / #5F827B) */
-  --pos:#3BE8A6;--neg:#FF8A78;--warn:#F59E0B;
-  --radius:18px;--shadow:0 24px 60px rgba(0,12,10,.45);
+  /* ===== e-regio Corporate Design · Heller Look ===== */
+  --ci:#004442;--bg0:#f1ede0;--bg1:#ece7d7;--bg2:#e4f0ec;
+  --glass:#fffdf7;--glass-hi:#f6f2e6;
+  --glass-card:#ffffff;--track:#ece7d8;
+  --stroke:#e6e1d2;--stroke-hi:#d6cfba;
+  --acc:#ffc300;--acc-2:#dea600;--acc-hi:#8a6a00;--acc-ink:#8a6a00;--gold:#8a6a00;
+  --turq:#c8e6e1;--turq-2:#a0c8c2;
+  --ink:#063b37;--muted:#5d7d77;--muted-2:#8aa39d;
+  --pos:#0f6e56;--neg:#993c1d;--warn:#854f0b;
+  --radius:18px;--shadow:0 16px 38px rgba(20,46,40,.10);
   --ease:cubic-bezier(.22,.61,.36,1);
+
+  /* Sidebar (shared) – helle Überschreibungen */
+  --sidebar-bg:#ffffff;--sidebar-cap:var(--muted);--sidebar-rule:var(--stroke);
+  --nav-hover-bg:var(--glass-hi);--nav-active-fg:var(--ci);
+  --nav-active-bg:var(--turq);--nav-active-bd:var(--turq-2);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -23,16 +30,16 @@ body{
   font-family:'DM Sans',system-ui,-apple-system,sans-serif;
   color:var(--ink);
   background:
-    radial-gradient(1200px 800px at 100% -10%,#064b43 0%,transparent 55%),
-    radial-gradient(900px 700px at -10% 110%,#053b39 0%,transparent 50%),
-    linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#002a27 100%);
+    radial-gradient(1200px 800px at 100% -10%,#e7f2ee 0%,transparent 55%),
+    radial-gradient(900px 700px at -10% 110%,#f6efdc 0%,transparent 50%),
+    linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#efe9d8 100%);
   background-attachment:fixed;
   -webkit-font-smoothing:antialiased;
   overflow-x:hidden;
 }
 body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(80px);opacity:.5;z-index:-1;pointer-events:none}
-body::before{width:520px;height:520px;top:-120px;right:-80px;background:radial-gradient(circle,rgba(191,146,0,.25),transparent 70%);animation:float1 18s var(--ease) infinite alternate}
-body::after{width:460px;height:460px;bottom:-140px;left:-60px;background:radial-gradient(circle,rgba(140,107,0,.22),transparent 70%);animation:float2 22s var(--ease) infinite alternate}
+body::before{width:520px;height:520px;top:-120px;right:-80px;background:radial-gradient(circle,rgba(255,195,0,.12),transparent 70%);animation:float1 18s var(--ease) infinite alternate}
+body::after{width:460px;height:460px;bottom:-140px;left:-60px;background:radial-gradient(circle,rgba(160,200,194,.22),transparent 70%);animation:float2 22s var(--ease) infinite alternate}
 @keyframes float1{to{transform:translate(-60px,80px) scale(1.15)}}
 @keyframes float2{to{transform:translate(70px,-60px) scale(1.1)}}
 @media(prefers-reduced-motion:reduce){body::before,body::after{animation:none}}
@@ -43,14 +50,14 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
   position:fixed;inset:0;z-index:9999;
   display:flex;align-items:center;justify-content:center;
   background:
-    radial-gradient(1200px 800px at 100% -10%,#064b43 0%,transparent 55%),
-    radial-gradient(900px 700px at -10% 110%,#053b39 0%,transparent 50%),
-    linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#002a27 100%);
+    radial-gradient(1200px 800px at 100% -10%,#e7f2ee 0%,transparent 55%),
+    radial-gradient(900px 700px at -10% 110%,#f6efdc 0%,transparent 50%),
+    linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#efe9d8 100%);
 }
 .lock-box{
   width:360px;padding:40px 36px 36px;
-  background:rgba(255,255,255,.055);
-  border:1px solid var(--stroke-hi);
+  background:#ffffff;
+  border:1px solid var(--stroke);
   border-radius:24px;
   backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
   box-shadow:0 32px 80px rgba(0,12,10,.6);
@@ -72,7 +79,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .pw-field input{
   width:100%;padding:12px 44px 12px 14px;
   border-radius:12px;font-size:14px;font-family:inherit;
-  background:rgba(255,255,255,.07);border:1.5px solid var(--stroke-hi);
+  background:rgba(6,59,55,.07);border:1.5px solid var(--stroke-hi);
   color:var(--ink);transition:border-color .15s;
   letter-spacing:.05em;
 }
@@ -112,7 +119,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
   width:240px;flex:0 0 240px;
   display:flex;flex-direction:column;
   padding:18px 12px 16px;
-  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
+  background:linear-gradient(180deg,rgba(6,59,55,.055),rgba(6,59,55,.015));
   backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
   border-right:1px solid var(--stroke);
   overflow-y:auto;scrollbar-width:none;gap:0;
@@ -195,7 +202,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 /* Tab bar */
 .tab-bar{
   display:flex;gap:4px;margin-bottom:28px;
-  background:rgba(255,255,255,.04);
+  background:rgba(6,59,55,.04);
   border:1px solid var(--stroke);
   border-radius:14px;padding:4px;
   width:fit-content;
@@ -224,7 +231,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .du-preview b{color:var(--ink)}
 .du-preview .du-warn{color:var(--neg)}
 .du-preview .du-ok{color:var(--pos)}
-.du-hist-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12.5px}
+.du-hist-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(6,59,55,.05);font-size:12.5px}
 .du-hist-row:last-child{border-bottom:none}
 .du-hist-kind{font-family:'Space Grotesk';font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
   padding:2px 8px;border-radius:7px;background:rgba(191,146,0,.12);border:1px solid rgba(191,146,0,.25);color:var(--acc-hi);flex:0 0 auto}
@@ -258,11 +265,11 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .field-label{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .field-input,.field-select{
   width:100%;padding:10px 12px;border-radius:10px;font-size:13.5px;
-  background:rgba(255,255,255,.055);border:1px solid var(--stroke);color:var(--ink);
+  background:rgba(6,59,55,.055);border:1px solid var(--stroke);color:var(--ink);
   font-family:inherit;transition:border-color .15s,background .15s;
   -webkit-appearance:none;
 }
-.field-input:focus,.field-select:focus{outline:none;border-color:rgba(191,146,0,.45);background:rgba(255,255,255,.08)}
+.field-input:focus,.field-select:focus{outline:none;border-color:rgba(191,146,0,.45);background:rgba(6,59,55,.08)}
 .field-input::placeholder{color:var(--muted-2)}
 .field-hint{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.45}
 .field-row-h{display:flex;gap:12px;margin-bottom:16px}
@@ -312,11 +319,11 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .info-row{
   display:flex;align-items:center;gap:10px;
   padding:12px 16px;border-radius:12px;
-  background:rgba(255,255,255,.03);border:1px solid var(--stroke);
+  background:rgba(6,59,55,.03);border:1px solid var(--stroke);
   font-size:13.5px;margin-bottom:10px;
   transition:border-color .15s var(--ease),background .15s var(--ease);
 }
-.info-row:hover{border-color:var(--stroke-hi);background:rgba(255,255,255,.05)}
+.info-row:hover{border-color:var(--stroke-hi);background:rgba(6,59,55,.05)}
 .info-row .info-label{color:var(--muted-2);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
 .info-row .info-val{color:var(--ink);font-weight:600;flex:1;word-break:break-all}
 .info-row .info-copy{
@@ -330,7 +337,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .sync-box{
   display:flex;align-items:center;gap:14px;
   padding:16px 20px;border-radius:14px;
-  background:rgba(255,255,255,.04);border:1px solid var(--stroke);
+  background:rgba(6,59,55,.04);border:1px solid var(--stroke);
   margin-bottom:20px;
 }
 .sync-box-text .sync-title{font-size:14px;font-weight:700;color:var(--ink)}
@@ -357,8 +364,8 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 
 .gue-table{width:100%;border-collapse:collapse;font-size:13px}
 .gue-table th{text-align:left;font-size:11px;font-weight:600;color:var(--muted-2);text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--stroke)}
-.gue-table td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.05)}
-.gue-table tr:hover td{background:rgba(255,255,255,.02)}
+.gue-table td{padding:9px 10px;border-bottom:1px solid rgba(6,59,55,.05)}
+.gue-table tr:hover td{background:rgba(6,59,55,.02)}
 .gue-badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.03em}
 .gue-badge.import{background:rgba(96,165,250,.14);color:#93c5fd}
 .gue-badge.manuell{background:rgba(59,232,166,.14);color:#5fe3b0}
@@ -378,7 +385,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .gue-prod-head{display:flex;align-items:center;gap:9px;padding:10px 14px;font-size:13.5px;font-weight:700;color:var(--ink)}
 .gue-grid{width:100%;border-collapse:collapse;font-size:12.5px}
 .gue-grid th{text-align:left;font-size:10.5px;font-weight:600;color:var(--muted-2);text-transform:uppercase;letter-spacing:.03em;padding:6px 8px;border-bottom:1px solid var(--stroke);white-space:nowrap}
-.gue-grid td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.gue-grid td{padding:5px 8px;border-bottom:1px solid rgba(6,59,55,.04)}
 .gue-grid input{width:78px;padding:6px 8px;border-radius:7px;border:1px solid var(--stroke);background:rgba(0,0,0,.18);
   color:var(--ink);font-size:12.5px;font-family:inherit;text-align:right}
 .gue-grid input:focus{outline:none;border-color:rgba(191,146,0,.5)}
@@ -395,20 +402,20 @@ th{
   padding:9px 12px;text-align:left;
   font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
   color:var(--muted-2);border-bottom:1px solid var(--stroke);
-  background:rgba(255,255,255,.03);white-space:nowrap;
+  background:rgba(6,59,55,.03);white-space:nowrap;
 }
 td{
   padding:9px 12px;border-bottom:1px solid rgba(180,255,238,.05);
   color:var(--ink);vertical-align:middle;
 }
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.025)}
+tr:hover td{background:rgba(6,59,55,.025)}
 td input[type="number"],td input[type="text"],td input[type="date"]{
   width:100%;padding:5px 8px;border-radius:7px;font-size:12px;font-family:inherit;
-  background:rgba(255,255,255,.06);border:1px solid var(--stroke);
+  background:rgba(6,59,55,.06);border:1px solid var(--stroke);
   color:var(--ink);transition:border-color .12s;min-width:70px;
 }
-td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,255,255,.09)}
+td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59,55,.09)}
 .ga-badge{
   display:inline-flex;align-items:center;gap:5px;
   padding:3px 9px;border-radius:7px;font-size:11px;font-weight:600;
@@ -422,7 +429,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
 .glt-head{
   display:flex;align-items:center;gap:10px;margin-bottom:12px;
   padding:10px 14px;border-radius:11px;
-  background:rgba(255,255,255,.03);border:1px solid var(--stroke);
+  background:rgba(6,59,55,.03);border:1px solid var(--stroke);
 }
 .glt-head h3{font-size:13px;font-weight:700;color:var(--ink)}
 .glt-actions{margin-left:auto;display:flex;gap:6px}
@@ -432,7 +439,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
 .pdf-item{
   display:flex;align-items:center;gap:12px;
   padding:14px 16px;border-radius:12px;
-  background:rgba(255,255,255,.035);border:1px solid var(--stroke);
+  background:rgba(6,59,55,.035);border:1px solid var(--stroke);
 }
 .pdf-icon{
   width:36px;height:36px;border-radius:9px;flex:0 0 36px;
@@ -443,7 +450,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
 .pdf-item-body .pdf-path{font-size:11.5px;color:var(--muted-2);margin-top:3px;word-break:break-all}
 .pdf-item input{
   flex:1;padding:8px 11px;border-radius:9px;font-size:12.5px;font-family:inherit;
-  background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--ink);
+  background:rgba(6,59,55,.06);border:1px solid var(--stroke);color:var(--ink);
   transition:border-color .12s;
 }
 .pdf-item input:focus{outline:none;border-color:rgba(191,146,0,.4)}
@@ -498,10 +505,10 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
 .prod-vis-list{display:flex;flex-direction:column;gap:5px}
 .prod-vis-row{
   display:flex;align-items:center;gap:10px;padding:9px 12px;
-  border-radius:9px;background:rgba(255,255,255,.025);border:1px solid transparent;
+  border-radius:9px;background:rgba(6,59,55,.025);border:1px solid transparent;
   transition:background .15s;cursor:default;
 }
-.prod-vis-row:hover{background:rgba(255,255,255,.05)}
+.prod-vis-row:hover{background:rgba(6,59,55,.05)}
 .prod-vis-name{flex:1;font-size:13px;font-weight:600;color:var(--ink);line-height:1.3}
 .prod-vis-key{font-size:10.5px;color:var(--muted-2);font-weight:500;display:block}
 
@@ -509,10 +516,10 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
 .pdf-sparte-section{margin-bottom:20px}
 .pdf-sparte-head{
   display:flex;align-items:center;gap:10px;padding:10px 14px;
-  border-radius:11px;background:rgba(255,255,255,.04);border:1px solid var(--stroke);
+  border-radius:11px;background:rgba(6,59,55,.04);border:1px solid var(--stroke);
   margin-bottom:8px;cursor:pointer;transition:background .15s;
 }
-.pdf-sparte-head:hover{background:rgba(255,255,255,.07)}
+.pdf-sparte-head:hover{background:rgba(6,59,55,.07)}
 .pdf-sparte-title{font-size:13px;font-weight:700;color:var(--ink);flex:1}
 .pdf-sparte-chevron{width:14px;height:14px;transition:transform .22s var(--ease);opacity:.5}
 .pdf-sparte-section.open .pdf-sparte-chevron{transform:rotate(180deg)}
@@ -520,7 +527,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
 .pdf-sparte-section.open .pdf-sparte-body{display:flex}
 .pdf-prod-block{
   padding:14px 16px;border-radius:12px;
-  background:rgba(255,255,255,.025);border:1px solid var(--stroke);
+  background:rgba(6,59,55,.025);border:1px solid var(--stroke);
 }
 .pdf-prod-name{
   font-size:12.5px;font-weight:700;color:var(--ink);
@@ -532,18 +539,18 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
 .pdf-entry input.pdf-name-in{
   width:150px;flex:0 0 150px;padding:7px 10px;border-radius:8px;
   font-size:12px;font-family:inherit;
-  background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--ink);
+  background:rgba(6,59,55,.06);border:1px solid var(--stroke);color:var(--ink);
 }
 .pdf-entry input.pdf-path-in{
   flex:1;padding:7px 10px;border-radius:8px;
   font-size:12px;font-family:inherit;
-  background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--ink);
+  background:rgba(6,59,55,.06);border:1px solid var(--stroke);color:var(--ink);
 }
 .pdf-entry input::placeholder{color:var(--muted-2)}
-.pdf-entry input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,255,255,.09)}
+.pdf-entry input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59,55,.09)}
 .pdf-type-sel{
   flex:0 0 auto;height:34px;padding:0 8px;font-size:12px;font-family:inherit;cursor:pointer;
-  background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--ink);border-radius:8px;
+  background:rgba(6,59,55,.06);border:1px solid var(--stroke);color:var(--ink);border-radius:8px;
 }
 .pdf-type-sel:focus{outline:none;border-color:rgba(191,146,0,.4)}
 .pdf-source-cell{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
@@ -578,7 +585,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
 .pdf-add-btn:hover{color:var(--acc-hi);border-color:rgba(191,146,0,.4);background:rgba(191,146,0,.06)}
 .pdf-add-btn svg{width:12px;height:12px}
 </style>
-<link rel="stylesheet" href="../shared/sidebar.css?v=1">
+<link rel="stylesheet" href="../shared/sidebar.css?v=2">
 </head>
 <body>
 
@@ -636,7 +643,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="brand">
-      <img src="../shared/eregio-logo.png" class="brand-logo" alt="e-regio">
+      <img src="../shared/eregio-logo-gruen.png" class="brand-logo" alt="e-regio">
       <div class="brand-caption">Kundenservice Control Center</div>
     </div>
 
@@ -913,9 +920,9 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(255,
         <div class="card-title" style="margin-bottom:10px">Hinweis</div>
         <div style="font-size:13px;color:var(--muted);line-height:1.7">
           Je Tarif können mehrere PDFs hinterlegt werden. Das PDF sollte ausf&uuml;llbare Formularfelder (AcroForm) haben.<br>
-          Felder <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">ap</code>, <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">gp</code>, <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">plz</code>, <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">ort</code>, <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">verbrauch</code> werden automatisch bef&uuml;llt.<br>
+          Felder <code style="background:rgba(6,59,55,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">ap</code>, <code style="background:rgba(6,59,55,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">gp</code>, <code style="background:rgba(6,59,55,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">plz</code>, <code style="background:rgba(6,59,55,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">ort</code>, <code style="background:rgba(6,59,55,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">verbrauch</code> werden automatisch bef&uuml;llt.<br>
           <strong>Datei hochladen:</strong> PDF per Explorer w&auml;hlen &ndash; die Datei wird auf dem Server gespeichert (funktioniert lokal &amp; online).<br>
-          <strong>Online-URL:</strong> direkter Link zu einem PDF, z.B. <code style="background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">https://www.eregio.de/formulare/Gas_Basis.pdf</code>
+          <strong>Online-URL:</strong> direkter Link zu einem PDF, z.B. <code style="background:rgba(6,59,55,.08);padding:2px 6px;border-radius:5px;font-size:11.5px">https://www.eregio.de/formulare/Gas_Basis.pdf</code>
         </div>
       </div>
 
@@ -1268,13 +1275,13 @@ function triggerSync(){
         Doppelklicken Sie die <code style="background:rgba(255,255,255,.1);padding:2px 7px;border-radius:5px">sync.bat</code>
         im Ordner <code style="background:rgba(255,255,255,.1);padding:2px 7px;border-radius:5px">accdb-tools</code>:
       </p>
-      <div style="background:rgba(255,255,255,.05);border:1px solid var(--stroke);border-radius:10px;padding:10px 14px;font-size:12px;font-family:monospace;color:var(--gold);display:flex;align-items:center;gap:8px;margin-bottom:18px">
+      <div style="background:rgba(6,59,55,.05);border:1px solid var(--stroke);border-radius:10px;padding:10px 14px;font-size:12px;font-family:monospace;color:var(--gold);display:flex;align-items:center;gap:8px;margin-bottom:18px">
         <span style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">C:\\Users\\marck\\Downloads\\accdb-tools\\sync.bat</span>
         <button onclick="navigator.clipboard.writeText('C:\\\\Users\\\\marck\\\\Downloads\\\\accdb-tools\\\\sync.bat').then(()=>showToast('Pfad kopiert','ok'))"
           style="padding:4px 10px;border-radius:7px;background:var(--glass-hi);border:1px solid var(--stroke-hi);color:var(--ink);cursor:pointer;font-size:11px;white-space:nowrap">Kopieren</button>
       </div>
       <p style="font-size:12px;color:var(--muted-2);line-height:1.6;margin-bottom:22px">
-        Nach erfolgreichem Sync die Seite neu laden (<kbd style="background:rgba(255,255,255,.08);padding:1px 6px;border-radius:4px;font-size:11px">F5</kbd>) –
+        Nach erfolgreichem Sync die Seite neu laden (<kbd style="background:rgba(6,59,55,.08);padding:1px 6px;border-radius:4px;font-size:11px">F5</kbd>) –
         die Preisdaten werden aus der aktualisierten <code style="font-size:11px">data.js</code> geladen.
       </p>
       <div style="display:flex;justify-content:flex-end;gap:10px">
@@ -2059,7 +2066,7 @@ async function duLoadHistory(){
   }catch(e){ el.innerHTML='<div style="color:var(--muted-2);font-size:13px">Historie nicht verfügbar.</div>'; }
 }
 </script>
-<link rel="stylesheet" href="../shared/erfass-bar.css?v=1">
+<link rel="stylesheet" href="../shared/erfass-bar.css?v=2">
 <script src="../shared/erfass-bar.js?v=3"></script>
 </body>
 </html>

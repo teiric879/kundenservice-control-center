@@ -14,7 +14,7 @@
   display:flex;flex-direction:column;gap:0;
   width:248px;flex:0 0 248px;
   padding:18px 12px 16px;
-  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+  background:var(--sidebar-bg,linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015)));
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   border-right:1px solid var(--stroke);
   overflow-y:auto;scrollbar-width:none;
@@ -26,8 +26,8 @@
 .brand-logo{width:150px;max-width:100%;height:auto;display:block}
 .brand-caption{
   width:100%;font-size:11.5px;font-weight:400;line-height:1;letter-spacing:.01em;
-  color:rgba(180,210,200,.7);padding-top:10px;margin-top:2px;
-  border-top:1px solid rgba(191,146,0,.28);
+  color:var(--sidebar-cap,rgba(180,210,200,.7));padding-top:10px;margin-top:2px;
+  border-top:1px solid var(--sidebar-rule,rgba(191,146,0,.28));
 }
 
 /* ── Navigations-Liste ─────────────────────────────────────────────────── */
@@ -44,8 +44,8 @@
   text-align:left;text-decoration:none;cursor:pointer;
   transition:background .18s var(--ease),border-color .18s var(--ease),color .18s var(--ease);
 }
-.mod-toggle:hover{color:var(--ink);background:var(--glass);border-color:var(--stroke)}
-.mod-toggle.active{color:var(--acc-hi);background:rgba(191,146,0,.10);border-color:rgba(191,146,0,.22)}
+.mod-toggle:hover{color:var(--ink);background:var(--nav-hover-bg,var(--glass));border-color:var(--stroke)}
+.mod-toggle.active{color:var(--nav-active-fg,var(--acc-hi));background:var(--nav-active-bg,rgba(191,146,0,.10));border-color:var(--nav-active-bd,rgba(191,146,0,.22))}
 
 .mod-toggle svg.mod-icon,.mod-icon{width:17px;height:17px;flex:0 0 17px;opacity:.78;transition:opacity .2s}
 .mod-toggle.active svg.mod-icon,.mod-toggle.active .mod-icon{opacity:1}
@@ -75,8 +75,8 @@
   transition:background .16s var(--ease),border-color .16s var(--ease),color .16s var(--ease);
 }
 .mod-item svg{width:15px;height:15px;flex:0 0 15px;opacity:.7;transition:opacity .15s}
-.mod-item:hover{color:var(--ink);background:var(--glass);border-color:var(--stroke)}
-.mod-item.active{color:var(--acc-hi);background:rgba(191,146,0,.10);border-color:rgba(191,146,0,.15)}
+.mod-item:hover{color:var(--ink);background:var(--nav-hover-bg,var(--glass));border-color:var(--stroke)}
+.mod-item.active{color:var(--nav-active-fg,var(--acc-hi));background:var(--nav-active-bg,rgba(191,146,0,.10));border-color:var(--nav-active-bd,rgba(191,146,0,.15))}
 .mod-item.active svg{opacity:1}
 
 /* ── Externer-Link-Punkt ───────────────────────────────────────────────── */
