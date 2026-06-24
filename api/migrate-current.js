@@ -58,6 +58,10 @@ try {
   }
 
   // ───────────────────────── STROM ─────────────────────────
+  // Hinweis Direkt-Bonus: Der verbrauchsabhängige Bonus für Regionalstrom Direkt (z.B. EUS ab
+  // GA 2026-06-24) ist ein PER-PLZ-Konzept und wird in migrate-plz.js (vereinheitlichte Bänder +
+  // konditionen.bonus je Band) gesetzt. Gebiets-Direkt hatte noch nie eigene Konditionen/IDs
+  // (Direkt = per-PLZ), daher bleibt die Gebiets-Ebene hier bewusst einbändig ohne Bonus.
   // Ziel: jede Strom-GA bekommt je Gebiet EINE Zeile (Band 0-999999) mit allen Produkten.
   // Werte-Priorität: current_prices.json (autoritativ, TB-Import) > DB-Wert dieser GA
   //   (tb_history/all_prices, jetzt brutto) > Carry-forward aus letzter bekannter GA.

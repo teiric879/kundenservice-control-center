@@ -20,7 +20,10 @@ if (!fs.existsSync(FILE)) {
   process.exit(1);
 }
 const rows = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-const db = getProdukte();
+// Test-Hook: gegen eine Kopie der DB laufen lassen (PLZ_TEST_DB=Pfad), ohne die Live-DB anzufassen.
+const db = process.env.PLZ_TEST_DB
+  ? new (require('node:sqlite').DatabaseSync)(process.env.PLZ_TEST_DB)
+  : getProdukte();
 
 const insPreis = db.prepare(`
   INSERT INTO preise (sparte, ga, v_von, v_bis, gebiet, plz, ort, produkt_key, zaehlerart, ap_b, gp_b, ap_nt_b, bonus)
@@ -31,6 +34,24 @@ const insKond = db.prepare(`
   INSERT INTO konditionen (sparte, ga, v_von, v_bis, gebiet, plz, zaehlerart, produkt_key, pid, aid, pid_nt, aid_nt, vl, pg, alb, bonus)
   VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
 `);
+// wie insKond, aber mit Bonus-Parameter (für Strom-Direkt verbrauchsabhängige Bonus-Staffeln)
+const insKondB = db.prepare(`
+  INSERT INTO konditionen (sparte, ga, v_von, v_bis, gebiet, plz, zaehlerart, produkt_key, pid, aid, pid_nt, aid_nt, vl, pg, alb, bonus)
+  VALUES (?, ?, ?, ?, NULL, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`);
+
+// Vereinheitlichte, lückenlose Bänder 0..999999 mit Direkt-Bonus je Band.
+// Unter der untersten Export-Stufe (z.B. <1500) → Bonus 0. Bei nur einem Band → 0-999999.
+function unifyBands(direktBands) {
+  const bands = direktBands.map(b => ({ vVon: b.vVon, vBis: b.vBis, bonus: b.bonus || 0 }))
+    .sort((a, b) => a.vVon - b.vVon);
+  if (bands.length <= 1) return [{ vVon: 0, vBis: 999999, bonus: bands[0] ? bands[0].bonus : 0 }];
+  const out = [];
+  if (bands[0].vVon > 0) out.push({ vVon: 0, vBis: bands[0].vVon - 1, bonus: 0 });
+  for (const b of bands) out.push({ ...b });
+  out[out.length - 1].vBis = 999999;
+  return out;
+}
 
 const STROM_PROD = ['Basis', 'Komfort', 'Direkt'];
 const HZ_PROD    = ['WP', 'NS-Gem', 'NS-Get'];
@@ -70,20 +91,44 @@ try {
   // Alle Gültigkeiten registrieren (volle Historie im Dropdown)
   for (const r of rows) insGa.run(r.sparte, r.ga);
 
-  // ── STROM: collapse je (plz, ga) ──
-  const byPg = {};
+  // ── STROM: je (plz, ga) vereinheitlichte Bänder; Direkt-Bonus-Staffeln bleiben erhalten ──
+  // AP/GP sind bandunabhängig (konstant je Produkt); nur der Direkt-Bonus variiert nach Verbrauch.
+  // Damit findPreisRow/findKondRow EINE Zeile je (ga,verbrauch,plz) mit ALLEN Produkten liefern,
+  // werden Basis/Komfort je Band mitgeführt; der Bonus liegt produkt-spezifisch in konditionen.bonus.
+  const byPg = {}; // plz|ga → {plz,ga,ort, price:{pk:{apB,gpB}}, direktBands:[{vVon,vBis,bonus}]}
   for (const r of rows.filter(r => r.sparte === 'strom' && r.tabelle === 'preise')) {
     const key = r.plz + '|' + r.ga;
-    (byPg[key] ??= { plz: r.plz, ga: r.ga, ort: r.ort, prod: {} });
-    for (const pk of STROM_PROD)
-      if (r[`${pk}_apB`] != null && byPg[key].prod[pk] == null)
-        byPg[key].prod[pk] = { apB: r[`${pk}_apB`], gpB: r[`${pk}_gpB`] };
+    const e = (byPg[key] ??= { plz: r.plz, ga: r.ga, ort: r.ort, price: {}, direktBands: [] });
+    for (const pk of STROM_PROD) {
+      if (r[`${pk}_apB`] == null) continue;
+      if (e.price[pk] == null) e.price[pk] = { apB: r[`${pk}_apB`], gpB: r[`${pk}_gpB`] };
+      if (pk === 'Direkt') e.direktBands.push({ vVon: r.vVon, vBis: r.vBis, bonus: r.bonus ?? 0 });
+    }
   }
-  let nStrom = 0;
-  for (const e of Object.values(byPg))
-    for (const pk of STROM_PROD)
-      if (e.prod[pk]) { insPreis.run('strom', e.ga, 0, 999999, e.plz, e.ort, pk, null, e.prod[pk].apB, e.prod[pk].gpB, null, 0); nStrom++; }
-  const nStromK = insKondRows(r => r.sparte === 'strom' && r.tabelle === 'konditionen', STROM_PROD, 'strom', r => r.plz, true);
+  const kondPg = {}; // plz|ga → {pk:{pid,aid,pidNt,aidNt,vl,pg,alb}}
+  for (const r of rows.filter(r => r.sparte === 'strom' && r.tabelle === 'konditionen')) {
+    const key = r.plz + '|' + r.ga;
+    const e = (kondPg[key] ??= {});
+    for (const pk of STROM_PROD) {
+      if (r[`${pk}_pid`] == null || e[pk] != null) continue;
+      e[pk] = { pid: r[`${pk}_pid`], aid: r[`${pk}_aid`] ?? 0, pidNt: r[`${pk}_pid_nt`] ?? null,
+        aidNt: r[`${pk}_aid_nt`] ?? null, vl: r[`${pk}_vl`] ?? 12, pg: r[`${pk}_pg`] ?? 12, alb: r[`${pk}_alb`] ?? null };
+    }
+  }
+  let nStrom = 0, nStromK = 0;
+  for (const [key, e] of Object.entries(byPg)) {
+    const bands = unifyBands(e.direktBands);
+    const k = kondPg[key] || {};
+    for (const band of bands) for (const pk of STROM_PROD) {
+      if (!e.price[pk]) continue;
+      insPreis.run('strom', e.ga, band.vVon, band.vBis, e.plz, e.ort, pk, null, e.price[pk].apB, e.price[pk].gpB, null, 0);
+      nStrom++;
+      if (!k[pk]) continue;
+      const bonus = pk === 'Direkt' ? band.bonus : 0;
+      insKondB.run('strom', e.ga, band.vVon, band.vBis, e.plz, pk, k[pk].pid, k[pk].aid, k[pk].pidNt, k[pk].aidNt, k[pk].vl, k[pk].pg, k[pk].alb, bonus);
+      nStromK++;
+    }
+  }
 
   // ── HEIZSTROM: per (plz, ga, zaehlerart) ──
   let nHz = 0;
