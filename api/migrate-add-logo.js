@@ -1,6 +1,14 @@
 // Einmalige Migration: logo_url Spalte in mitbewerber_preise hinzufügen.
 // Ausführung: node api/migrate-add-logo.js
-require('dotenv').config();
+// .env manuell laden falls dotenv nicht installiert
+const fs = require('fs'), path = require('path');
+const envFile = path.join(__dirname, '..', '.env');
+if (fs.existsSync(envFile)) {
+  fs.readFileSync(envFile, 'utf8').split('\n').forEach(line => {
+    const [k, ...v] = line.split('=');
+    if (k && v.length && !process.env[k.trim()]) process.env[k.trim()] = v.join('=').trim();
+  });
+}
 const { createClient } = require('@libsql/client');
 
 async function migrate() {
