@@ -1,4 +1,4 @@
-@import url('../besucher-dashboard/fonts.css');
+@import url('../shared/fonts.css');
 
 :root{
   /* ===== e-regio Corporate Design · Heller Look ===== */
@@ -36,7 +36,9 @@ body::before{width:520px;height:520px;top:-120px;right:-80px;background:radial-g
 body::after{width:460px;height:460px;bottom:-140px;left:-60px;background:radial-gradient(circle,rgba(160,200,194,.22),transparent 70%)}
 @keyframes float1{to{transform:translate(-60px,80px) scale(1.15)}}
 @keyframes float2{to{transform:translate(70px,-60px) scale(1.1)}}
-h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.01em}
+h1,h2,h3,.num{font-family:var(--font-display,'Hanken Grotesk','DM Sans',sans-serif);letter-spacing:var(--track-tight,-.015em);line-height:1.1}
+/* Einheitlicher CD-grüner Tastatur-Fokus (wie im Dashboard) */
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--ci);outline-offset:2px;border-radius:6px}
 
 /* ── Layout ─────────────────────────────────────────────────────────────────── */
 .app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
@@ -47,7 +49,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-right:1px solid var(--stroke);
   overflow-y:auto;overflow-x:hidden}
 .brand{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:6px 10px 24px}
-.wordmark{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.wordmark{font-family:'Hanken Grotesk',sans-serif;font-size:28px;font-weight:700;line-height:1;letter-spacing:-.02em}
 .brand-logo{width:152px;max-width:100%;height:auto;display:block}
 .wm-e{color:#f5b800}
 .wm-regio{color:#fff}
@@ -90,7 +92,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .agent-pill:hover{background:rgba(6,59,55,.06);border-color:var(--stroke)}
 .agent-pill.sel{background:color-mix(in srgb, var(--ac) 18%, transparent);border-color:color-mix(in srgb,var(--ac) 40%,transparent);color:var(--ink)}
 .pill-dot{width:10px;height:10px;border-radius:50%;background:var(--ac);flex:0 0 10px;box-shadow:0 0 6px color-mix(in srgb,var(--ac) 70%,transparent)}
-.pill-kuerzel{font-family:'Space Grotesk';font-weight:700;font-size:12.5px;color:var(--ac);min-width:22px}
+.pill-kuerzel{font-family:'Hanken Grotesk';font-weight:700;font-size:12.5px;color:var(--ac);min-width:22px}
 .pill-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .agent-pill.sel .pill-name{color:var(--ink)}
 .pill-clear{display:flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:10px;
@@ -115,11 +117,11 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 /* Week Navigation */
 #weekNav{display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:relative}
 #weekNav.hidden{display:none}
-.week-range{font-family:'Space Grotesk';font-size:14px;font-weight:600;color:var(--gold);
+.week-range{font-family:'Hanken Grotesk';font-size:14px;font-weight:600;color:var(--gold);
   background:var(--glass);border:1px solid var(--stroke);border-radius:12px;padding:8px 16px;white-space:nowrap;
   cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:border-color .15s,background .15s}
 .week-range:hover{border-color:rgba(191,146,0,.5);background:rgba(191,146,0,.10)}
-.week-range:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.week-range:focus-visible{outline:2px solid var(--ci);outline-offset:2px}
 .week-range .wr-cal{opacity:.6;flex:0 0 13px}
 .week-range:hover .wr-cal{opacity:1}
 /* native Datepicker unsichtbar an weekRange-Position andocken */
@@ -155,13 +157,13 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .pg-day-hd{display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:10px 6px;border-radius:12px;background:var(--glass);border:1px solid var(--stroke);
   font-size:12px;gap:2px;min-height:62px;overflow:hidden}
-.pg-day-hd b{font-family:'Space Grotesk';font-size:17px;font-weight:700}
+.pg-day-hd b{font-family:'Hanken Grotesk';font-size:17px;font-weight:700}
 .pg-day-hd span{color:var(--muted);font-size:13px;font-weight:600}
 
 .pg-section{display:grid;grid-template-columns:130px repeat(5,1fr);gap:4px;
   align-items:center;margin:10px 0 4px}
 .pg-section-lbl{display:flex;align-items:center;gap:8px;grid-column:1/-1;
-  font-family:'Space Grotesk';font-size:13.5px;font-weight:700;letter-spacing:.06em;
+  font-family:'Hanken Grotesk';font-size:13.5px;font-weight:700;letter-spacing:.06em;
   color:var(--muted-2);padding:6px 4px;border-bottom:1px solid var(--stroke)}
 .pg-section-lbl em{font-style:normal;font-size:11px;color:var(--muted-2);opacity:.7;margin-left:auto}
 .loc-pip{width:10px;height:10px;border-radius:3px;flex:0 0 10px}
@@ -192,7 +194,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
   cursor:pointer;transition:all .12s;position:relative;overflow:hidden;flex-shrink:0}
 .time-band::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.10),transparent 55%);pointer-events:none}
 .time-band:hover{background:color-mix(in srgb,var(--ac) 95%,#0a2e2a);border-color:color-mix(in srgb,var(--ac) 75%,#0a2e2a)}
-.band-kz{font-family:'Space Grotesk';font-weight:800;font-size:14px;color:#fff;
+.band-kz{font-family:'Hanken Grotesk';font-weight:800;font-size:14px;color:#fff;
   text-shadow:0 1px 4px rgba(0,0,0,.6);flex:0 0 auto;position:relative;z-index:1;
   background:rgba(0,0,0,.25);padding:1px 5px;border-radius:4px;line-height:1.4}
 .band-name{font-size:13px;font-weight:600;color:rgba(255,255,255,.95);
@@ -207,8 +209,8 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 
 /* ── Notes Section ───────────────────────────────────────────────────────────── */
 .notes-section{background:var(--glass);border:1px solid var(--stroke);border-radius:var(--radius);
-  padding:18px 20px;box-shadow:var(--shadow),var(--inner)}
-.notes-title{font-family:'Space Grotesk';font-size:13px;font-weight:700;letter-spacing:.06em;
+  padding:18px 20px;box-shadow:var(--e1),var(--inner)}
+.notes-title{font-family:'Hanken Grotesk';font-size:13px;font-weight:700;letter-spacing:.06em;
   color:var(--muted-2);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .notes-title svg{width:15px;height:15px;opacity:.6}
 
@@ -218,7 +220,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .notes-day-hd small{font-weight:500;color:var(--muted-2);opacity:.7}
 
 .notes-row{display:grid;grid-template-columns:140px repeat(5,1fr);gap:4px;margin-bottom:3px}
-.notes-name{display:flex;align-items:center;gap:6px;padding:0 6px;font-family:'Space Grotesk';
+.notes-name{display:flex;align-items:center;gap:6px;padding:0 6px;font-family:'Hanken Grotesk';
   font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--ac) 75%,black)}
 .notes-name .nd{width:8px;height:8px;border-radius:50%;background:var(--ac);flex:0 0 8px}
 .note-cell{min-height:38px;border-radius:9px;border:1px solid transparent;background:rgba(6,59,55,.02);
@@ -254,7 +256,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .nr-field>span{font-size:11px;font-weight:600;color:var(--muted-2);text-transform:uppercase;letter-spacing:.04em}
 .nr-field input{padding:9px 11px;border-radius:10px;border:1px solid var(--stroke);background:rgba(6,59,55,.04);
   color:var(--ink);font-size:13px;font-family:inherit}
-.nr-field input:focus{outline:none;border-color:var(--acc)}
+.nr-field input:focus{outline:none;border-color:var(--ci);box-shadow:inset 0 0 0 1.5px rgba(0,68,66,.28)}
 .note-quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .nq-chip{padding:6px 14px;border-radius:8px;border:1px solid var(--stroke);background:rgba(6,59,55,.04);
   color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
@@ -303,7 +305,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .note-textarea{width:100%;height:110px;padding:12px;border-radius:12px;background:rgba(6,59,55,.04);
   border:1px solid var(--stroke);color:var(--ink);font-family:inherit;font-size:13px;
   resize:vertical;outline:none;transition:border-color .15s}
-.note-textarea:focus{border-color:var(--acc)}
+.note-textarea:focus{border-color:var(--ci);box-shadow:inset 0 0 0 1.5px rgba(0,68,66,.28)}
 .modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 .btn-primary{padding:9px 20px;border-radius:11px;border:none;
   background:linear-gradient(135deg,var(--acc),var(--acc-2));color:#022;font-weight:700;
@@ -319,7 +321,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .dash-select{appearance:none;border:1px solid var(--stroke);background:var(--glass);color:var(--ink);
   border-radius:12px;padding:8px 32px 8px 12px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;
   backdrop-filter:blur(12px)}
-.dash-select:focus{outline:2px solid var(--acc);outline-offset:2px}
+.dash-select:focus{outline:2px solid var(--ci);outline-offset:2px}
 .btn-dash-reload{padding:8px 16px;border-radius:12px;border:1px solid rgba(191,146,0,.3);
   background:rgba(191,146,0,.08);color:var(--acc-hi);font-family:inherit;font-size:12.5px;font-weight:700;
   cursor:pointer;transition:all .15s}
@@ -347,22 +349,25 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .dash-check input:checked + .dc-box{background:linear-gradient(135deg,var(--acc),var(--acc-2));border-color:transparent}
 .dash-check input:checked + .dc-box svg{opacity:1;transform:scale(1)}
 .dash-check:has(input:checked){color:var(--acc-hi)}
-.dash-check input:focus-visible + .dc-box{outline:2px solid var(--acc);outline-offset:2px}
+.dash-check input:focus-visible + .dc-box{outline:2px solid var(--ci);outline-offset:2px}
 
 .st-note{margin-top:12px;font-size:11.5px;color:var(--muted-2);font-weight:600}
 .st-row-inactive{opacity:.55}
 .st-inactive-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:5px;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-2);background:rgba(6,59,55,.06);border:1px solid var(--stroke);vertical-align:middle}
 
 .stats-card{background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--stroke);
-  border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow),var(--inner)}
+  border-radius:var(--radius);padding:22px 24px;box-shadow:var(--e1),var(--inner);
+  transition:box-shadow var(--t-med) var(--ease),transform var(--t-med) var(--ease),border-color var(--t-med) var(--ease)}
+.stats-card:hover{box-shadow:var(--e2),var(--inner);border-color:var(--stroke-hi);transform:translateY(-2px)}
 .stats-card h3{margin:0 0 16px;font-size:15px;font-weight:600}
 
 .st{width:100%;border-collapse:collapse;font-size:14px}
 .st th{text-align:left;padding:10px 14px;font-size:12px;font-weight:700;letter-spacing:.06em;
   color:var(--muted-2);border-bottom:1px solid var(--stroke);white-space:nowrap}
-.st td{padding:10px 14px;border-bottom:1px solid rgba(6,59,55,.04);vertical-align:middle}
-.st tbody tr:hover td{background:rgba(6,59,55,.03)}
-.st td.num{text-align:right;font-family:'Space Grotesk';font-weight:600}
+.st td{padding:11px 14px;border-bottom:1px solid var(--hairline);vertical-align:middle}
+.st tbody tr{transition:background var(--t-fast) var(--ease)}
+.st tbody tr:hover td{background:var(--turq-bg)}
+.st td.num{text-align:right;font-family:'Hanken Grotesk';font-weight:600}
 .st td.bold{font-weight:700;color:var(--gold)}
 .adot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;vertical-align:middle;flex-shrink:0}
 .kz{font-size:10.5px;color:var(--muted-2);font-weight:600;margin-left:4px}
@@ -376,7 +381,9 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 /* ── Admin ───────────────────────────────────────────────────────────────────── */
 .admin-layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
 .admin-card{background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--stroke);
-  border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow),var(--inner)}
+  border-radius:var(--radius);padding:22px 24px;box-shadow:var(--e1),var(--inner);
+  transition:box-shadow var(--t-med) var(--ease),transform var(--t-med) var(--ease),border-color var(--t-med) var(--ease)}
+.admin-card:hover{box-shadow:var(--e2),var(--inner);border-color:var(--stroke-hi);transform:translateY(-2px)}
 .admin-card h3{margin:0 0 16px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:9px}
 .admin-card h3 svg{width:18px;height:18px;opacity:.7}
 
@@ -386,20 +393,20 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .adm-row.inactive{opacity:.45}
 .adm-dot{width:12px;height:12px;border-radius:50%;flex:0 0 12px}
 .adm-name{flex:1;font-size:14.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.adm-kz{font-family:'Space Grotesk';font-size:12px;font-weight:700;color:var(--muted-2);
+.adm-kz{font-family:'Hanken Grotesk';font-size:12px;font-weight:700;color:var(--muted-2);
   background:var(--glass-hi);border:1px solid var(--stroke);border-radius:7px;padding:2px 7px}
 .adm-spacer{flex:1}
 .adm-btn{padding:5px 12px;border-radius:9px;border:1px solid var(--stroke);background:transparent;
   color:var(--muted);font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;transition:all .15s}
 .adm-btn:hover{background:var(--glass-hi)}
-.adm-btn.pos{border-color:rgba(59,232,166,.25);background:rgba(59,232,166,.08);color:var(--pos)}
-.adm-btn.pos:hover{background:rgba(59,232,166,.15)}
+.adm-btn.pos{border-color:rgba(15,122,90,.28);background:var(--pos-bg);color:var(--pos)}
+.adm-btn.pos:hover{background:rgba(15,122,90,.20)}
 
 .form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
 .form-label{font-size:11px;font-weight:700;letter-spacing:.07em;color:var(--muted-2)}
 .form-input{padding:10px 13px;border-radius:11px;border:1px solid var(--stroke);background:rgba(6,59,55,.04);
   color:var(--ink);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s}
-.form-input:focus{border-color:var(--acc)}
+.form-input:focus{border-color:var(--ci);box-shadow:inset 0 0 0 1.5px rgba(0,68,66,.28)}
 .form-hint{font-size:11px;color:var(--muted-2)}
 .color-row{display:flex;align-items:center;gap:10px}
 .color-preview{width:30px;height:30px;border-radius:8px;border:2px solid var(--stroke);flex:0 0 30px;transition:background .15s}
@@ -407,7 +414,7 @@ input[type=color]{width:70px;height:34px;border-radius:10px;border:1px solid var
   background:var(--glass);cursor:pointer;padding:2px}
 .btn-create{width:100%;padding:11px;border-radius:12px;border:none;
   background:linear-gradient(135deg,var(--acc),var(--acc-2));color:#021614;font-weight:700;
-  font-family:'Space Grotesk';font-size:14px;cursor:pointer;transition:all .15s;margin-top:4px}
+  font-family:'Hanken Grotesk';font-size:14px;cursor:pointer;transition:all .15s;margin-top:4px}
 .btn-create:hover{box-shadow:0 10px 28px rgba(191,146,0,.32);transform:translateY(-1px)}
 .btn-create:active{transform:none}
 
@@ -458,14 +465,14 @@ select.form-input,.dash-select{color-scheme:light}
 .mg-day-hd{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
   padding:4px 2px 5px;border-radius:8px;
   background:var(--glass);border:1px solid var(--stroke)}
-.mg-day-hd b{font-family:'Space Grotesk';font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.2}
+.mg-day-hd b{font-family:'Hanken Grotesk';font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.2}
 .mg-day-hd span{font-size:12px;font-weight:600;color:var(--muted);line-height:1}
 
 /* Section label — spans all columns */
 .mg-section{
   grid-column:1/-1;
   display:flex;align-items:center;gap:8px;margin-top:6px;padding:5px 4px 3px;
-  font-family:'Space Grotesk';font-size:13.5px;font-weight:700;letter-spacing:.06em;color:var(--muted-2);
+  font-family:'Hanken Grotesk';font-size:13.5px;font-weight:700;letter-spacing:.06em;color:var(--muted-2);
   border-bottom:1px solid var(--stroke)
 }
 
@@ -490,7 +497,7 @@ select.form-input,.dash-select{color-scheme:light}
 .mg-wrap.has-sel .mg-cell.empty:hover .mg-plus{opacity:1}
 
 /* Kürzel badge inside cells */
-.mg-kz{font-family:'Space Grotesk';font-size:12px;font-weight:700;
+.mg-kz{font-family:'Hanken Grotesk';font-size:12px;font-weight:700;
   color:color-mix(in srgb,var(--ac) 72%,black);
   background:color-mix(in srgb,var(--ac) 22%,white);
   border:1px solid color-mix(in srgb,var(--ac) 40%,white);
@@ -534,7 +541,7 @@ select.form-input,.dash-select{color-scheme:light}
 .pg-day-hd.understaffed{background:rgba(255,138,120,.10);border-color:rgba(255,138,120,.34)}
 .pg-day-hd.understaffed b{color:var(--neg)}
 .staff-badge{display:inline-flex;align-items:center;gap:3px;margin-top:3px;
-  font-family:'Space Grotesk';font-size:9px;font-weight:700;letter-spacing:.05em;
+  font-family:'Hanken Grotesk';font-size:9px;font-weight:700;letter-spacing:.05em;
   text-transform:uppercase;padding:2px 6px;border-radius:999px;white-space:nowrap;line-height:1}
 .staff-badge svg{flex:0 0 auto;width:10px;height:10px}
 .staff-badge.under{color:var(--neg);background:rgba(255,138,120,.15);border:1px solid rgba(255,138,120,.42)}

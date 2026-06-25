@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>e-regio · Admin</title>
-<link rel="stylesheet" href="../besucher-dashboard/fonts.css">
+<link rel="stylesheet" href="../shared/fonts.css?v=1">
 <style>
 :root{
   /* ===== e-regio Corporate Design · Heller Look ===== */
@@ -43,7 +43,7 @@ body::after{width:460px;height:460px;bottom:-140px;left:-60px;background:radial-
 @keyframes float1{to{transform:translate(-60px,80px) scale(1.15)}}
 @keyframes float2{to{transform:translate(70px,-60px) scale(1.1)}}
 @media(prefers-reduced-motion:reduce){body::before,body::after{animation:none}}
-h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.01em}
+h1,h2,h3,.num{font-family:var(--font-display,'Hanken Grotesk','DM Sans',sans-serif);letter-spacing:var(--track-tight,-.015em);line-height:1.12}
 
 /* ── Lock Screen ─────────────────────────────────────────────────────────── */
 #lockScreen{
@@ -73,7 +73,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .lock-box h1{font-size:22px;font-weight:700;margin-bottom:4px}
 .lock-box p{color:var(--muted);font-size:13px;margin-bottom:28px}
 .lock-brand{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:24px}
-.lock-brand b{font-family:'Space Grotesk';font-size:15px}
+.lock-brand b{font-family:'Hanken Grotesk';font-size:15px}
 .lock-brand small{color:var(--muted);font-size:11px}
 .pw-field{position:relative;margin-bottom:14px}
 .pw-field input{
@@ -125,7 +125,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
   overflow-y:auto;scrollbar-width:none;gap:0;
 }
 .brand{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:6px 10px 24px}
-.wordmark{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.wordmark{font-family:'Hanken Grotesk',sans-serif;font-size:28px;font-weight:700;line-height:1;letter-spacing:-.02em}
 .brand-logo{width:152px;max-width:100%;height:auto;display:block}
 .wm-e{color:#f5b800}
 .wm-regio{color:#fff}
@@ -233,7 +233,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 .du-preview .du-ok{color:var(--pos)}
 .du-hist-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(6,59,55,.05);font-size:12.5px}
 .du-hist-row:last-child{border-bottom:none}
-.du-hist-kind{font-family:'Space Grotesk';font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+.du-hist-kind{font-family:'Hanken Grotesk';font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
   padding:2px 8px;border-radius:7px;background:rgba(191,146,0,.12);border:1px solid rgba(191,146,0,.25);color:var(--acc-hi);flex:0 0 auto}
 .du-hist-when{color:var(--muted-2);flex:0 0 auto;font-variant-numeric:tabular-nums}
 .du-hist-info{flex:1;color:var(--muted)}
@@ -585,6 +585,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
 .pdf-add-btn:hover{color:var(--acc-hi);border-color:rgba(191,146,0,.4);background:rgba(191,146,0,.06)}
 .pdf-add-btn svg{width:12px;height:12px}
 </style>
+<link rel="stylesheet" href="../shared/tokens.css?v=1">
 <link rel="stylesheet" href="../shared/sidebar.css?v=2">
 </head>
 <body>
@@ -1868,7 +1869,7 @@ function epRenderAgents() {
     <div class="info-row" style="gap:12px">
       <span style="width:12px;height:12px;border-radius:50%;background:${a.color};flex:0 0 12px"></span>
       <span style="flex:1;font-size:13px;font-weight:600;color:${a.active?'var(--ink)':'var(--muted-2)'}">${a.name}</span>
-      <span style="font-family:'Space Grotesk';font-size:11px;font-weight:700;color:var(--muted-2);
+      <span style="font-family:'Hanken Grotesk';font-size:11px;font-weight:700;color:var(--muted-2);
         background:var(--glass);border:1px solid var(--stroke);border-radius:7px;padding:2px 8px">${a.kuerzel}</span>
       <button onclick="epToggle(${a.id},${a.active})"
         class="btn ${a.active?'btn-green':'btn-ghost'}" style="padding:5px 12px;font-size:11.5px">

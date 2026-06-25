@@ -1,0 +1,93 @@
+/* ============================================================================
+   Design Tokens · Kundenservice Control Center  ·  Single Source of Truth
+   ----------------------------------------------------------------------------
+   e-regio Corporate Design (Manual 05/2025) in eine Web-App übersetzt.
+   In jeder Seite ALS ERSTES Stylesheet laden (vor der seiteneigenen styles.css).
+   Variablennamen bleiben rückwärtskompatibel (--ci, --acc, --turq, --ink,
+   --radius, --shadow, --c0…) — Module erben automatisch, keine Selektor-Brüche.
+   ========================================================================== */
+
+:root{
+  /* ── Marke · Primär (CD Kap. 5.2) ──────────────────────────────────────── */
+  --ci:#004442;             /* e-regio Grün  – dominante Markenfarbe          */
+  --acc:#ffc300;            /* e-regio Gelb  – Primärakzent, gezielt einsetzen */
+  --acc-2:#dea600;          /* Gelb dunkler  – Verläufe (ergänzende Palette)   */
+  --acc-hi:#bf9200;         /* Gold          – Akzentlinien                    */
+  --acc-ink:#8a6a00;        /* Gold als Text – kontraststark auf Hell         */
+  --gold:#bf9200;
+  --anthracite:#282828;     /* CD Anthrazit  – Copy-Alternative zu Grün       */
+
+  /* ── Marke · Sekundär · Türkis (CD Kap. 5.3) ───────────────────────────── */
+  --turq:#c8e6e1;
+  --turq-2:#a0c8c2;
+  --turq-bg:#e0f0ec;        /* zarte Türkis-Fläche (Infoboxen, CD)            */
+
+  /* ── Flächen & Hintergründe (heller Look, CD ergänzende Töne) ──────────── */
+  --bg0:#f1ede0;            /* warmes Off-White (Seite)                        */
+  --bg1:#ece7d7;
+  --bg2:#e4f0ec;            /* zarter Türkis-Schimmer                          */
+  --glass:#fffdf7;          /* Kartenfläche, warmweiß                          */
+  --glass-hi:#f6f2e6;       /* Hover-/Subfläche                                */
+  --track:#ece7d8;          /* Balken-/Slider-Tracks                          */
+
+  /* ── Rahmen & Linien ───────────────────────────────────────────────────── */
+  --stroke:#e6e1d2;         /* Standard-Rahmen (CD beige)                      */
+  --stroke-hi:#d6cfba;      /* Rahmen Hover/Aktiv                              */
+  --hairline:rgba(6,59,55,.09);  /* dünne Trennlinie (Tabellen, CD 0,25–0,5pt) */
+
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --ink:#063b37;            /* Primärtext (Grün)                              */
+  --muted:#5d7d77;          /* Sekundärtext                                    */
+  --muted-2:#8aa39d;        /* Tertiärlabels / Achsen                         */
+
+  /* ── Status (EIN Satz, zugänglich, harmoniert mit Grün) ────────────────── */
+  --pos:#0f7a5a;  --pos-bg:rgba(15,122,90,.13);
+  --neg:#c0492a;  --neg-bg:rgba(192,73,42,.13);
+  --warn:#9a6a00; --warn-bg:rgba(154,106,0,.14);
+  --info:#2f7da8; --info-bg:rgba(47,125,168,.13);
+  --neutral:#5d7d77; --neutral-bg:rgba(6,59,55,.05);
+
+  /* ── Schrift ───────────────────────────────────────────────────────────── */
+  --font-display:'Hanken Grotesk','DM Sans',system-ui,sans-serif;
+  --font-body:'DM Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --track-tight:-.015em;    /* CD-Headline-Laufweite −15…0                     */
+
+  /* ── Radius-Skala ──────────────────────────────────────────────────────── */
+  --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:20px; --r-pill:999px;
+  --radius:var(--r-xl);     /* Alias – behebt 18-vs-22-Drift, Karten kanonisch */
+
+  /* ── Elevation (gestaffelt, grün-getönt) ───────────────────────────────── */
+  --e1:0 1px 2px rgba(20,46,40,.04), 0 6px 16px rgba(20,46,40,.06);
+  --e2:0 2px 6px rgba(20,46,40,.06), 0 14px 30px rgba(20,46,40,.10);
+  --e3:0 4px 12px rgba(20,46,40,.08), 0 26px 52px rgba(20,46,40,.14);
+  --inner:inset 0 1px 0 rgba(255,255,255,.55);
+  --shadow:var(--e2);       /* Alias für Bestand                              */
+
+  /* ── Spacing-Skala (4px-Basis) ─────────────────────────────────────────── */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
+  --sp-5:20px; --sp-6:24px; --sp-7:32px; --sp-8:40px;
+
+  /* ── Motion ────────────────────────────────────────────────────────────── */
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --t-fast:.15s; --t-med:.22s; --t-slow:.32s;
+
+  /* ── Fokus (EIN einheitlicher Ring, CD-Grün) ───────────────────────────── */
+  --focus:0 0 0 3px rgba(0,68,66,.28);
+
+  /* ── Diagramm-Serien · harmonisiert, lesbar auf Hell, CD-verankert ─────── */
+  --c0:#004442;  /* Grün     */  --c1:#dea600;  /* Gold      */
+  --c2:#1f9bb0;  /* Teal     */  --c3:#1d9e75;  /* Mint      */
+  --c4:#3a7ca5;  /* Blau     */  --c5:#c97b3f;  /* Warmorange */
+  --c6:#5dae8b;  /* Salbei   */  --c7:#6b8f8a;  /* Graugrün  */
+  --c8:#8a6a00;  /* Dunkelgold */ --c9:#2c6e6a; /* Tiefgrün  */
+
+  /* ── Sidebar (von shared/sidebar.css konsumiert) ───────────────────────── */
+  --sidebar-bg:#ffffff;
+  --sidebar-cap:var(--muted);
+  --sidebar-rule:var(--stroke);
+  --nav-hover-bg:var(--glass-hi);
+  --nav-active-fg:var(--ci);
+  --nav-active-bg:var(--turq);
+  --nav-active-bd:var(--turq-2);
+}

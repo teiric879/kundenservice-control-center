@@ -3,7 +3,8 @@
 "use strict";
 var V=[];   /* [{ymd,standort,kategorie,stunde,dow}, …] – geladen via GET /api/besucher */
 var ACC='#bf9200';
-var PAL=['#bf9200','#E9C682','#8c6b00','#39A0D6','#7A8BF0','#F08AB0','#5FD6A0','#B69CF5','#56C8E8','#E8A06A','#e0ad1f','#22C3B6'];
+/* CD-harmonisierte Serienfarben (Grün-verankert, kein wahlloses Lila/Pink) – Spiegel von shared/tokens.css --c0…--c9 */
+var PAL=['#004442','#dea600','#1f9bb0','#1d9e75','#3a7ca5','#c97b3f','#5dae8b','#6b8f8a','#8a6a00','#2c6e6a','#7ca6b8','#a98b3c'];
 var WD=['Mo','Di','Mi','Do','Fr','Sa','So'], WDF=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 var MON=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 var tip=document.getElementById('tip');
@@ -116,12 +117,12 @@ function renderDonut(rows,anim){
   var items=Object.keys(counts).map(function(s){return {label:s,v:counts[s]};}).sort(function(a,b){return b.v-a.v;});
   var total=items.reduce(function(s,x){return s+x.v;},0)||1,r=72,C=2*Math.PI*r,off=0;
   var s='<svg viewBox="0 0 184 192" width="100%" style="height:196px"><g transform="rotate(-90 92 96)">';
-  s+='<circle cx="92" cy="96" r="'+r+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="22"/>';
+  s+='<circle cx="92" cy="96" r="'+r+'" fill="none" stroke="rgba(6,59,55,.06)" stroke-width="22"/>';
   items.forEach(function(it,i){var len=C*it.v/total,col=PAL[i%PAL.length];
     s+='<circle class="d-seg" cx="92" cy="96" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="22" stroke-linecap="butt" stroke-dasharray="'+(anim&&!RM?0:len)+' '+(anim&&!RM?C:C-len)+'" data-len="'+len+'" data-c="'+C+'" stroke-dashoffset="'+(-off)+'" data-i="'+i+'"/>';
     off+=len;});
-  s+='</g><text x="92" y="90" text-anchor="middle" font-family="Space Grotesk" font-size="27" font-weight="600" fill="#EAF6F2">'+nf(total)+'</text>';
-  s+='<text x="92" y="110" text-anchor="middle" font-size="12" fill="#93B2AB">Besuche</text></svg>';
+  s+='</g><text x="92" y="90" text-anchor="middle" font-family="Hanken Grotesk" font-size="27" font-weight="600" fill="#063b37">'+nf(total)+'</text>';
+  s+='<text x="92" y="110" text-anchor="middle" font-size="12" fill="#5d7d77">Besuche</text></svg>';
   var box=document.getElementById('chartStandort');box.innerHTML=s;
   if(anim&&!RM){raf(function(){box.querySelectorAll('.d-seg').forEach(function(c,i){c.style.transition='stroke-dasharray .45s cubic-bezier(.22,.61,.36,1) '+(i*.04)+'s';c.style.strokeDasharray=c.dataset.len+' '+(c.dataset.c-c.dataset.len);});});}
   var leg='';items.forEach(function(it,i){leg+='<span><i style="background:'+PAL[i%PAL.length]+'"></i>'+esc(it.label)+' · '+Math.round(it.v/total*100)+'% ('+nf(it.v)+')</span>';});
@@ -154,12 +155,12 @@ function renderKatDonut(rows,anim){
   var s='<svg viewBox="0 0 192 192" width="100%" style="height:206px;overflow:visible">';
   s+='<defs><filter id="dGlow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="3.5" flood-color="#000" flood-opacity=".4"/></filter></defs>';
   s+='<g transform="rotate(-90 96 96)">';
-  s+='<circle cx="96" cy="96" r="'+r+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="'+sw+'"/>';
+  s+='<circle cx="96" cy="96" r="'+r+'" fill="none" stroke="rgba(6,59,55,.06)" stroke-width="'+sw+'"/>';
   items.forEach(function(it,i){var full=C*it.v/total,len=Math.max(2,full-gap),col=PAL[i%PAL.length];
     s+='<circle class="d-seg" cx="96" cy="96" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" stroke-linecap="round" stroke-dasharray="'+(anim&&!RM?0:len)+' '+(anim&&!RM?C:C-len)+'" data-len="'+len+'" data-c="'+C+'" stroke-dashoffset="'+(-off)+'" data-i="'+i+'" style="filter:url(#dGlow);cursor:pointer"/>';off+=full;});
   s+='</g>';
-  s+='<text x="96" y="90" text-anchor="middle" font-family="Space Grotesk" font-size="30" font-weight="700" letter-spacing="-.5" fill="#EAF6F2">'+nf(total)+'</text>';
-  s+='<text x="96" y="108" text-anchor="middle" font-size="10.5" font-weight="600" letter-spacing=".5" fill="#93B2AB">BESUCHE</text></svg>';
+  s+='<text x="96" y="90" text-anchor="middle" font-family="Hanken Grotesk" font-size="30" font-weight="700" letter-spacing="-.5" fill="#063b37">'+nf(total)+'</text>';
+  s+='<text x="96" y="108" text-anchor="middle" font-size="10.5" font-weight="600" letter-spacing=".5" fill="#5d7d77">BESUCHE</text></svg>';
   box.innerHTML=s;
   if(anim&&!RM){raf(function(){box.querySelectorAll('.d-seg').forEach(function(c,i){c.style.transition='stroke-dasharray .5s cubic-bezier(.22,.61,.36,1) '+(i*.05)+'s';c.style.strokeDasharray=c.dataset.len+' '+(c.dataset.c-c.dataset.len);});});}
   if(leg){var l='';items.forEach(function(it,i){var p=Math.round(it.v/total*100);
@@ -460,7 +461,7 @@ function renderStandortTab(rows,anim){
     rBox.innerHTML=cards.map(function(c){
       return '<div class="card" style="flex:1">'+
         '<div style="font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-bottom:6px">'+c.name.toUpperCase()+'</div>'+
-        '<div style="font-family:Space Grotesk,sans-serif;font-size:32px;font-weight:700;color:var(--acc-ink);letter-spacing:-.5px">'+nf(c.count)+'</div>'+
+        '<div style="font-family:Hanken Grotesk,sans-serif;font-size:32px;font-weight:700;color:var(--acc-ink);letter-spacing:-.5px">'+nf(c.count)+'</div>'+
         '<div style="font-size:12px;color:var(--muted-2);margin-top:4px;font-weight:600">Besuche &nbsp;·&nbsp; <b style="color:var(--ink)">'+c.anteil+'%</b></div>'+
       '</div>';
     }).join('');
@@ -519,7 +520,7 @@ function renderMonthlyComparison(anim){
   var iw=W-pad.l-pad.r,ih=H-pad.t-pad.b,gap=iw/n,bw=Math.min(42,gap*0.65);
   var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="height:220px"><defs>'+
     '<linearGradient id="mg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="'+ACC+'"/><stop offset="1" stop-color="#8c6b00"/></linearGradient>'+
-    '<linearGradient id="mg2" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1d9e75"/><stop offset="1" stop-color="#0a5e42"/></linearGradient></defs>';
+    '<linearGradient id="mg2" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#0f7a5a"/><stop offset="1" stop-color="#0a4d39"/></linearGradient></defs>';
   for(var g=0;g<=4;g++){var gv=Math.round(max*g/4),gy=pad.t+ih-ih*g/4;
     s+='<line class="gridline" x1="'+pad.l+'" y1="'+gy+'" x2="'+(W-pad.r)+'" y2="'+gy+'"/>';
     s+='<text class="axis" x="'+(pad.l-6)+'" y="'+(gy+4)+'" text-anchor="end">'+nf(gv)+'</text>';}
@@ -582,7 +583,7 @@ function renderKatTrend(anim){
   for(var j=0;j<V.length;j++){var r=V[j];if(r.kategorie&&matchStand(r.standort)){var k=stripPfx(r.kategorie);katTotals[k]=(katTotals[k]||0)+1;}}
   var topKats=Object.keys(katTotals).sort(function(a,b){return katTotals[b]-katTotals[a];}).slice(0,5);
   if(!topKats.length){box.innerHTML='<p class="sub" style="text-align:center;padding:32px 0">Keine Kategoriedaten vorhanden.</p>';return;}
-  var KATPAL=['#004442','#1d9e75','#3a96c9','#dea600','#d4537e'];
+  var KATPAL=['#004442','#dea600','#1f9bb0','#1d9e75','#3a7ca5'];
   var series=topKats.map(function(kat){
     var vals=months.map(function(mo){
       var c=0;
@@ -796,7 +797,7 @@ function refreshToday(){
 }
 
 bootLoad().catch(function(err){
-  kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:32px 0;color:#ff8a78">'+
+  kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:32px 0;color:#c0492a">'+
     'Fehler beim Laden ('+err.message+'). Ist der API-Server (Port 3001) gestartet?</div>';
 });
 
@@ -830,7 +831,7 @@ setInterval(refreshVisits, 20000);
   }
 
   function providerColor(name){
-    var colors=['#2d7a6e','#5b8db8','#c0783d','#7b6fa8','#b05c6a','#4a8a5a','#8a6c3a'];
+    var colors=['#004442','#3a7ca5','#c97b3f','#6b8f8a','#1f9bb0','#1d9e75','#8a6a00'];
     var h=0; for(var i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))%colors.length;
     return colors[Math.abs(h)];
   }
