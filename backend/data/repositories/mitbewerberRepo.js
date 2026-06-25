@@ -1,7 +1,7 @@
 const { getDb } = require('../driver');
 
 // Alle Mitbewerber-Preise für Sparte + PLZ + Varianten laden.
-async function getMarktlage(sparte, plzGebiet, heizstromTyp, wpMessung, nsZaehlerart, steuveMod) {
+async function getMarktlage(sparte, plzGebiet, heizstromTyp, zaehlerart, nsMessung, steuveMod) {
   const db = getDb('produkte');
   let query = `SELECT * FROM mitbewerber_preise WHERE sparte = ? AND plz_gebiet = ?`;
   const params = [sparte, plzGebiet];
@@ -10,13 +10,13 @@ async function getMarktlage(sparte, plzGebiet, heizstromTyp, wpMessung, nsZaehle
     if (heizstromTyp) {
       query += ` AND heizstrom_typ = ?`;
       params.push(heizstromTyp);
-
-      if (heizstromTyp === 'wp' && wpMessung) {
-        query += ` AND wp_messung = ?`;
-        params.push(wpMessung);
-      } else if (heizstromTyp === 'ns' && nsZaehlerart) {
-        query += ` AND ns_zaehlerart = ?`;
-        params.push(nsZaehlerart);
+      if (zaehlerart) {
+        query += ` AND zaehlerart = ?`;
+        params.push(zaehlerart);
+      }
+      if (heizstromTyp === 'ns' && nsMessung) {
+        query += ` AND ns_messung = ?`;
+        params.push(nsMessung);
       }
     }
   } else if (sparte === 'steuve' && steuveMod) {
@@ -91,15 +91,15 @@ async function upsertTarife(tarife) {
     try {
       const result = await db.run(
         `INSERT OR IGNORE INTO mitbewerber_preise
-         (id, anbieter, sparte, heizstrom_typ, wp_messung, ns_zaehlerart, steuve_modul, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content)
+         (id, anbieter, sparte, heizstrom_typ, zaehlerart, ns_messung, steuve_modul, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           `${tarif.quelle}|${tarif.hash_content}`,
           tarif.anbieter,
           tarif.sparte,
           tarif.heizstrom_typ || null,
-          tarif.wp_messung || null,
-          tarif.ns_zaehlerart || null,
+          tarif.zaehlerart || null,
+          tarif.ns_messung || null,
           tarif.steuve_modul || null,
           tarif.plz_gebiet,
           tarif.arbeitspreis,

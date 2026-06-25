@@ -812,7 +812,8 @@ setInterval(refreshVisits, 20000);
 (function(){
   var API_ML=(location.hostname==='127.0.0.1'?'http://127.0.0.1:3001':'')+'/api/mitbewerber';
   var mlLoaded=false, mlCache={}, mlCurrentAnbieter=[];
-  var mlState={ sparte: 'strom', heizstromTyp: 'wp', wpMessung: 'getrennt', nsZaehlerart: 'einzeltarif', steuveMod: 'modul1' };
+  // zaehlerart: gemeinsam für WP und NS. nsMessung nur bei heizstromTyp='ns'.
+  var mlState={ sparte: 'strom', heizstromTyp: 'wp', zaehlerart: 'einzeltarif', nsMessung: 'getrennt', steuveMod: 'modul1' };
 
   function fmtAP(v){ return v!=null ? (v*100).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' ct/kWh' : '–'; }
   function fmtGP(v){ return v!=null ? v.toFixed(2)+' €/Jahr' : '–'; }
@@ -851,31 +852,31 @@ setInterval(refreshVisits, 20000);
     box.innerHTML='<table class="ml-table"><thead><tr>'+cols.join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>';
   }
 
-  function getCacheKey(sparte, heizstromTyp, wpMessung, nsZaehlerart, steuveMod){
+  function getCacheKey(sparte, heizstromTyp, zaehlerart, nsMessung, steuveMod){
     var plzEl=document.getElementById('marktlagePlzInput');
     var plz=(plzEl&&plzEl.value.trim())||'';
     var key=sparte+'|'+(plz?plz.substring(0,3):'*');
     if(sparte==='heizstrom' && heizstromTyp){
       key+='|'+heizstromTyp;
-      if(heizstromTyp==='wp' && wpMessung) key+='|'+wpMessung;
-      else if(heizstromTyp==='ns' && nsZaehlerart) key+='|'+nsZaehlerart;
+      if(zaehlerart) key+='|'+zaehlerart;
+      if(heizstromTyp==='ns' && nsMessung) key+='|'+nsMessung;
     } else if(sparte==='steuve' && steuveMod) key+='|'+steuveMod;
     return key;
   }
 
-  function buildApiUrl(sparte, plz, heizstromTyp, wpMessung, nsZaehlerart, steuveMod){
+  function buildApiUrl(sparte, plz, heizstromTyp, zaehlerart, nsMessung, steuveMod){
     var url=API_ML+'/marktlage?sparte='+sparte+'&plz='+(plz||'10000');
     if(sparte==='heizstrom' && heizstromTyp){
       url+='&heizstrom_typ='+heizstromTyp;
-      if(heizstromTyp==='wp' && wpMessung) url+='&wp_messung='+wpMessung;
-      else if(heizstromTyp==='ns' && nsZaehlerart) url+='&ns_zaehlerart='+nsZaehlerart;
+      if(zaehlerart) url+='&zaehlerart='+zaehlerart;
+      if(heizstromTyp==='ns' && nsMessung) url+='&ns_messung='+nsMessung;
     } else if(sparte==='steuve' && steuveMod) url+='&steuve_modul='+steuveMod;
     return url;
   }
 
   function loadMarktlage(){
-    var sparte=mlState.sparte, heizstromTyp=mlState.heizstromTyp, wpMessung=mlState.wpMessung, nsZaehlerart=mlState.nsZaehlerart, steuveMod=mlState.steuveMod;
-    var cacheKey=getCacheKey(sparte, heizstromTyp, wpMessung, nsZaehlerart, steuveMod);
+    var sparte=mlState.sparte, heizstromTyp=mlState.heizstromTyp, zaehlerart=mlState.zaehlerart, nsMessung=mlState.nsMessung, steuveMod=mlState.steuveMod;
+    var cacheKey=getCacheKey(sparte, heizstromTyp, zaehlerart, nsMessung, steuveMod);
     var showBonus=document.getElementById('marktlageBonusCheck').checked;
     var kpisBox=document.getElementById('marktlage-kpis');
     var infoEl=document.getElementById('marktlage-update-info');
@@ -892,10 +893,11 @@ setInterval(refreshVisits, 20000);
 
     if(kpisBox) kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;opacity:.5">Lade Marktdaten …</div>';
 
-    var urls=[API_ML+'/statistik?sparte='+sparte, buildApiUrl(sparte, plz, heizstromTyp, wpMessung, nsZaehlerart, steuveMod)];
-    // SteuVE: parallel both modules
+    var urls=[API_ML+'/statistik?sparte='+sparte, buildApiUrl(sparte, plz, heizstromTyp, zaehlerart, nsMessung, steuveMod)];
+    // SteuVE: beide Module parallel vorladen für schnellen Modul-Wechsel
     if(sparte==='steuve'){
-      var modul2Url=buildApiUrl(sparte, plz, heizstromTyp, wpMessung, nsZaehlerart, steuveMod==='modul1'?'modul2':'modul1');
+      var otherMod=steuveMod==='modul1'?'modul2':'modul1';
+      var modul2Url=buildApiUrl(sparte, plz, heizstromTyp, zaehlerart, nsMessung, otherMod);
       urls.push(fetch(modul2Url).then(function(r){return r.json();}));
     }
 
@@ -906,10 +908,9 @@ setInterval(refreshVisits, 20000);
       mlCurrentAnbieter=ml.anbieter||[];
       mlCache[cacheKey]={stats:stats, anbieter:mlCurrentAnbieter, ts:ts};
 
-      // For SteuVE, also cache the other module
+      // SteuVE anderen Modul auch cachen
       if(sparte==='steuve' && res[2]){
-        var otherModul=steuveMod==='modul1'?'modul2':'modul1';
-        var otherKey=getCacheKey(sparte, null, null, null, otherModul);
+        var otherKey=getCacheKey(sparte, null, null, null, otherMod);
         mlCache[otherKey]={stats:res[2].stats||stats, anbieter:res[2].anbieter||[], ts:ts};
       }
 
@@ -929,25 +930,35 @@ setInterval(refreshVisits, 20000);
     }
   });
 
-  // Main sparte selector
+  // DOM-Refs
   var sparteSel=document.getElementById('marktlageSparteSel');
   var heizstromTypSel=document.getElementById('marktlageHeizstromTyp');
-  var wpMessungSel=document.getElementById('marktlageWpMessung');
-  var nsZaehlerartGroup=document.getElementById('nsZaehlerartGroup');
-  var steuvModulGroup=document.getElementById('steuvModulGroup');
   var heizstromTypGroup=document.getElementById('heizstromTypGroup');
-  var wpMessungGroup=document.getElementById('wpMessungGroup');
+  var wpZaehlerartGroup=document.getElementById('wpZaehlerartGroup');
+  var nsZaehlerartGroup=document.getElementById('nsZaehlerartGroup');
+  var nsMessungGroup=document.getElementById('nsMessungGroup');
+  var steuvModulGroup=document.getElementById('steuvModulGroup');
+
+  function syncZaehlerartButtons(){
+    // Beide Zählerart-Gruppen auf aktuellen State synchronisieren
+    document.querySelectorAll('[data-zaehlerart]').forEach(function(b){
+      b.classList.toggle('ml-toggle-btn--active', b.getAttribute('data-zaehlerart')===mlState.zaehlerart);
+    });
+  }
 
   function updateControlsVisibility(){
     var sparte=sparteSel.value;
-    mlState.sparte=sparte;
+    var isWP=sparte==='heizstrom'&&mlState.heizstromTyp==='wp';
+    var isNS=sparte==='heizstrom'&&mlState.heizstromTyp==='ns';
     heizstromTypGroup.style.display=(sparte==='heizstrom'?'flex':'none');
-    wpMessungGroup.style.display=(sparte==='heizstrom'&&mlState.heizstromTyp==='wp'?'flex':'none');
-    nsZaehlerartGroup.style.display=(sparte==='heizstrom'&&mlState.heizstromTyp==='ns'?'flex':'none');
+    wpZaehlerartGroup.style.display=(isWP?'flex':'none');
+    nsZaehlerartGroup.style.display=(isNS?'flex':'none');
+    nsMessungGroup.style.display=(isNS?'flex':'none');
     steuvModulGroup.style.display=(sparte==='steuve'?'flex':'none');
   }
 
   if(sparteSel) sparteSel.addEventListener('change', function(){
+    mlState.sparte=sparteSel.value;
     updateControlsVisibility();
     mlLoaded=false;
     loadMarktlage();
@@ -960,24 +971,28 @@ setInterval(refreshVisits, 20000);
     loadMarktlage();
   });
 
-  if(wpMessungSel) wpMessungSel.addEventListener('change', function(){
-    mlState.wpMessung=wpMessungSel.value;
-    mlLoaded=false;
-    loadMarktlage();
-  });
-
-  // NS Zählerart toggle
-  document.querySelectorAll('[data-ns]').forEach(function(btn){
+  // Zählerart-Toggle (WP und NS teilen dieselbe mlState.zaehlerart)
+  document.querySelectorAll('[data-zaehlerart]').forEach(function(btn){
     btn.addEventListener('click', function(){
-      document.querySelectorAll('[data-ns]').forEach(function(b){ b.classList.remove('ml-toggle-btn--active'); });
-      this.classList.add('ml-toggle-btn--active');
-      mlState.nsZaehlerart=this.dataset.ns;
+      mlState.zaehlerart=this.getAttribute('data-zaehlerart');
+      syncZaehlerartButtons();
       mlLoaded=false;
       loadMarktlage();
     });
   });
 
-  // SteuVE modul toggle
+  // NS Messung-Toggle
+  document.querySelectorAll('[data-ns-messung]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('[data-ns-messung]').forEach(function(b){ b.classList.remove('ml-toggle-btn--active'); });
+      this.classList.add('ml-toggle-btn--active');
+      mlState.nsMessung=this.getAttribute('data-ns-messung');
+      mlLoaded=false;
+      loadMarktlage();
+    });
+  });
+
+  // SteuVE Modul-Toggle
   document.querySelectorAll('[data-modul]').forEach(function(btn){
     btn.addEventListener('click', function(){
       document.querySelectorAll('[data-modul]').forEach(function(b){ b.classList.remove('ml-toggle-btn--active'); });
@@ -1017,7 +1032,7 @@ setInterval(refreshVisits, 20000);
   // Refresh button
   var refreshBtn=document.getElementById('marktlageRefreshBtn');
   if(refreshBtn) refreshBtn.addEventListener('click', function(){
-    var cacheKey=getCacheKey(mlState.sparte, mlState.heizstromTyp, mlState.wpMessung, mlState.nsZaehlerart, mlState.steuveMod);
+    var cacheKey=getCacheKey(mlState.sparte, mlState.heizstromTyp, mlState.zaehlerart, mlState.nsMessung, mlState.steuveMod);
     delete mlCache[cacheKey];
     mlLoaded=false;
     loadMarktlage();

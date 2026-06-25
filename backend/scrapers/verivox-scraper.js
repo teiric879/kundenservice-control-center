@@ -3,8 +3,8 @@ const { retryWithBackoff, validatePrice, validateBasicPrice, validateProvider, h
 
 // Verivox Tarif-Elemente scrapen.
 // WICHTIG: Selektoren sind Platzhalter und müssen manuell gegen aktuelle Verivox Seite getestet werden.
-// Siehe: https://www.verivox.de/strom/vergleich/?postleitzahl=XXXXX
-async function scrapeVerivox(plz, sparte) {
+// Varianten: heizstromTyp='wp'|'ns', zaehlerart='einzeltarif'|'doppeltarif', nsMessung='getrennt'|'gemeinsam', steuveMod='modul1'|'modul2'
+async function scrapeVerivox(plz, sparte, { heizstromTyp, zaehlerart, nsMessung, steuveMod } = {}) {
   const spartePath = sparte === 'strom' ? 'strom' : sparte === 'gas' ? 'gas' : 'heizstrom';
   const url = `https://www.verivox.de/${spartePath}/vergleich/?postleitzahl=${plz}`;
 
@@ -45,11 +45,15 @@ async function scrapeVerivox(plz, sparte) {
 
     // Nur speichern wenn Mindest-Daten vorhanden
     if (anbieter && ap) {
-      const hash = hashContent(anbieter, sparte, ap, gp);
+      const hash = hashContent(anbieter, sparte, ap, gp, heizstromTyp, zaehlerart, nsMessung, steuveMod);
       results.push({
         anbieter,
         sparte,
-        plz_gebiet: plz.substring(0, 3), // z.B. "101" aus "10115"
+        heizstrom_typ: heizstromTyp || null,
+        zaehlerart: zaehlerart || null,
+        ns_messung: nsMessung || null,
+        steuve_modul: steuveMod || null,
+        plz_gebiet: plz.substring(0, 3),
         arbeitspreis: ap,
         grundpreis: gp,
         bonus: bonus || 0,

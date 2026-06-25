@@ -291,17 +291,20 @@
               <option value="ns">Nachtspeicher</option>
             </select>
           </div>
-          <!-- Heizstrom WP: Messung Dropdown (getrennt|gemeinsam) -->
-          <div class="field" id="wpMessungGroup" style="display:none">
-            <select id="marktlageWpMessung" aria-label="Messung" autocomplete="off">
-              <option value="getrennt">Getrennte Messung</option>
-              <option value="gemeinsam">Gemeinsame Messung</option>
-            </select>
+          <!-- Heizstrom WP: Zählerart Buttons -->
+          <div class="field ml-button-group" id="wpZaehlerartGroup" style="display:none">
+            <button class="ml-toggle-btn ml-toggle-btn--active" data-zaehlerart="einzeltarif">Einzeltarifzähler</button>
+            <button class="ml-toggle-btn" data-zaehlerart="doppeltarif">Doppeltarifzähler</button>
           </div>
-          <!-- Heizstrom NS: Zählerart Toggle (Einzeltarif|Doppeltarif) -->
+          <!-- Heizstrom NS: Zählerart Buttons -->
           <div class="field ml-button-group" id="nsZaehlerartGroup" style="display:none">
-            <button class="ml-toggle-btn ml-toggle-btn--active" data-ns="einzeltarif">Einzeltarifzähler</button>
-            <button class="ml-toggle-btn" data-ns="doppeltarif">Doppeltarifzähler</button>
+            <button class="ml-toggle-btn ml-toggle-btn--active" data-zaehlerart="einzeltarif">Einzeltarifzähler</button>
+            <button class="ml-toggle-btn" data-zaehlerart="doppeltarif">Doppeltarifzähler</button>
+          </div>
+          <!-- Heizstrom NS: Messung Buttons -->
+          <div class="field ml-button-group" id="nsMessungGroup" style="display:none">
+            <button class="ml-toggle-btn ml-toggle-btn--active" data-ns-messung="getrennt">Getrennte Messung</button>
+            <button class="ml-toggle-btn" data-ns-messung="gemeinsam">Gemeinsame Messung</button>
           </div>
           <!-- SteuVE: Modul Toggle (Modul1|Modul2) -->
           <div class="field ml-button-group" id="steuvModulGroup" style="display:none">
