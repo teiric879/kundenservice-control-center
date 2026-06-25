@@ -22,3 +22,4 @@ Thumbs.db
 desktop.ini
 .vercel
 .env*
+!.env.example

@@ -6,6 +6,7 @@
 const besucherRepo      = require('../data/repositories/besucherRepo');
 const einsatzplanerRepo = require('../data/repositories/einsatzplanerRepo');
 const importHistoryRepo = require('../data/repositories/importHistoryRepo');
+const { requireAdmin }  = require('../lib/auth');
 
 module.exports = async function adminImportRoutes(fastify) {
   // Cutoff für die clientseitige Vorschau (welche Besuche gelten als neu?).
@@ -14,7 +15,9 @@ module.exports = async function adminImportRoutes(fastify) {
   });
 
   // Besucher-Import. body: { source_file, rows:[{datum,standort,kategorie,stunde,ts}] }
-  fastify.post('/api/admin/import/besucher', async (req, reply) => {
+  const IMPORT_LIMIT = { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } };
+
+  fastify.post('/api/admin/import/besucher', { preHandler: requireAdmin, ...IMPORT_LIMIT }, async (req, reply) => {
     const { rows, source_file } = req.body || {};
     if (!Array.isArray(rows)) return reply.code(400).send({ error: 'rows[] erforderlich' });
     const res = await besucherRepo.bulkInsertVisits(rows);
@@ -26,7 +29,7 @@ module.exports = async function adminImportRoutes(fastify) {
   });
 
   // Einsatzplan-Import. body: { source_file, rows:[{date,location,slot,kuerzel,time_from,time_to}] }
-  fastify.post('/api/admin/import/einsatzplan', async (req, reply) => {
+  fastify.post('/api/admin/import/einsatzplan', { preHandler: requireAdmin, ...IMPORT_LIMIT }, async (req, reply) => {
     const { rows, source_file } = req.body || {};
     if (!Array.isArray(rows)) return reply.code(400).send({ error: 'rows[] erforderlich' });
     const res = await einsatzplanerRepo.bulkInsertAssignments(rows);

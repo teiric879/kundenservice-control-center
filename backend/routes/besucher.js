@@ -32,11 +32,22 @@ module.exports = async function besucherRoutes(fastify) {
   });
 
   fastify.post('/api/besucher', async (req, reply) => {
-    const { datum, standort, kategorie, stunde } = req.body;
+    const { datum, standort, kategorie, stunde } = req.body || {};
     if (!datum || !standort) {
       return reply.code(400).send({ error: 'datum und standort erforderlich' });
     }
-    const id = await besucherRepo.insertBesuch({ datum, standort, kategorie, stunde });
+    // Leichte Format-/Längen-Validierung (Schutz gegen Müll-/Missbrauchsdaten).
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(datum))) {
+      return reply.code(400).send({ error: 'datum muss YYYY-MM-DD sein' });
+    }
+    if (String(standort).length > 120 || (kategorie != null && String(kategorie).length > 200)) {
+      return reply.code(400).send({ error: 'standort/kategorie zu lang' });
+    }
+    const h = stunde == null || stunde === '' ? null : Number(stunde);
+    if (h != null && (!Number.isInteger(h) || h < 0 || h > 23)) {
+      return reply.code(400).send({ error: 'stunde muss 0–23 sein' });
+    }
+    const id = await besucherRepo.insertBesuch({ datum, standort, kategorie, stunde: h });
     return { id };
   });
 };

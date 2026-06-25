@@ -4,6 +4,7 @@
 const produkteRepo = require('../data/repositories/produkteRepo');
 const registryRepo = require('../data/repositories/registryRepo');
 const { buildTemplate, saveGueltigkeit } = require('../lib/preis-service');
+const { requireAdmin } = require('../lib/auth');
 
 module.exports = async function adminPreiseRoutes(fastify) {
   // Liste aller Gültigkeiten einer Sparte (mit Zeilen-Zählern)
@@ -32,6 +33,9 @@ module.exports = async function adminPreiseRoutes(fastify) {
     return { ok: true, ...tpl };
   });
 
+  // Token-Verifikation für das Admin-Login (prüft Bearer gegen ADMIN_API_TOKEN).
+  fastify.get('/api/admin/auth-check', { preHandler: requireAdmin }, async () => ({ ok: true }));
+
   // Live-Auflösung beim Tippen
   fastify.get('/api/admin/aid-lookup', async (req) => {
     const sparte = String(req.query.sparte || '').trim();
@@ -44,7 +48,7 @@ module.exports = async function adminPreiseRoutes(fastify) {
   });
 
   // Neu anlegen
-  fastify.post('/api/admin/gueltigkeit', async (req, reply) => {
+  fastify.post('/api/admin/gueltigkeit', { preHandler: requireAdmin }, async (req, reply) => {
     const { sparte, ga, rows, kondGebietUniform } = req.body || {};
     if (!sparte || !ga || !Array.isArray(rows) || !rows.length) {
       reply.code(400); return { ok: false, error: 'sparte, ga und rows erforderlich' };
@@ -56,29 +60,30 @@ module.exports = async function adminPreiseRoutes(fastify) {
     try {
       await saveGueltigkeit(sparte, ga, rows, !!kondGebietUniform);
       return { ok: true, sparte, ga, n: rows.length };
-    } catch (e) { reply.code(500); return { ok: false, error: String(e.message || e) }; }
+    } catch (e) { req.log.error(e); reply.code(500); return { ok: false, error: 'Interner Fehler beim Speichern' }; }
   });
 
   // Bestehende ersetzen (auch Import-Stände korrigierbar → werden zu 'manuell')
-  fastify.put('/api/admin/gueltigkeit', async (req, reply) => {
+  fastify.put('/api/admin/gueltigkeit', { preHandler: requireAdmin }, async (req, reply) => {
     const { sparte, ga, rows, kondGebietUniform } = req.body || {};
     if (!sparte || !ga || !Array.isArray(rows) || !rows.length) {
       reply.code(400); return { ok: false, error: 'sparte, ga und rows erforderlich' };
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ga)) { reply.code(400); return { ok: false, error: 'ga muss YYYY-MM-DD sein' }; }
     try {
       await saveGueltigkeit(sparte, ga, rows, !!kondGebietUniform);
       return { ok: true, sparte, ga, n: rows.length };
-    } catch (e) { reply.code(500); return { ok: false, error: String(e.message || e) }; }
+    } catch (e) { req.log.error(e); reply.code(500); return { ok: false, error: 'Interner Fehler beim Speichern' }; }
   });
 
   // Löschen (nur Gebiets-Ebene)
-  fastify.delete('/api/admin/gueltigkeit', async (req, reply) => {
+  fastify.delete('/api/admin/gueltigkeit', { preHandler: requireAdmin }, async (req, reply) => {
     const sparte = String(req.query.sparte || '').trim();
     const ga = String(req.query.ga || '').trim();
     if (!sparte || !ga) { reply.code(400); return { ok: false, error: 'sparte und ga erforderlich' }; }
     try {
       await produkteRepo.deleteGueltigkeit(sparte, ga);
       return { ok: true, sparte, ga };
-    } catch (e) { reply.code(500); return { ok: false, error: String(e.message || e) }; }
+    } catch (e) { req.log.error(e); reply.code(500); return { ok: false, error: 'Interner Fehler beim Löschen' }; }
   });
 };

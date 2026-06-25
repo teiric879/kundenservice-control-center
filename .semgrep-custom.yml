@@ -1,0 +1,51 @@
+rules:
+  # ── CORS: Callback erlaubt bedingungslos jeden Origin ──────────────────────
+  - id: eregio-cors-allow-all
+    languages: [javascript]
+    severity: ERROR
+    message: >
+      CORS-Origin-Callback gibt bedingungslos true zurück (jeder Origin erlaubt).
+      Auf eine Allowlist beschränken.
+    patterns:
+      - pattern: cb(null, true)
+      - pattern-inside: |
+          { origin: (...) => ... }
+
+  # ── Hardcoded Secret/Passwort im ausgelieferten Code ──────────────────────
+  - id: eregio-hardcoded-password
+    languages: [javascript]
+    severity: ERROR
+    message: >
+      Hardcoded Passwort/Secret im Client-Code. Client-seitige Passwort-Prüfung
+      ist keine echte Sicherheit; Secret nie ins ausgelieferte JS.
+    pattern-regex: (?i)(const|let|var)\s+PW\s*=\s*['"][^'"]+['"]
+
+  # ── SSRF: server-seitiges fetch() auf nicht-literaler URL ──────────────────
+  # Nur Backend: client-seitige fetches zur eigenen API sind kein SSRF.
+  - id: eregio-ssrf-fetch
+    languages: [javascript]
+    severity: ERROR
+    paths:
+      include:
+        - backend/
+        - api/
+    message: >
+      Server-seitiges fetch() auf einer Variablen-URL ohne Validierung kann SSRF
+      ermöglichen (interne Dienste / Cloud-Metadaten). URL gegen Allowlist prüfen,
+      private IPs blocken.
+    patterns:
+      - pattern: fetch($U)
+      - metavariable-pattern:
+          metavariable: $U
+          patterns:
+            - pattern-not-regex: ^["'`]
+
+  # ── XSS: innerHTML mit String-Konkatenation/Template-Literal ───────────────
+  - id: eregio-innerhtml-dynamic
+    languages: [javascript]
+    severity: WARNING
+    message: >
+      Zuweisung an innerHTML mit dynamischem String. Sicherstellen, dass alle
+      eingebetteten Werte escaped sind (esc()/escHtml()/safeColor()).
+    patterns:
+      - pattern: $EL.innerHTML = `...`

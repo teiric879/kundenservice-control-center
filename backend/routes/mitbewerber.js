@@ -1,5 +1,6 @@
 const { getMarktlage, getStatistiken, getAllSparten, upsertTarife } = require('../data/repositories/mitbewerberRepo');
 const { getDb } = require('../data/driver');
+const { requireAdmin } = require('../lib/auth');
 const crypto = require('crypto');
 
 // Hash für Duplikat-Detection (seed-test). Früher aus scraper-utils, jetzt inline.
@@ -128,7 +129,7 @@ module.exports = async function (fastify) {
   // GET /api/mitbewerber/seed-test
   // TEMPORÄR: füllt Test-Tarife in die DB (gegen dieselbe Verbindung wie die App).
   // Löscht erst alle alten Test-Daten, dann neu einfügen.
-  fastify.get('/seed-test', async (request, reply) => {
+  fastify.get('/seed-test', { preHandler: requireAdmin }, async (request, reply) => {
     const db = getDb('produkte');
     await db.run(`DELETE FROM mitbewerber_preise WHERE quelle = 'test'`);
 

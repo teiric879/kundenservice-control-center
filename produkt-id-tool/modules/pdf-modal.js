@@ -252,9 +252,13 @@ function injectStyles() {
   document.head.appendChild(style);
 }
 
+// HTML-Escaping für aus der DB stammende Formular-Namen (Admin-Eingabe).
+function escPdf(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');}
+
 function buildOverlay() {
   const el = document.createElement('div');
   el.id = 'pdfModalOverlay';
+  // nosemgrep: eregio-innerhtml-dynamic — statisches Template ohne dynamische Daten
   el.innerHTML = `
     <div id="pdfModalBar">
       <span id="pdfModalTitle">Vertragsformular</span>
@@ -550,13 +554,14 @@ export async function openPdfModal(btn) {
   // Mehrere PDFs → Auswahlmenü
   const menu = document.createElement('div');
   menu.className = 'pdf-select-menu';
+  // nosemgrep: eregio-innerhtml-dynamic — dynamischer Wert (e.name) via escPdf() escaped
   menu.innerHTML = `
     <div class="pdf-select-box">
       <h3>Welches Formular öffnen?</h3>
       ${entries.map((e, i) => `
         <div class="pdf-select-item" data-idx="${i}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
-          ${e.name || 'Formular ' + (i + 1)}
+          ${escPdf(e.name) || 'Formular ' + (i + 1)}
         </div>`).join('')}
       <button class="pdf-select-cancel">Abbrechen</button>
     </div>

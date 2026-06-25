@@ -4,11 +4,38 @@
 
 const { ensureSchemas } = require('./data/schema');
 
+// Erlaubte Origins für CORS. Eigene Domain(s) + lokale Entwicklung.
+// Erweiterbar über ENV CORS_EXTRA_ORIGINS (komma-separiert).
+const ALLOWED_ORIGINS = new Set([
+  'https://kundenservice-control-center.vercel.app',
+  ...String(process.env.CORS_EXTRA_ORIGINS || '')
+    .split(',').map((s) => s.trim()).filter(Boolean),
+]);
+function isAllowedOrigin(origin) {
+  if (!origin) return true;                       // same-origin / curl / serverseitig
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  // localhost / 127.0.0.1 auf beliebigem Port (lokale Dev)
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+}
+
 async function buildApp() {
   const fastify = require('fastify')({ logger: true });
 
+  // Security-Header (CSP-Defaults von helmet; die HTML-Seiten liefert Vercel
+  // statisch aus, daher bricht das das Frontend nicht).
+  await fastify.register(require('@fastify/helmet'), {
+    contentSecurityPolicy: false, // API liefert JSON/PDF, keine eigene HTML-UI
+  });
+
+  // Rate-Limit global; Bulk-Import-Routen zusätzlich strenger (siehe Routen).
+  await fastify.register(require('@fastify/rate-limit'), {
+    global: true,
+    max: 300,
+    timeWindow: '1 minute',
+  });
+
   fastify.register(require('@fastify/cors'), {
-    origin: (origin, cb) => cb(null, true),
+    origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
   });
 
   fastify.register(require('./routes/preise'));

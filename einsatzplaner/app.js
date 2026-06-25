@@ -173,7 +173,17 @@ function toast(msg, ok = true) {
   setTimeout(() => t.classList.remove('show'), 2400);
 }
 function assignKey(date, loc, slot) { return `${date}|${loc}|${slot}`; }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) { return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;'); }
+// Lässt nur sichere Farb-Tokens durch (#hex, rgb/rgba, hsl, benannte Farben).
+// Verhindert CSS-Injection über aus der DB stammende Farbwerte.
+function safeColor(c) {
+  const v = String(c == null ? '' : c).trim();
+  if (/^#[0-9a-fA-F]{3,8}$/.test(v)) return v;
+  if (/^rg(b|ba)?\(\s*[\d.,\s%]+\)$/.test(v)) return v;
+  if (/^hsl(a)?\(\s*[\d.,\s%]+\)$/.test(v)) return v;
+  if (/^[a-zA-Z]{3,20}$/.test(v)) return v;            // benannte Farbe
+  return '#888';                                        // Fallback
+}
 
 /* ── Init ───────────────────────────────────────────────────────────────── */
 async function init() {
@@ -198,10 +208,10 @@ function renderAgentPills() {
   const active = S.agents.filter(a => a.active);
   document.getElementById('agentPills').innerHTML = active.map(a => `
     <button class="agent-pill ${S.selectedAgent?.id === a.id ? 'sel' : ''}"
-      style="--ac:${a.color}" onclick="selectAgent(${a.id})" title="${a.name}">
+      style="--ac:${safeColor(a.color)}" onclick="selectAgent(${Number(a.id)})" title="${esc(a.name)}">
       <span class="pill-dot"></span>
-      <span class="pill-kuerzel">${a.kuerzel}</span>
-      <span class="pill-name">${a.name}</span>
+      <span class="pill-kuerzel">${esc(a.kuerzel)}</span>
+      <span class="pill-name">${esc(a.name)}</span>
     </button>
   `).join('');
   document.getElementById('pillClear').classList.toggle('hidden', !S.selectedAgent);
@@ -328,11 +338,11 @@ function renderGrid() {
 function cellHtml(date, loc, slot, list) {
   const hasAgent = !!S.selectedAgent;
   const bands = list.map(a => `
-    <div class="time-band" style="--ac:${a.color}"
-      onclick="showCtx(event,${a.id},'${date}','${loc}','${slot}')">
-      <span class="band-kz">${a.kuerzel}</span>
-      <span class="band-name">${a.name}</span>
-      <span class="band-t">${a.time_from}–${clampTo16(a.time_to)}</span>
+    <div class="time-band" style="--ac:${safeColor(a.color)}"
+      onclick="showCtx(event,${Number(a.id)},'${date}','${loc}','${slot}')">
+      <span class="band-kz">${esc(a.kuerzel)}</span>
+      <span class="band-name">${esc(a.name)}</span>
+      <span class="band-t">${esc(a.time_from)}–${esc(clampTo16(a.time_to))}</span>
     </div>`).join('');
 
   // Zweiten Berater nur anbieten, wenn 08:00–16:00 noch nicht lückenlos besetzt ist
@@ -540,8 +550,8 @@ function renderNotes() {
     const ag = agentMap[aid];
     if (!ag) continue;
     html += `<div class="notes-row">
-      <div class="notes-name" style="--ac:${ag.color}">
-        <span class="nd"></span>${ag.name}
+      <div class="notes-name" style="--ac:${safeColor(ag.color)}">
+        <span class="nd"></span>${esc(ag.name)}
       </div>`;
     for (const date of days) {
       const n = S.notes.get(`${date}|${aid}`);
@@ -698,7 +708,7 @@ function renderMonthGrid(workDays) {
           : 'full';
         const mine = selId != null && agents.some(a => a.agent_id === selId);
         const inner = agents.length
-          ? agents.map(a => `<span class="mg-kz${a.agent_id === selId ? ' mine' : ''}" style="--ac:${a.color}">${a.kuerzel}</span>`).join('')
+          ? agents.map(a => `<span class="mg-kz${a.agent_id === selId ? ' mine' : ''}" style="--ac:${safeColor(a.color)}">${esc(a.kuerzel)}</span>`).join('')
           : (selId != null ? '<span class="mg-plus">＋</span>' : '');
         // Tooltip: Name + Besetzungszeit(en) je Berater (Mehrfach-Zeiten zusammengefasst)
         const timesByAgent = new Map();
@@ -819,7 +829,7 @@ function renderStatsTable() {
           </div>` : '<span style="color:var(--muted-2);font-size:11px">–</span>';
         const inactiveTag = a.active === 0 ? ' <span class="st-inactive-tag">inaktiv</span>' : '';
         return `<tr${a.active === 0 ? ' class="st-row-inactive"' : ''}>
-          <td><span class="adot" style="background:${a.color}"></span>${esc(a.name)}${inactiveTag}</td>
+          <td><span class="adot" style="background:${safeColor(a.color)}"></span>${esc(a.name)}${inactiveTag}</td>
           <td class="num">${a.kall}</td>
           <td class="num">${a.euskirchen}</td>
           <td class="num">${a.homeoffice}</td>
@@ -841,10 +851,10 @@ async function loadAdmin() {
 function renderAdminList() {
   document.getElementById('adminList').innerHTML = S.agents.map(a => `
     <div class="adm-row ${a.active ? '' : 'inactive'}">
-      <span class="adm-dot" style="background:${a.color}"></span>
+      <span class="adm-dot" style="background:${safeColor(a.color)}"></span>
       <span class="adm-name">${esc(a.name)}</span>
-      <span class="adm-kz">${a.kuerzel}</span>
-      <button class="adm-btn ${a.active ? 'pos' : ''}" onclick="toggleAgent(${a.id},${a.active})">
+      <span class="adm-kz">${esc(a.kuerzel)}</span>
+      <button class="adm-btn ${a.active ? 'pos' : ''}" onclick="toggleAgent(${Number(a.id)},${a.active})">
         ${a.active ? 'Aktiv' : 'Inaktiv'}
       </button>
     </div>

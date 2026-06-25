@@ -1094,14 +1094,34 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
 'use strict';
 
 // ── Konstanten ──────────────────────────────────────────────────────────────
-const PW = 'eregio2026#';
 const LS = {
-  session:     'admin-session',
+  session:     'admin-token',      // hält das eingegebene Admin-Token (= Passwort)
   backendPath: 'admin-backend-path',
   hauptPath:   'admin-haupt-path',
   lastSync:    'admin-last-sync',
   pdfPaths:    'admin-pdf-paths-v2',
   prodVis:     'admin-produkt-vis',
+};
+
+// Admin-Token (vom Login). Wird als Bearer an alle API-Aufrufe gehängt, damit
+// das Backend schreibende Admin-Operationen autorisieren kann. KEIN hardcoded
+// Passwort mehr im Client — der Nutzer gibt es beim Login ein.
+let ADMIN_TOKEN = sessionStorage.getItem(LS.session) || '';
+
+// fetch-Wrapper: hängt den Bearer-Header an gleichartige API-Aufrufe an.
+const _origFetch = window.fetch.bind(window);
+window.fetch = function(input, init){
+  init = init || {};
+  try {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    const isApi = url.includes('/api/');
+    if (isApi && ADMIN_TOKEN) {
+      const h = new Headers(init.headers || (typeof input !== 'string' && input.headers) || {});
+      if (!h.has('Authorization')) h.set('Authorization', 'Bearer ' + ADMIN_TOKEN);
+      init = { ...init, headers: h };
+    }
+  } catch(_) { /* im Zweifel ohne Header weiter */ }
+  return _origFetch(input, init);
 };
 
 const SPARTEN_META = [
@@ -1113,9 +1133,13 @@ const SPARTEN_META = [
 ];
 
 // ── Lock / Unlock ────────────────────────────────────────────────────────────
+// Das Login-Passwort IST das Admin-Token. Es wird serverseitig geprüft
+// (GET /api/admin/auth-check mit Bearer) — kein Passwort-Vergleich im Client mehr.
 function init(){
-  const sess = sessionStorage.getItem(LS.session);
-  if(sess === '1') unlock(true);
+  if(ADMIN_TOKEN){
+    // gespeichertes Token serverseitig gegenchecken; bei Erfolg entsperren
+    verifyToken(ADMIN_TOKEN).then(ok=>{ if(ok) unlock(true); else { ADMIN_TOKEN=''; sessionStorage.removeItem(LS.session); } });
+  }
   loadDbPaths();
 }
 
@@ -1130,9 +1154,23 @@ document.getElementById('pwToggle').addEventListener('click',()=>{
   inp.type = inp.type==='password' ? 'text' : 'password';
 });
 
-function tryUnlock(){
+// Prüft ein Token gegen das Backend. true = gültig.
+async function verifyToken(token){
+  try{
+    const r = await _origFetch(ADMIN_API + '/auth-check', { headers: { 'Authorization': 'Bearer ' + token } });
+    return r.ok;
+  }catch(_){ return false; }
+}
+
+async function tryUnlock(){
   const val = document.getElementById('pwInput').value;
-  if(val === PW){
+  const btn = document.getElementById('unlockBtn');
+  if(btn) btn.disabled = true;
+  const ok = await verifyToken(val);
+  if(btn) btn.disabled = false;
+  if(ok){
+    ADMIN_TOKEN = val;
+    sessionStorage.setItem(LS.session, val);
     unlock(false);
   } else {
     document.getElementById('pwInput').classList.add('error');
@@ -1143,7 +1181,6 @@ function tryUnlock(){
 }
 
 function unlock(silent){
-  sessionStorage.setItem(LS.session,'1');
   document.getElementById('lockScreen').style.display='none';
   document.getElementById('adminApp').style.display='flex';
   if(!silent) showToast('Erfolgreich angemeldet','ok');
@@ -1153,6 +1190,7 @@ function unlock(silent){
 }
 
 function logout(){
+  ADMIN_TOKEN = '';
   sessionStorage.removeItem(LS.session);
   document.getElementById('adminApp').style.display='none';
   document.getElementById('lockScreen').style.display='flex';
@@ -1507,7 +1545,7 @@ function pdfFileChosen(input){
   reader.readAsDataURL(file);
 }
 
-function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function escHtml(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function togglePdfSection(key){
   const sec = document.getElementById('pdfsec-'+key);

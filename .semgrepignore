@@ -1,0 +1,11 @@
+node_modules/
+api/node_modules/
+backend/node_modules/
+api/db/
+api/index.js
+.git/
+.claude/
+.vercel/
+*.bak
+semgrep-baseline.json
+semgrep-after.json
