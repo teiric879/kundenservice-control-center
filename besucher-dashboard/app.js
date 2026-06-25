@@ -826,7 +826,7 @@ setInterval(refreshVisits, 20000);
     box.innerHTML=[
       '<div class="kpi-card card reveal ml-kpi ml-kpi--best"><div class="kpi-lbl">Günstigster</div><div class="kpi-val">'+(g?g.anbieter:'–')+'</div><div class="kpi-sub">'+(g?fmtAP(g.arbeitspreis):'–')+'</div>'+(g&&g.grundpreis?'<div class="kpi-sub2">GP '+fmtGP(g.grundpreis)+'</div>':'')+'</div>',
       '<div class="kpi-card card reveal ml-kpi"><div class="kpi-lbl">Teuerster</div><div class="kpi-val">'+(t?t.anbieter:'–')+'</div><div class="kpi-sub">'+(t?fmtAP(t.arbeitspreis):'–')+'</div>'+(t&&t.grundpreis?'<div class="kpi-sub2">GP '+fmtGP(t.grundpreis)+'</div>':'')+'</div>',
-      '<div class="kpi-card card reveal ml-kpi"><div class="kpi-lbl">Ø Arbeitspreis</div><div class="kpi-val kpi-val--mono">'+(stats.durchschnitt_arbeitspreis?fmtAP(stats.durchschnitt_arbeitspreis):'–')+'</div><div class="kpi-sub">Marktdurchschnitt</div></div>',
+      '<div class="kpi-card card reveal ml-kpi"><div class="kpi-lbl">Ø Arbeitspreis</div><div class="kpi-val kpi-val--mono">'+(stats.avg_arbeitspreis?fmtAP(stats.avg_arbeitspreis):'–')+'</div><div class="kpi-sub">Marktdurchschnitt</div>'+(stats.avg_grundpreis?'<div class="kpi-sub2">Ø GP '+fmtGP(stats.avg_grundpreis)+'</div>':'')+'</div>',
       '<div class="kpi-card card reveal ml-kpi"><div class="kpi-lbl">Anbieter im Markt</div><div class="kpi-val">'+(stats.anzahl_anbieter||0)+'</div><div class="kpi-sub">Tarife verglichen</div></div>'
     ].join('');
   }
@@ -893,7 +893,15 @@ setInterval(refreshVisits, 20000);
 
     if(kpisBox) kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;opacity:.5">Lade Marktdaten …</div>';
 
-    var urls=[API_ML+'/statistik?sparte='+sparte, buildApiUrl(sparte, plz, heizstromTyp, zaehlerart, nsMessung, steuveMod)];
+    // Statistik auch mit Varianten filtern (für korrekte "Anbieter im Markt" Zahl)
+    var statsUrl=API_ML+'/statistik?sparte='+sparte;
+    if(sparte==='heizstrom' && heizstromTyp){
+      statsUrl+='&heizstrom_typ='+heizstromTyp;
+      if(zaehlerart) statsUrl+='&zaehlerart='+zaehlerart;
+      if(heizstromTyp==='ns' && nsMessung) statsUrl+='&ns_messung='+nsMessung;
+    } else if(sparte==='steuve' && steuveMod) statsUrl+='&steuve_modul='+steuveMod;
+
+    var urls=[statsUrl, buildApiUrl(sparte, plz, heizstromTyp, zaehlerart, nsMessung, steuveMod)];
     // SteuVE: beide Module parallel vorladen für schnellen Modul-Wechsel
     if(sparte==='steuve'){
       var otherMod=steuveMod==='modul1'?'modul2':'modul1';

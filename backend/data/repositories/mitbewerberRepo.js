@@ -30,38 +30,69 @@ async function getMarktlage(sparte, plzGebiet, heizstromTyp, zaehlerart, nsMessu
   return rows || [];
 }
 
-// Statistiken für Sparte (günstigster, teuerster, Durchschnitt, Anzahl).
-async function getStatistiken(sparte) {
+// Statistiken für Sparte + optional Varianten (Heizstrom: heizstromTyp+zaehlerart+nsMessung, SteuVE: steuveMod).
+async function getStatistiken(sparte, heizstromTyp, zaehlerart, nsMessung, steuveMod) {
   const db = getDb('produkte');
-  const stats = await db.get(
-    `SELECT
+  let query = `SELECT
        COUNT(*) as anzahl_anbieter,
+       AVG(arbeitspreis) as avg_arbeitspreis,
+       AVG(grundpreis) as avg_grundpreis,
        MIN(arbeitspreis) as min_arbeitspreis,
        MAX(arbeitspreis) as max_arbeitspreis,
-       AVG(arbeitspreis) as avg_arbeitspreis,
        MIN(bonus) as min_bonus,
        MAX(bonus) as max_bonus,
        AVG(CASE WHEN bonus > 0 THEN bonus ELSE NULL END) as avg_bonus_nonnull
      FROM mitbewerber_preise
-     WHERE sparte = ? AND arbeitspreis IS NOT NULL`,
-    [sparte]
-  );
+     WHERE sparte = ?`;
+  const params = [sparte];
 
-  // Details für günstigster + teuerster
-  const cheapest = await db.get(
-    `SELECT * FROM mitbewerber_preise
-     WHERE sparte = ? AND arbeitspreis IS NOT NULL
-     ORDER BY arbeitspreis ASC LIMIT 1`,
-    [sparte]
-  );
-  const most_expensive = await db.get(
-    `SELECT * FROM mitbewerber_preise
-     WHERE sparte = ? AND arbeitspreis IS NOT NULL
-     ORDER BY arbeitspreis DESC LIMIT 1`,
-    [sparte]
-  );
+  if (sparte === 'heizstrom') {
+    if (heizstromTyp) {
+      query += ` AND heizstrom_typ = ?`;
+      params.push(heizstromTyp);
+      if (zaehlerart) {
+        query += ` AND zaehlerart = ?`;
+        params.push(zaehlerart);
+      }
+      if (heizstromTyp === 'ns' && nsMessung) {
+        query += ` AND ns_messung = ?`;
+        params.push(nsMessung);
+      }
+    }
+  } else if (sparte === 'steuve' && steuveMod) {
+    query += ` AND steuve_modul = ?`;
+    params.push(steuveMod);
+  }
 
-  // Bonus-Verteilung
+  query += ` AND arbeitspreis IS NOT NULL`;
+
+  const stats = await db.get(query, params);
+
+  // Details für günstigster + teuerster (mit gleichen Varianten-Filtern wie Stats)
+  let cheapQuery = `SELECT * FROM mitbewerber_preise WHERE sparte = ? AND arbeitspreis IS NOT NULL`;
+  let cheapParams = [sparte];
+
+  if (sparte === 'heizstrom' && heizstromTyp) {
+    cheapQuery += ` AND heizstrom_typ = ?`;
+    cheapParams.push(heizstromTyp);
+    if (zaehlerart) {
+      cheapQuery += ` AND zaehlerart = ?`;
+      cheapParams.push(zaehlerart);
+    }
+    if (heizstromTyp === 'ns' && nsMessung) {
+      cheapQuery += ` AND ns_messung = ?`;
+      cheapParams.push(nsMessung);
+    }
+  } else if (sparte === 'steuve' && steuveMod) {
+    cheapQuery += ` AND steuve_modul = ?`;
+    cheapParams.push(steuveMod);
+  }
+
+  cheapQuery += ` ORDER BY arbeitspreis ASC LIMIT 1`;
+  const cheapest = await db.get(cheapQuery, cheapParams);
+  const most_expensive = await db.get(cheapQuery.replace('ASC', 'DESC'), cheapParams);
+
+  // Bonus-Verteilung (optional: auch mit Varianten filtern, aber für MVP einfach halten)
   const bonusDistribution = await db.all(
     `SELECT
        CASE WHEN bonus IS NULL OR bonus = 0 THEN 'ohne' ELSE 'mit_bedingung' END as kategorie,
@@ -76,8 +107,9 @@ async function getStatistiken(sparte) {
     anzahl_anbieter: stats?.anzahl_anbieter || 0,
     guentigster: cheapest || null,
     teuerster: most_expensive || null,
-    durchschnitt_arbeitspreis: stats?.avg_arbeitspreis || 0,
-    durchschnitt_bonus: stats?.avg_bonus_nonnull || 0,
+    avg_arbeitspreis: stats?.avg_arbeitspreis || 0,
+    avg_grundpreis: stats?.avg_grundpreis || 0,
+    avg_bonus: stats?.avg_bonus_nonnull || 0,
     bonus_verteilung: bonusDistribution || [],
   };
 }

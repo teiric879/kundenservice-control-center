@@ -311,8 +311,9 @@
             <button class="ml-toggle-btn ml-toggle-btn--active" data-modul="modul1">Modul 1</button>
             <button class="ml-toggle-btn" data-modul="modul2">Modul 2</button>
           </div>
-          <div class="field">
-            <input type="text" id="marktlagePlzInput" placeholder="z.B. 53721" maxlength="5" autocomplete="off" inputmode="numeric" class="ml-input-plz">
+          <div class="field" style="flex:0 0 auto;min-width:140px">
+            <label for="marktlagePlzInput" style="position:absolute;top:-18px;left:0;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--muted);letter-spacing:.5px">PLZ</label>
+            <input type="text" id="marktlagePlzInput" placeholder="z.B. 53721" maxlength="5" autocomplete="off" inputmode="numeric" class="ml-input-plz" style="width:100%">
           </div>
           <div class="field">
             <input type="text" id="marktlageSuchInput" placeholder="Anbieter suchen..." autocomplete="off" class="ml-input-search">

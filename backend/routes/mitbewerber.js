@@ -78,16 +78,16 @@ module.exports = async function (fastify) {
     };
   });
 
-  // GET /api/mitbewerber/statistik?sparte=strom
-  // Dashboard-Statistiken für Sparte.
+  // GET /api/mitbewerber/statistik?sparte=heizstrom&heizstrom_typ=wp&zaehlerart=einzeltarif
+  // Dashboard-Statistiken für Sparte + optional Varianten.
   fastify.get('/statistik', async (request, reply) => {
-    const { sparte } = request.query;
+    const { sparte, heizstrom_typ, zaehlerart, ns_messung, steuve_modul } = request.query;
 
     if (!sparte) {
       return reply.status(400).send({ error: 'sparte erforderlich' });
     }
 
-    const stats = await getStatistiken(sparte);
+    const stats = await getStatistiken(sparte, heizstrom_typ, zaehlerart, ns_messung, steuve_modul);
 
     return {
       sparte,
@@ -104,8 +104,9 @@ module.exports = async function (fastify) {
         grundpreis: stats.teuerster.grundpreis,
         bonus: stats.teuerster.bonus,
       } : null,
-      durchschnitt_arbeitspreis: stats.durchschnitt_arbeitspreis,
-      durchschnitt_bonus: stats.durchschnitt_bonus,
+      avg_arbeitspreis: stats.avg_arbeitspreis,
+      avg_grundpreis: stats.avg_grundpreis,
+      avg_bonus: stats.avg_bonus,
       bonus_verteilung: stats.bonus_verteilung,
     };
   });
