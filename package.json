@@ -8,6 +8,7 @@
   "dependencies": {
     "@fastify/cors": "^9.0.1",
     "@libsql/client": "^0.17.4",
+    "cheerio": "^1.2.0",
     "fastify": "^4.28.0",
     "xlsx": "^0.18.5"
   },

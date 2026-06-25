@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>e-regio · Marktlage Analytics</title>
+<link rel="stylesheet" href="../shared/sidebar.css?v=2">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9f9f9; }
+  .app { display: flex; min-height: 100vh; }
+  .sidebar { width: 240px; background: white; border-right: 1px solid #e0e0e0; overflow-y: auto; }
+  .brand { padding: 20px 16px; border-bottom: 1px solid #e0e0e0; }
+  .brand-logo { width: 28px; height: 28px; display: block; margin-bottom: 8px; }
+  .brand-caption { font-size: 12px; font-weight: 600; color: #666; }
+  .mod-nav { padding: 12px 0; }
+  .mod-group { border-bottom: 1px solid #f0f0f0; }
+  .mod-toggle { width: 100%; padding: 12px 16px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; color: #333; }
+  .mod-toggle:hover { background: #f5f5f5; }
+  .mod-toggle.active { color: #00a651; background: #f0faf6; }
+  .mod-icon { width: 18px; height: 18px; flex-shrink: 0; }
+  .mod-items { display: none; padding: 8px 0; }
+  .mod-items.open { display: block; }
+  .mod-item { display: flex; align-items: center; gap: 12px; padding: 8px 16px 8px 40px; font-size: 13px; color: #555; text-decoration: none; transition: color 0.2s; }
+  .mod-item:hover { color: #00a651; }
+  .mod-item.active { color: #00a651; font-weight: 600; }
+  .ext-dot { width: 4px; height: 4px; background: #00a651; border-radius: 50%; }
+  .main { flex: 1; padding: 32px; overflow-y: auto; }
+  .header { margin-bottom: 32px; }
+  .header h1 { font-size: 28px; font-weight: 700; color: #222; margin-bottom: 8px; }
+  .header p { font-size: 14px; color: #666; }
+  .controls { display: flex; gap: 12px; margin-bottom: 24px; }
+  .control-group { display: flex; align-items: center; gap: 8px; }
+  .control-group label { font-size: 13px; font-weight: 500; color: #555; }
+  select { padding: 6px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; }
+  .loading { text-align: center; padding: 40px 20px; color: #999; }
+  .error { background: #fee; border: 1px solid #fcc; color: #c33; padding: 12px 16px; border-radius: 4px; margin-bottom: 16px; font-size: 13px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .kpi-card { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; }
+  .kpi-card.highlight { border-color: #00a651; background: #f0faf6; }
+  .kpi-label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .kpi-value { font-size: 24px; font-weight: 700; color: #222; margin-bottom: 4px; }
+  .kpi-detail { font-size: 12px; color: #666; }
+  .table-section { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+  .section-title { font-size: 14px; font-weight: 600; color: #222; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 12px 0; font-size: 12px; font-weight: 600; color: #666; border-bottom: 1px solid #e0e0e0; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 12px 0; font-size: 13px; color: #333; border-bottom: 1px solid #f0f0f0; }
+  tr:last-child td { border-bottom: none; }
+  .price { font-family: 'Courier New', monospace; font-weight: 600; color: #00a651; }
+  .bonus { background: #fffbf0; padding: 2px 8px; border-radius: 3px; font-size: 11px; color: #d97706; }
+  .disclaimer { font-size: 11px; color: #999; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
+  .refresh-btn { padding: 6px 12px; font-size: 12px; background: #00a651; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+  .refresh-btn:hover { background: #008a3a; }
+  .refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="../shared/eregio-logo-gruen.png" class="brand-logo" alt="e-regio">
+      <div class="brand-caption">Kundenservice Control Center</div>
+    </div>
+    <nav class="mod-nav" aria-label="Module">
+      <div class="mod-group">
+        <button class="mod-toggle" onclick="location.href='../besucher-dashboard/'">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>
+          <span>Analytics</span>
+        </button>
+      </div>
+      <div class="mod-group">
+        <button class="mod-toggle active">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/></svg>
+          <span>Marktlage</span>
+        </button>
+      </div>
+      <div class="mod-group">
+        <button class="mod-toggle" onclick="location.href='../produkt-id-tool/'">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/></svg>
+          <span>Vergleich</span>
+        </button>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main">
+    <div class="header">
+      <h1>Marktlage</h1>
+      <p>Aktuelle Mitbewerber-Preise und Markt-Statistiken</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="control-group">
+        <label for="sparteSel">Sparte:</label>
+        <select id="sparteSel">
+          <option value="strom">Strom</option>
+          <option value="gas">Gas</option>
+          <option value="heizstrom">Heizstrom</option>
+        </select>
+      </div>
+      <button class="refresh-btn" onclick="loadData()">Neu laden</button>
+    </div>
+
+    <!-- Content -->
+    <div id="content">
+      <div class="loading">Daten werden geladen...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function loadData() {
+  const sparte = document.getElementById('sparteSel').value;
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading">Daten werden geladen...</div>';
+
+  try {
+    const stats = await fetch(`/api/mitbewerber/statistik?sparte=${sparte}`).then(r => r.json());
+    const marktlage = await fetch(`/api/mitbewerber/marktlage?sparte=${sparte}&plz=10115`).then(r => r.json());
+
+    if (!stats.anzahl_anbieter) {
+      content.innerHTML = '<div class="error">Keine Daten für diese Sparte vorhanden. Admin muss Mitbewerber-Daten importieren.</div>';
+      return;
+    }
+
+    let html = `
+      <div class="kpi-grid">
+        <div class="kpi-card highlight">
+          <div class="kpi-label">Günstigster</div>
+          <div class="kpi-value">${stats.guentigster?.anbieter || '–'}</div>
+          <div class="kpi-detail price">${(stats.guentigster?.arbeitspreis || 0).toFixed(3)} €/kWh</div>
+          ${stats.guentigster?.grundpreis ? `<div class="kpi-detail">${stats.guentigster.grundpreis} €/Jahr</div>` : ''}
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Teuerster</div>
+          <div class="kpi-value">${stats.teuerster?.anbieter || '–'}</div>
+          <div class="kpi-detail price">${(stats.teuerster?.arbeitspreis || 0).toFixed(3)} €/kWh</div>
+          ${stats.teuerster?.grundpreis ? `<div class="kpi-detail">${stats.teuerster.grundpreis} €/Jahr</div>` : ''}
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Durchschnitt Arbeitspreis</div>
+          <div class="kpi-value">${(stats.durchschnitt_arbeitspreis || 0).toFixed(3)}</div>
+          <div class="kpi-detail">€/kWh</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Anzahl Anbieter</div>
+          <div class="kpi-value">${stats.anzahl_anbieter}</div>
+          <div class="kpi-detail">im Markt</div>
+        </div>
+      </div>
+
+      <div class="table-section">
+        <div class="section-title">Alle Mitbewerber</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Anbieter</th>
+              <th>Arbeitspreis</th>
+              <th>Grundpreis</th>
+              <th>Bonus</th>
+              <th>Quelle</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    if (marktlage.anbieter && marktlage.anbieter.length > 0) {
+      marktlage.anbieter.forEach(a => {
+        html += `
+          <tr>
+            <td>${a.anbieter}</td>
+            <td class="price">${(a.arbeitspreis || 0).toFixed(3)} €</td>
+            <td>${a.grundpreis ? a.grundpreis + ' €' : '–'}</td>
+            <td>${a.bonus ? `<span class="bonus">${a.bonus}€</span>` : '–'}</td>
+            <td>${a.quelle}</td>
+          </tr>
+        `;
+      });
+    } else {
+      html += '<tr><td colspan="5" style="text-align:center;color:#999">Keine Daten</td></tr>';
+    }
+
+    html += `
+          </tbody>
+        </table>
+        <div class="disclaimer">
+          Preise vom ${new Date().toLocaleDateString('de-DE')}. Keine Gewähr. Bonus-Bedingungen prüfen.
+        </div>
+      </div>
+    `;
+
+    content.innerHTML = html;
+  } catch (err) {
+    content.innerHTML = `<div class="error">Fehler beim Laden: ${err.message}</div>`;
+  }
+}
+
+document.getElementById('sparteSel').addEventListener('change', loadData);
+window.addEventListener('load', loadData);
+</script>
+</body>
+</html>

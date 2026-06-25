@@ -148,6 +148,25 @@ const PRODUKTE_REGISTRY = `
     detail      TEXT                  -- JSON: Bereich/Aufschlüsselung/unbekannte Kürzel …
   );
   CREATE INDEX IF NOT EXISTS idx_import_history_ts ON import_history(ts);
+
+  -- Mitbewerber-Preise (täglich gescraped von Check24/Verivox).
+  CREATE TABLE IF NOT EXISTS mitbewerber_preise (
+    id               TEXT PRIMARY KEY,
+    anbieter         TEXT NOT NULL,
+    sparte           TEXT NOT NULL,
+    plz_gebiet       TEXT,
+    arbeitspreis     REAL,
+    grundpreis       REAL,
+    bonus            REAL,
+    bonus_bedingung  TEXT,
+    gueltig_ab       TEXT,
+    gueltig_bis      TEXT,
+    quelle           TEXT NOT NULL DEFAULT 'scrape',
+    aktualisiert_am  TEXT NOT NULL,
+    hash_content     TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, plz_gebiet);
+  CREATE INDEX IF NOT EXISTS idx_mitbewerber_anbieter ON mitbewerber_preise(anbieter, sparte);
 `;
 
 const BESUCHER_TABLES = `
