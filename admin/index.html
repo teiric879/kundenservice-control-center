@@ -1056,6 +1056,29 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
 
       </div>
 
+      <!-- Mitbewerber-Preise (halb-manuell aus Excel-Vorlage) -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-head">
+          <div><div class="card-title">Mitbewerber-Preise</div><div class="card-sub">Marktübersicht – Tarife aus ausgefüllter Excel-Vorlage</div></div>
+          <div class="card-icon icon-gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="2 20 8 14 12 17 22 6"/><line x1="2" y1="22" x2="22" y2="22"/></svg>
+          </div>
+        </div>
+        <div style="font-size:12.5px;color:var(--muted-2);margin-bottom:10px">Lade die Vorlage herunter, trage die aktuellen Mitbewerber-Tarife ein und lade sie wieder hoch. Ein erneuter Import derselben Quelle ersetzt die alten Werte.</div>
+        <div class="btn-row" style="margin-bottom:10px">
+          <button class="btn btn-ghost" id="duMbVorlage" onclick="duDownloadMbVorlage()">Vorlage herunterladen</button>
+        </div>
+        <input type="file" id="duMbFile" accept=".xlsx" class="field-input" style="padding:7px;cursor:pointer">
+        <label style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:12.5px;color:var(--muted);cursor:pointer">
+          <input type="checkbox" id="duMbClearTest" checked> Vorhandene Testdaten entfernen
+        </label>
+        <div id="duMbPreview" class="du-preview" style="display:none"></div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-ghost" id="duMbParse" onclick="duParseMb()">Datei prüfen</button>
+          <button class="btn btn-primary" id="duMbImport" onclick="duImportMb()" disabled>Tarife übernehmen</button>
+        </div>
+      </div>
+
       <!-- Preise: kommt mit SAP -->
       <div class="card" style="margin-top:20px;opacity:.7">
         <div class="card-head">
@@ -2045,6 +2068,87 @@ async function duImportEinsatz(){
   }catch(e){ showToast('Import fehlgeschlagen: '+e.message,'err'); btn.disabled=false; }
 }
 
+// ── Mitbewerber-Preise (Marktübersicht) ──────────────────────────────────────
+let _duMbRows = null;
+const DU_MB_HEADERS = ['Anbieter','Sparte','Arbeitspreis_ct_kWh','Grundpreis_EUR_Jahr','Bonus_EUR','Bonus_Bedingung','PLZ','Quelle','Heizstrom_Typ','Zaehlerart','NS_Messung','SteuVE_Modul'];
+const DU_MB_SPARTEN = ['strom','gas','heizstrom','steuve'];
+
+async function duDownloadMbVorlage(){
+  try{
+    const XLSX=await duLoadXLSX();
+    const beispiele=[
+      {Anbieter:'E.ON', Sparte:'strom', Arbeitspreis_ct_kWh:42, Grundpreis_EUR_Jahr:180, Bonus_EUR:100, Bonus_Bedingung:'Neukundenbonus', PLZ:53721, Quelle:'check24', Heizstrom_Typ:'', Zaehlerart:'', NS_Messung:'', SteuVE_Modul:''},
+      {Anbieter:'Vattenfall', Sparte:'heizstrom', Arbeitspreis_ct_kWh:26, Grundpreis_EUR_Jahr:110, Bonus_EUR:0, Bonus_Bedingung:'', PLZ:53721, Quelle:'verivox', Heizstrom_Typ:'wp', Zaehlerart:'einzeltarif', NS_Messung:'', SteuVE_Modul:''},
+    ];
+    const ws=XLSX.utils.json_to_sheet(beispiele, {header:DU_MB_HEADERS});
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Mitbewerber');
+    XLSX.writeFile(wb, 'mitbewerber-vorlage.xlsx');
+  }catch(e){ showToast('Vorlage fehlgeschlagen: '+e.message,'err'); }
+}
+
+function duMbNum(v){ if(v===''||v==null) return null; const n=parseFloat(String(v).replace(',','.')); return isNaN(n)?null:n; }
+function duMbStr(v){ const s=(v==null?'':String(v)).trim(); return s||null; }
+
+async function duParseMb(){
+  const f=document.getElementById('duMbFile').files[0];
+  const prev=document.getElementById('duMbPreview');
+  if(!f){ showToast('Bitte zuerst eine .xlsx-Datei wählen','err'); return; }
+  prev.style.display='block'; prev.innerHTML='Datei wird gelesen…';
+  document.getElementById('duMbImport').disabled=true; _duMbRows=null;
+  try{
+    const XLSX=await duLoadXLSX();
+    const wb=XLSX.read(new Uint8Array(await f.arrayBuffer()),{type:'array'});
+    const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    const out=[]; let invalid=0;
+    for(const r of raw){
+      const anbieter=duMbStr(r.Anbieter);
+      const sparte=(duMbStr(r.Sparte)||'').toLowerCase();
+      const apCt=duMbNum(r.Arbeitspreis_ct_kWh);
+      const gp=duMbNum(r.Grundpreis_EUR_Jahr);
+      const plzRaw=duMbStr(r.PLZ);
+      // Pflichtfelder + gültige Sparte
+      if(!anbieter || !DU_MB_SPARTEN.includes(sparte) || apCt==null || gp==null || !plzRaw){ invalid++; continue; }
+      out.push({
+        anbieter, sparte,
+        arbeitspreis: apCt/100,           // ct/kWh → €/kWh
+        grundpreis: gp,                   // €/Jahr direkt
+        bonus: duMbNum(r.Bonus_EUR)||0,
+        bonus_bedingung: duMbStr(r.Bonus_Bedingung),
+        plz_gebiet: plzRaw.replace(/\D/g,'').substring(0,3),
+        quelle: (duMbStr(r.Quelle)||'import').toLowerCase(),
+        heizstrom_typ: sparte==='heizstrom' ? (duMbStr(r.Heizstrom_Typ)||'').toLowerCase()||null : null,
+        zaehlerart: sparte==='heizstrom' ? (duMbStr(r.Zaehlerart)||'').toLowerCase()||null : null,
+        ns_messung: sparte==='heizstrom' ? (duMbStr(r.NS_Messung)||'').toLowerCase()||null : null,
+        steuve_modul: sparte==='steuve' ? (duMbStr(r.SteuVE_Modul)||'').toLowerCase()||null : null,
+      });
+    }
+    _duMbRows=out;
+    const sparten=[...new Set(out.map(o=>o.sparte))];
+    const quellen=[...new Set(out.map(o=>o.quelle))];
+    prev.innerHTML=`Geparst: <b>${out.length}</b> Tarife aus <b>${raw.length}</b> Zeilen.<br>`+
+      (out.length? `Sparten: ${escHtml(sparten.join(', '))} · Quellen: ${escHtml(quellen.join(', '))}` : '')+
+      (invalid? `<br><span class="du-warn">${invalid} Zeile(n) ungültig (fehlende Pflichtfelder Anbieter/Sparte/Arbeitspreis/Grundpreis/PLZ) – übersprungen</span>`:'');
+    document.getElementById('duMbImport').disabled = out.length===0;
+  }catch(e){ prev.innerHTML=`<span class="du-warn">Fehler: ${escHtml(e.message)}</span>`; }
+}
+
+async function duImportMb(){
+  if(!_duMbRows||!_duMbRows.length) return;
+  const f=document.getElementById('duMbFile').files[0];
+  const clear_test=document.getElementById('duMbClearTest').checked;
+  const btn=document.getElementById('duMbImport'); btn.disabled=true;
+  try{
+    const r=await fetch(IMPORT_API+'/import/mitbewerber',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({source_file:f?.name||null, rows:_duMbRows, clear_test})});
+    if(!r.ok) throw new Error('Server '+r.status+' – API neu gestartet?');
+    const res=await r.json();
+    showToast(`${res.added} Tarife übernommen`,'ok');
+    document.getElementById('duMbPreview').innerHTML=`<span class="du-ok"><b>${res.added}</b> Tarife importiert${res.skipped?`, ${res.skipped} übersprungen`:''}.</span>`;
+    _duMbRows=null; duLoadHistory();
+  }catch(e){ showToast('Import fehlgeschlagen: '+e.message,'err'); btn.disabled=false; }
+}
+
 // ── Historie ──────────────────────────────────────────────────────────────────
 async function duLoadHistory(){
   const el=document.getElementById('duHistory'); if(!el) return;
@@ -2055,7 +2159,7 @@ async function duLoadHistory(){
     if(!history||!history.length){ el.innerHTML='<div style="color:var(--muted-2);font-size:13px">Noch keine Importe.</div>'; return; }
     el.innerHTML=history.map(h=>{
       const when=new Date(h.ts).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-      const kindLabel=h.kind==='besucher'?'Besucher':h.kind==='einsatzplan'?'Einsatzplan':h.kind;
+      const kindLabel=h.kind==='besucher'?'Besucher':h.kind==='einsatzplan'?'Einsatzplan':h.kind==='mitbewerber'?'Mitbewerber':h.kind;
       let info=`<b>+${h.added}</b> neu`; if(h.skipped) info+=` · ${h.skipped} übersprungen`;
       if(h.source_file) info+=` · ${escHtml(h.source_file)}`;
       const d=h.detail;

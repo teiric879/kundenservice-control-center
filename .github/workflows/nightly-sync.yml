@@ -1,9 +1,13 @@
 name: Nightly Mitbewerber Sync
 
 on:
-  schedule:
-    - cron: '0 2 * * *'   # 02:00 UTC täglich (= 03:00/04:00 MEZ/MESZ)
-  workflow_dispatch:       # Manueller Trigger für Tests
+  # PAUSIERT (2026-06-25): Live-Scraping von Check24/Verivox aufgegeben –
+  # keine GET-Ergebnis-URLs (404), Formular-Flow + Bot-Schutz + AGB-Verstoß.
+  # Mitbewerber-Preise laufen jetzt über halb-manuellen Excel-Import im Admin.
+  # Scraper-Dateien bleiben als Referenz; Cron deaktiviert.
+  # schedule:
+  #   - cron: '0 2 * * *'   # 02:00 UTC täglich (= 03:00/04:00 MEZ/MESZ)
+  workflow_dispatch:       # Nur noch manueller Trigger
 
 jobs:
   sync:

@@ -155,6 +155,15 @@ async function upsertTarife(tarife) {
   return added;
 }
 
+// Alle Einträge einer oder mehrerer Quellen löschen (für Snapshot-Re-Import).
+async function deleteByQuellen(quellen) {
+  if (!quellen || !quellen.length) return 0;
+  const db = getDb('produkte');
+  const ph = quellen.map(() => '?').join(',');
+  const res = await db.run(`DELETE FROM mitbewerber_preise WHERE quelle IN (${ph})`, quellen);
+  return res?.changes || 0;
+}
+
 // Alte Einträge löschen (älter als 72h).
 async function deleteOldEntries(ageHours = 72) {
   const db = getDb('produkte');
@@ -182,6 +191,7 @@ module.exports = {
   getMarktlage,
   getStatistiken,
   upsertTarife,
+  deleteByQuellen,
   deleteOldEntries,
   getAllSparten,
 };
