@@ -1,14 +1,19 @@
 const { getDb } = require('../driver');
 
-// Alle Mitbewerber-Preise für Sparte + PLZ laden.
-async function getMarktlage(sparte, plzGebiet) {
+// Alle Mitbewerber-Preise für Sparte + PLZ + optional Heizstrom-Typ laden.
+async function getMarktlage(sparte, plzGebiet, heizstromTyp) {
   const db = getDb('produkte');
-  const rows = await db.all(
-    `SELECT * FROM mitbewerber_preise
-     WHERE sparte = ? AND plz_gebiet = ?
-     ORDER BY arbeitspreis ASC`,
-    [sparte, plzGebiet]
-  );
+  let query = `SELECT * FROM mitbewerber_preise WHERE sparte = ? AND plz_gebiet = ?`;
+  const params = [sparte, plzGebiet];
+
+  if (sparte === 'heizstrom' && heizstromTyp) {
+    query += ` AND heizstrom_typ = ?`;
+    params.push(heizstromTyp);
+  }
+
+  query += ` ORDER BY arbeitspreis ASC`;
+
+  const rows = await db.all(query, params);
   return rows || [];
 }
 
@@ -73,12 +78,13 @@ async function upsertTarife(tarife) {
     try {
       const result = await db.run(
         `INSERT OR IGNORE INTO mitbewerber_preise
-         (id, anbieter, sparte, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, anbieter, sparte, heizstrom_typ, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           `${tarif.quelle}|${tarif.hash_content}`,
           tarif.anbieter,
           tarif.sparte,
+          tarif.heizstrom_typ || null,
           tarif.plz_gebiet,
           tarif.arbeitspreis,
           tarif.grundpreis,

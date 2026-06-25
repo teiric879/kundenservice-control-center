@@ -2,6 +2,7 @@
 // Usage: node backend/scripts/seed-mitbewerber.js
 
 const { getDb } = require('../data/driver');
+const { ensureProdukte } = require('../data/schema');
 
 const SAMPLE_DATA = [
   // Strom
@@ -25,6 +26,7 @@ const SAMPLE_DATA = [
 
 async function seedData() {
   try {
+    await ensureProdukte();
     const db = getDb('produkte');
     console.log('Inserting sample Mitbewerber-Preise...');
 

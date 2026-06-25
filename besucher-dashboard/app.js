@@ -812,7 +812,8 @@ setInterval(refreshVisits, 20000);
 (function(){
   var API_ML=(location.hostname==='127.0.0.1'?'http://127.0.0.1:3001':'')+'/api/mitbewerber';
   var mlLoaded=false;
-  var mlCache={};  // Cache: {sparte: {stats, anbieter, ts}}
+  var mlCache={};  // Cache: {sparte|plz|type: {stats, anbieter, ts}}
+  var mlCurrentAnbieter=[];  // Ungefilter Anbieter für Suche
 
   function fmtAP(v){ return v!=null ? (v*100).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' ct/kWh' : '–'; }
   function fmtGP(v){ return v!=null ? v.toFixed(2)+' €/Jahr' : '–'; }
@@ -844,17 +845,24 @@ setInterval(refreshVisits, 20000);
     ].join('');
   }
 
-  function renderTable(anbieter, showBonus){
+  function renderTable(anbieter, showBonus, searchTerm){
     var box=document.getElementById('marktlage-table-body');
     if(!box)return;
-    if(!anbieter||!anbieter.length){
-      box.innerHTML='<p style="text-align:center;padding:24px;opacity:.5">Keine Daten — Admin muss Mitbewerber-Daten importieren.</p>';
+    var filtered=anbieter;
+    if(searchTerm){
+      var term=searchTerm.toLowerCase();
+      filtered=anbieter.filter(function(a){
+        return a.anbieter.toLowerCase().includes(term) || (a.bonus_bedingung&&a.bonus_bedingung.toLowerCase().includes(term));
+      });
+    }
+    if(!filtered||!filtered.length){
+      box.innerHTML='<p style="text-align:center;padding:24px;opacity:.5">'+(searchTerm?'Keine Anbieter gefunden':'Keine Daten — Admin muss Mitbewerber-Daten importieren.')+'</p>';
       return;
     }
     var cols=['<th>Anbieter</th><th>Arbeitspreis</th><th>Grundpreis</th>'];
     if(showBonus) cols.push('<th>Bonus</th><th>Bedingung</th>');
     cols.push('<th>Quelle</th>');
-    var rows=anbieter.map(function(a){
+    var rows=filtered.map(function(a){
       var tr='<td>'+a.anbieter+'</td>'+
         '<td class="ml-price">'+fmtAP(a.arbeitspreis)+'</td>'+
         '<td>'+fmtGP(a.grundpreis)+'</td>';
@@ -866,25 +874,30 @@ setInterval(refreshVisits, 20000);
     box.innerHTML='<table class="ml-table"><thead><tr>'+cols.join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>';
   }
 
-  function getPlzCacheKey(sparte){
+  function getCacheKey(sparte, heizstromTyp){
     var plzEl=document.getElementById('marktlagePlzInput');
     var plz=(plzEl&&plzEl.value.trim())||'';
-    return sparte+'|'+(plz?plz.substring(0,3):'*');
+    var key=sparte+'|'+(plz?plz.substring(0,3):'*');
+    if(heizstromTyp) key+='|'+heizstromTyp;
+    return key;
   }
 
   function loadMarktlage(){
     var sparte=document.getElementById('marktlageSparteSel').value;
-    var plzEl=document.getElementById('marktlagePlzInput');
-    var plz=(plzEl&&plzEl.value.trim())||'';
-    var cacheKey=sparte+'|'+(plz?plz.substring(0,3):'*');
+    var heizstromTypEl=document.getElementById('marktlageHeizstromTyp');
+    var heizstromTyp=(heizstromTypEl&&heizstromTypEl.value)||'';
+    var cacheKey=getCacheKey(sparte, heizstromTyp);
     var showBonus=document.getElementById('marktlageBonusCheck').checked;
     var kpisBox=document.getElementById('marktlage-kpis');
     var infoEl=document.getElementById('marktlage-update-info');
+    var plzEl=document.getElementById('marktlagePlzInput');
+    var plz=(plzEl&&plzEl.value.trim())||'';
 
-    // Cache-Hit: nur UI rendern (0ms statt 1-2s API-Latenz)
+    // Cache-Hit: nur UI rendern
     if(mlCache[cacheKey]){
+      mlCurrentAnbieter=mlCache[cacheKey].anbieter;
       renderKpis(mlCache[cacheKey].stats);
-      renderTable(mlCache[cacheKey].anbieter, showBonus);
+      renderTable(mlCurrentAnbieter, showBonus, '');
       if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+mlCache[cacheKey].ts;
       return;
     }
@@ -892,18 +905,21 @@ setInterval(refreshVisits, 20000);
     if(kpisBox) kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;opacity:.5">Lade Marktdaten …</div>';
 
     var plzParam=plz||'10000';
+    var apiUrl=API_ML+'/marktlage?sparte='+sparte+'&plz='+plzParam;
+    if(heizstromTyp) apiUrl+='&heizstrom_typ='+heizstromTyp;
+
     Promise.all([
       fetch(API_ML+'/statistik?sparte='+sparte).then(function(r){return r.json();}),
-      fetch(API_ML+'/marktlage?sparte='+sparte+'&plz='+plzParam).then(function(r){return r.json();})
+      fetch(apiUrl).then(function(r){return r.json();})
     ]).then(function(res){
       var stats=res[0], ml=res[1];
       var ts=ml.aktualisiert_am?new Date(ml.aktualisiert_am).toLocaleString('de-DE'):'unbekannt';
 
-      // Cache speichern für sofortige Wiederverwendung
-      mlCache[cacheKey]={stats:stats, anbieter:ml.anbieter||[], ts:ts};
+      mlCurrentAnbieter=ml.anbieter||[];
+      mlCache[cacheKey]={stats:stats, anbieter:mlCurrentAnbieter, ts:ts};
 
       renderKpis(stats);
-      renderTable(ml.anbieter||[], showBonus);
+      renderTable(mlCurrentAnbieter, showBonus, '');
       if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+ts+(plz?' (PLZ '+plz+')':'');
       mlLoaded=true;
     })['catch'](function(err){
@@ -923,17 +939,31 @@ setInterval(refreshVisits, 20000);
 
   // Controls
   var sparteSel=document.getElementById('marktlageSparteSel');
+  var heizstromTypSel=document.getElementById('marktlageHeizstromTyp');
+  var heizstromTypGroup=document.getElementById('heizstromTypGroup');
   var bonusCheck=document.getElementById('marktlageBonusCheck');
   var refreshBtn=document.getElementById('marktlageRefreshBtn');
   var plzInput=document.getElementById('marktlagePlzInput');
-  if(sparteSel) sparteSel.addEventListener('change', loadMarktlage);
-  if(bonusCheck) bonusCheck.addEventListener('change', function(){
-    var sparte=sparteSel?sparteSel.value:'strom';
-    var cacheKey=getPlzCacheKey(sparte);
-    var showBonus=bonusCheck.checked;
-    // Bonus-Toggle: Nur cached Daten neu rendern (kein API-Fetch!)
-    if(mlCache[cacheKey]) renderTable(mlCache[cacheKey].anbieter, showBonus);
+  var suchInput=document.getElementById('marktlageSuchInput');
+  var suchTimeout;
+
+  function updateHeizstromTypVisibility(){
+    if(heizstromTypGroup) heizstromTypGroup.style.display=sparteSel&&sparteSel.value==='heizstrom'?'flex':'none';
+  }
+
+  if(sparteSel) sparteSel.addEventListener('change', function(){
+    updateHeizstromTypVisibility();
+    loadMarktlage();
   });
+  updateHeizstromTypVisibility();
+
+  if(heizstromTypSel) heizstromTypSel.addEventListener('change', loadMarktlage);
+
+  if(bonusCheck) bonusCheck.addEventListener('change', function(){
+    var showBonus=bonusCheck.checked;
+    renderTable(mlCurrentAnbieter, showBonus, suchInput?suchInput.value:'');
+  });
+
   if(plzInput){
     plzInput.addEventListener('change', function(){
       mlLoaded=false;
@@ -943,10 +973,21 @@ setInterval(refreshVisits, 20000);
       if(e.key==='Enter'){ mlLoaded=false; loadMarktlage(); }
     });
   }
+
+  if(suchInput){
+    suchInput.addEventListener('input', function(){
+      clearTimeout(suchTimeout);
+      suchTimeout=setTimeout(function(){
+        var showBonus=bonusCheck?bonusCheck.checked:true;
+        renderTable(mlCurrentAnbieter, showBonus, suchInput.value);
+      }, 300);
+    });
+  }
+
   if(refreshBtn) refreshBtn.addEventListener('click', function(){
-    // Cache für aktuelle Kombination löschen → erzwingt neuen API-Fetch
     var sparte=sparteSel?sparteSel.value:'strom';
-    var cacheKey=getPlzCacheKey(sparte);
+    var heizstromTyp=(heizstromTypSel&&heizstromTypSel.value)||'';
+    var cacheKey=getCacheKey(sparte, heizstromTyp);
     delete mlCache[cacheKey];
     mlLoaded=false;
     loadMarktlage();

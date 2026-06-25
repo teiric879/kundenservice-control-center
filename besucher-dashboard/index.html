@@ -281,10 +281,23 @@
               <option value="strom">Strom</option>
               <option value="gas">Gas</option>
               <option value="heizstrom">Heizstrom</option>
+              <option value="steuve">SteuVE §14a</option>
+            </select>
+          </div>
+          <div class="field" id="heizstromTypGroup" style="display:none">
+            <select id="marktlageHeizstromTyp" aria-label="Heizstrom-Typ" autocomplete="off">
+              <option value="">Alle Varianten</option>
+              <option value="ns">Nachtspeicher</option>
+              <option value="wp">Wärmepumpe</option>
+              <option value="wp_modul1">WP-Modul 1</option>
+              <option value="wp_modul2">WP-Modul 2</option>
             </select>
           </div>
           <div class="field">
-            <input type="text" id="marktlagePlzInput" placeholder="PLZ" maxlength="5" autocomplete="off" inputmode="numeric" style="width:80px">
+            <input type="text" id="marktlagePlzInput" placeholder="z.B. 53721" maxlength="5" autocomplete="off" inputmode="numeric" class="ml-input-plz">
+          </div>
+          <div class="field">
+            <input type="text" id="marktlageSuchInput" placeholder="Anbieter suchen..." autocomplete="off" class="ml-input-search">
           </div>
           <label class="ml-toggle-label" id="marktlageBonusToggle">
             <input type="checkbox" id="marktlageBonusCheck" checked>

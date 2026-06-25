@@ -82,6 +82,8 @@ const PRODUKTE_ALTERS = [
   "ALTER TABLE gueltigkeiten ADD COLUMN quelle TEXT DEFAULT 'import'",
   "ALTER TABLE preise        ADD COLUMN quelle TEXT DEFAULT 'import'",
   "ALTER TABLE konditionen   ADD COLUMN quelle TEXT DEFAULT 'import'",
+  // Mitbewerber-Preise: Heizstrom-Varianten (WP/NS/Module)
+  'ALTER TABLE mitbewerber_preise ADD COLUMN heizstrom_typ TEXT',
 ];
 
 const PRODUKTE_POST_INDEXES = `
@@ -154,6 +156,7 @@ const PRODUKTE_REGISTRY = `
     id               TEXT PRIMARY KEY,
     anbieter         TEXT NOT NULL,
     sparte           TEXT NOT NULL,
+    heizstrom_typ    TEXT,             -- Nur relevant wenn sparte='heizstrom' (ns|wp|wp_modul1|wp_modul2)
     plz_gebiet       TEXT,
     arbeitspreis     REAL,
     grundpreis       REAL,
@@ -165,7 +168,7 @@ const PRODUKTE_REGISTRY = `
     aktualisiert_am  TEXT NOT NULL,
     hash_content     TEXT
   );
-  CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, plz_gebiet);
+  CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, heizstrom_typ, plz_gebiet);
   CREATE INDEX IF NOT EXISTS idx_mitbewerber_anbieter ON mitbewerber_preise(anbieter, sparte);
 `;
 

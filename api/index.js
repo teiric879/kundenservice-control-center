@@ -9308,7 +9308,9 @@ var require_ddl = __commonJS({
       // Herkunfts-Markierung: 'import' = aus Access/Pipeline gespiegelt, 'manuell' = im Admin gepflegt.
       "ALTER TABLE gueltigkeiten ADD COLUMN quelle TEXT DEFAULT 'import'",
       "ALTER TABLE preise        ADD COLUMN quelle TEXT DEFAULT 'import'",
-      "ALTER TABLE konditionen   ADD COLUMN quelle TEXT DEFAULT 'import'"
+      "ALTER TABLE konditionen   ADD COLUMN quelle TEXT DEFAULT 'import'",
+      // Mitbewerber-Preise: Heizstrom-Varianten (WP/NS/Module)
+      "ALTER TABLE mitbewerber_preise ADD COLUMN heizstrom_typ TEXT"
     ];
     var PRODUKTE_POST_INDEXES = `
   CREATE INDEX IF NOT EXISTS idx_preise_plz ON preise(plz, sparte);
@@ -9375,6 +9377,7 @@ var require_ddl = __commonJS({
     id               TEXT PRIMARY KEY,
     anbieter         TEXT NOT NULL,
     sparte           TEXT NOT NULL,
+    heizstrom_typ    TEXT,             -- Nur relevant wenn sparte='heizstrom' (ns|wp|wp_modul1|wp_modul2)
     plz_gebiet       TEXT,
     arbeitspreis     REAL,
     grundpreis       REAL,
@@ -9386,7 +9389,7 @@ var require_ddl = __commonJS({
     aktualisiert_am  TEXT NOT NULL,
     hash_content     TEXT
   );
-  CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, plz_gebiet);
+  CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, heizstrom_typ, plz_gebiet);
   CREATE INDEX IF NOT EXISTS idx_mitbewerber_anbieter ON mitbewerber_preise(anbieter, sparte);
 `;
     var BESUCHER_TABLES = `
@@ -45520,14 +45523,16 @@ var require_admin_import = __commonJS({
 var require_mitbewerberRepo = __commonJS({
   "backend/data/repositories/mitbewerberRepo.js"(exports2, module2) {
     var { getDb } = require_driver();
-    async function getMarktlage(sparte, plzGebiet) {
+    async function getMarktlage(sparte, plzGebiet, heizstromTyp) {
       const db = getDb("produkte");
-      const rows = await db.all(
-        `SELECT * FROM mitbewerber_preise
-     WHERE sparte = ? AND plz_gebiet = ?
-     ORDER BY arbeitspreis ASC`,
-        [sparte, plzGebiet]
-      );
+      let query = `SELECT * FROM mitbewerber_preise WHERE sparte = ? AND plz_gebiet = ?`;
+      const params = [sparte, plzGebiet];
+      if (sparte === "heizstrom" && heizstromTyp) {
+        query += ` AND heizstrom_typ = ?`;
+        params.push(heizstromTyp);
+      }
+      query += ` ORDER BY arbeitspreis ASC`;
+      const rows = await db.all(query, params);
       return rows || [];
     }
     async function getStatistiken(sparte) {
@@ -45582,12 +45587,13 @@ var require_mitbewerberRepo = __commonJS({
         try {
           const result = await db.run(
             `INSERT OR IGNORE INTO mitbewerber_preise
-         (id, anbieter, sparte, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, anbieter, sparte, heizstrom_typ, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               `${tarif.quelle}|${tarif.hash_content}`,
               tarif.anbieter,
               tarif.sparte,
+              tarif.heizstrom_typ || null,
               tarif.plz_gebiet,
               tarif.arbeitspreis,
               tarif.grundpreis,
@@ -45720,20 +45726,33 @@ var require_mitbewerber = __commonJS({
       { anbieter: "Vattenfall", sparte: "gas", arbeitspreis: 0.075, grundpreis: 125, bonus: 60, bonus_bedingung: null },
       { anbieter: "STROM.io", sparte: "gas", arbeitspreis: 0.07, grundpreis: 100, bonus: 40, bonus_bedingung: null },
       { anbieter: "Stadtwerke", sparte: "gas", arbeitspreis: 0.085, grundpreis: 110, bonus: 0, bonus_bedingung: null },
-      { anbieter: "E.ON", sparte: "heizstrom", arbeitspreis: 0.35, grundpreis: 150, bonus: 120, bonus_bedingung: "Neukundenbonus" },
-      { anbieter: "Vattenfall", sparte: "heizstrom", arbeitspreis: 0.33, grundpreis: 160, bonus: 100, bonus_bedingung: null },
-      { anbieter: "STROM.io", sparte: "heizstrom", arbeitspreis: 0.3, grundpreis: 130, bonus: 50, bonus_bedingung: null }
+      // Heizstrom – Nachtspeicher (NS)
+      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "ns", arbeitspreis: 0.35, grundpreis: 150, bonus: 120, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "ns", arbeitspreis: 0.33, grundpreis: 160, bonus: 100, bonus_bedingung: null },
+      { anbieter: "STROM.io", sparte: "heizstrom", heizstrom_typ: "ns", arbeitspreis: 0.3, grundpreis: 130, bonus: 50, bonus_bedingung: null },
+      // Heizstrom – Wärmepumpe (WP)
+      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "wp", arbeitspreis: 0.28, grundpreis: 100, bonus: 100, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "wp", arbeitspreis: 0.26, grundpreis: 110, bonus: 80, bonus_bedingung: null },
+      { anbieter: "STROM.io", sparte: "heizstrom", heizstrom_typ: "wp", arbeitspreis: 0.24, grundpreis: 90, bonus: 40, bonus_bedingung: null },
+      // Heizstrom – WP-Modul 1
+      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "wp_modul1", arbeitspreis: 0.25, grundpreis: 80, bonus: 80, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "wp_modul1", arbeitspreis: 0.23, grundpreis: 90, bonus: 60, bonus_bedingung: null },
+      // SteuVE §14a
+      { anbieter: "E.ON", sparte: "steuve", arbeitspreis: 0.22, grundpreis: 70, bonus: 50, bonus_bedingung: null },
+      { anbieter: "Vattenfall", sparte: "steuve", arbeitspreis: 0.2, grundpreis: 75, bonus: 40, bonus_bedingung: null },
+      { anbieter: "STROM.io", sparte: "steuve", arbeitspreis: 0.19, grundpreis: 60, bonus: 30, bonus_bedingung: null }
     ];
     module2.exports = async function(fastify) {
       fastify.get("/marktlage", async (request, reply) => {
-        const { sparte, plz } = request.query;
+        const { sparte, plz, heizstrom_typ } = request.query;
         if (!sparte || !plz) {
           return reply.status(400).send({ error: "sparte und plz erforderlich" });
         }
         const plzGebiet = plz.substring(0, 3);
-        const tarife = await getMarktlage(sparte, plzGebiet);
+        const tarife = await getMarktlage(sparte, plzGebiet, heizstrom_typ);
         return {
           sparte,
+          heizstrom_typ: heizstrom_typ || null,
           plz_gebiet: plzGebiet,
           anzahl: tarife.length,
           anbieter: tarife.map((t) => ({
@@ -45774,8 +45793,9 @@ var require_mitbewerber = __commonJS({
         };
       });
       fastify.get("/sparten", async (request, reply) => {
-        const sparten = await getAllSparten();
-        return { sparten };
+        const fromDb = await getAllSparten();
+        const allSparten = [.../* @__PURE__ */ new Set(["strom", "gas", "heizstrom", "steuve", ...fromDb])].sort();
+        return { sparten: allSparten };
       });
       fastify.get("/seed-test", async (request, reply) => {
         const tarife = SAMPLE_TARIFE.map((t) => ({
