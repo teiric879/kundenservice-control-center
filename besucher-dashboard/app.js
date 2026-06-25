@@ -814,7 +814,7 @@ setInterval(refreshVisits, 20000);
   var mlLoaded=false;
   var mlCache={};  // Cache: {sparte: {stats, anbieter, ts}}
 
-  function fmtAP(v){ return v!=null ? v.toFixed(3)+' €/kWh' : '–'; }
+  function fmtAP(v){ return v!=null ? (v*100).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' ct/kWh' : '–'; }
   function fmtGP(v){ return v!=null ? v.toFixed(2)+' €/Jahr' : '–'; }
   function fmtBonus(v){ return (v&&v>0) ? v.toFixed(0)+' €' : '–'; }
 
@@ -835,8 +835,8 @@ setInterval(refreshVisits, 20000);
         (t&&t.grundpreis?'<div class="kpi-sub2">GP '+fmtGP(t.grundpreis)+'</div>':'')+'</div>',
       '<div class="kpi-card card reveal ml-kpi">'+
         '<div class="kpi-lbl">Ø Arbeitspreis</div>'+
-        '<div class="kpi-val kpi-val--mono">'+(stats.durchschnitt_arbeitspreis?stats.durchschnitt_arbeitspreis.toFixed(3):'–')+'</div>'+
-        '<div class="kpi-sub">€/kWh Marktdurchschnitt</div></div>',
+        '<div class="kpi-val kpi-val--mono">'+(stats.durchschnitt_arbeitspreis?fmtAP(stats.durchschnitt_arbeitspreis):'–')+'</div>'+
+        '<div class="kpi-sub">Marktdurchschnitt</div></div>',
       '<div class="kpi-card card reveal ml-kpi">'+
         '<div class="kpi-lbl">Anbieter im Markt</div>'+
         '<div class="kpi-val">'+(stats.anzahl_anbieter||0)+'</div>'+
@@ -866,35 +866,45 @@ setInterval(refreshVisits, 20000);
     box.innerHTML='<table class="ml-table"><thead><tr>'+cols.join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>';
   }
 
+  function getPlzCacheKey(sparte){
+    var plzEl=document.getElementById('marktlagePlzInput');
+    var plz=(plzEl&&plzEl.value.trim())||'';
+    return sparte+'|'+(plz?plz.substring(0,3):'*');
+  }
+
   function loadMarktlage(){
     var sparte=document.getElementById('marktlageSparteSel').value;
+    var plzEl=document.getElementById('marktlagePlzInput');
+    var plz=(plzEl&&plzEl.value.trim())||'';
+    var cacheKey=sparte+'|'+(plz?plz.substring(0,3):'*');
     var showBonus=document.getElementById('marktlageBonusCheck').checked;
     var kpisBox=document.getElementById('marktlage-kpis');
     var infoEl=document.getElementById('marktlage-update-info');
 
     // Cache-Hit: nur UI rendern (0ms statt 1-2s API-Latenz)
-    if(mlCache[sparte]){
-      renderKpis(mlCache[sparte].stats);
-      renderTable(mlCache[sparte].anbieter, showBonus);
-      if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+mlCache[sparte].ts;
+    if(mlCache[cacheKey]){
+      renderKpis(mlCache[cacheKey].stats);
+      renderTable(mlCache[cacheKey].anbieter, showBonus);
+      if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+mlCache[cacheKey].ts;
       return;
     }
 
     if(kpisBox) kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;opacity:.5">Lade Marktdaten …</div>';
 
+    var plzParam=plz||'10000';
     Promise.all([
       fetch(API_ML+'/statistik?sparte='+sparte).then(function(r){return r.json();}),
-      fetch(API_ML+'/marktlage?sparte='+sparte+'&plz=10000').then(function(r){return r.json();})
+      fetch(API_ML+'/marktlage?sparte='+sparte+'&plz='+plzParam).then(function(r){return r.json();})
     ]).then(function(res){
       var stats=res[0], ml=res[1];
       var ts=ml.aktualisiert_am?new Date(ml.aktualisiert_am).toLocaleString('de-DE'):'unbekannt';
 
       // Cache speichern für sofortige Wiederverwendung
-      mlCache[sparte]={stats:stats, anbieter:ml.anbieter||[], ts:ts};
+      mlCache[cacheKey]={stats:stats, anbieter:ml.anbieter||[], ts:ts};
 
       renderKpis(stats);
       renderTable(ml.anbieter||[], showBonus);
-      if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+ts;
+      if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+ts+(plz?' (PLZ '+plz+')':'');
       mlLoaded=true;
     })['catch'](function(err){
       if(kpisBox) kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#c55">Fehler: '+err.message+'</div>';
@@ -915,14 +925,29 @@ setInterval(refreshVisits, 20000);
   var sparteSel=document.getElementById('marktlageSparteSel');
   var bonusCheck=document.getElementById('marktlageBonusCheck');
   var refreshBtn=document.getElementById('marktlageRefreshBtn');
+  var plzInput=document.getElementById('marktlagePlzInput');
   if(sparteSel) sparteSel.addEventListener('change', loadMarktlage);
   if(bonusCheck) bonusCheck.addEventListener('change', function(){
     var sparte=sparteSel?sparteSel.value:'strom';
+    var cacheKey=getPlzCacheKey(sparte);
     var showBonus=bonusCheck.checked;
     // Bonus-Toggle: Nur cached Daten neu rendern (kein API-Fetch!)
-    if(mlCache[sparte]) renderTable(mlCache[sparte].anbieter, showBonus);
+    if(mlCache[cacheKey]) renderTable(mlCache[cacheKey].anbieter, showBonus);
   });
+  if(plzInput){
+    plzInput.addEventListener('change', function(){
+      mlLoaded=false;
+      loadMarktlage();
+    });
+    plzInput.addEventListener('keydown', function(e){
+      if(e.key==='Enter'){ mlLoaded=false; loadMarktlage(); }
+    });
+  }
   if(refreshBtn) refreshBtn.addEventListener('click', function(){
+    // Cache für aktuelle Kombination löschen → erzwingt neuen API-Fetch
+    var sparte=sparteSel?sparteSel.value:'strom';
+    var cacheKey=getPlzCacheKey(sparte);
+    delete mlCache[cacheKey];
     mlLoaded=false;
     loadMarktlage();
   });

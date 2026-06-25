@@ -9369,6 +9369,25 @@ var require_ddl = __commonJS({
     detail      TEXT                  -- JSON: Bereich/Aufschl\xFCsselung/unbekannte K\xFCrzel \u2026
   );
   CREATE INDEX IF NOT EXISTS idx_import_history_ts ON import_history(ts);
+
+  -- Mitbewerber-Preise (t\xE4glich gescraped von Check24/Verivox).
+  CREATE TABLE IF NOT EXISTS mitbewerber_preise (
+    id               TEXT PRIMARY KEY,
+    anbieter         TEXT NOT NULL,
+    sparte           TEXT NOT NULL,
+    plz_gebiet       TEXT,
+    arbeitspreis     REAL,
+    grundpreis       REAL,
+    bonus            REAL,
+    bonus_bedingung  TEXT,
+    gueltig_ab       TEXT,
+    gueltig_bis      TEXT,
+    quelle           TEXT NOT NULL DEFAULT 'scrape',
+    aktualisiert_am  TEXT NOT NULL,
+    hash_content     TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, plz_gebiet);
+  CREATE INDEX IF NOT EXISTS idx_mitbewerber_anbieter ON mitbewerber_preise(anbieter, sparte);
 `;
     var BESUCHER_TABLES = `
   CREATE TABLE IF NOT EXISTS besuche (
@@ -45497,6 +45516,283 @@ var require_admin_import = __commonJS({
   }
 });
 
+// backend/data/repositories/mitbewerberRepo.js
+var require_mitbewerberRepo = __commonJS({
+  "backend/data/repositories/mitbewerberRepo.js"(exports2, module2) {
+    var { getDb } = require_driver();
+    async function getMarktlage(sparte, plzGebiet) {
+      const db = getDb("produkte");
+      const rows = await db.all(
+        `SELECT * FROM mitbewerber_preise
+     WHERE sparte = ? AND plz_gebiet = ?
+     ORDER BY arbeitspreis ASC`,
+        [sparte, plzGebiet]
+      );
+      return rows || [];
+    }
+    async function getStatistiken(sparte) {
+      const db = getDb("produkte");
+      const stats = await db.get(
+        `SELECT
+       COUNT(*) as anzahl_anbieter,
+       MIN(arbeitspreis) as min_arbeitspreis,
+       MAX(arbeitspreis) as max_arbeitspreis,
+       AVG(arbeitspreis) as avg_arbeitspreis,
+       MIN(bonus) as min_bonus,
+       MAX(bonus) as max_bonus,
+       AVG(CASE WHEN bonus > 0 THEN bonus ELSE NULL END) as avg_bonus_nonnull
+     FROM mitbewerber_preise
+     WHERE sparte = ? AND arbeitspreis IS NOT NULL`,
+        [sparte]
+      );
+      const cheapest = await db.get(
+        `SELECT * FROM mitbewerber_preise
+     WHERE sparte = ? AND arbeitspreis IS NOT NULL
+     ORDER BY arbeitspreis ASC LIMIT 1`,
+        [sparte]
+      );
+      const most_expensive = await db.get(
+        `SELECT * FROM mitbewerber_preise
+     WHERE sparte = ? AND arbeitspreis IS NOT NULL
+     ORDER BY arbeitspreis DESC LIMIT 1`,
+        [sparte]
+      );
+      const bonusDistribution = await db.all(
+        `SELECT
+       CASE WHEN bonus IS NULL OR bonus = 0 THEN 'ohne' ELSE 'mit_bedingung' END as kategorie,
+       COUNT(*) as anzahl
+     FROM mitbewerber_preise
+     WHERE sparte = ?
+     GROUP BY kategorie`,
+        [sparte]
+      );
+      return {
+        anzahl_anbieter: stats?.anzahl_anbieter || 0,
+        guentigster: cheapest || null,
+        teuerster: most_expensive || null,
+        durchschnitt_arbeitspreis: stats?.avg_arbeitspreis || 0,
+        durchschnitt_bonus: stats?.avg_bonus_nonnull || 0,
+        bonus_verteilung: bonusDistribution || []
+      };
+    }
+    async function upsertTarife(tarife) {
+      const db = getDb("produkte");
+      let added = 0;
+      for (const tarif of tarife) {
+        try {
+          const result = await db.run(
+            `INSERT OR IGNORE INTO mitbewerber_preise
+         (id, anbieter, sparte, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              `${tarif.quelle}|${tarif.hash_content}`,
+              tarif.anbieter,
+              tarif.sparte,
+              tarif.plz_gebiet,
+              tarif.arbeitspreis,
+              tarif.grundpreis,
+              tarif.bonus,
+              tarif.bonus_bedingung,
+              tarif.gueltig_ab,
+              tarif.gueltig_bis,
+              tarif.quelle,
+              (/* @__PURE__ */ new Date()).toISOString(),
+              tarif.hash_content
+            ]
+          );
+          if (result.changes) added++;
+        } catch (err) {
+          console.error(`Fehler beim Einf\xFCgen von ${tarif.anbieter}/${tarif.sparte}:`, err.message);
+        }
+      }
+      return added;
+    }
+    async function deleteOldEntries(ageHours = 72) {
+      const db = getDb("produkte");
+      const cutoffTime = new Date(Date.now() - ageHours * 3600 * 1e3).toISOString();
+      const result = await db.run(
+        `DELETE FROM mitbewerber_preise
+     WHERE aktualisiert_am < ?`,
+        [cutoffTime]
+      );
+      return result?.changes || 0;
+    }
+    async function getAllSparten() {
+      const db = getDb("produkte");
+      const rows = await db.all(
+        `SELECT DISTINCT sparte FROM mitbewerber_preise ORDER BY sparte`
+      );
+      return rows?.map((r) => r.sparte) || [];
+    }
+    module2.exports = {
+      getMarktlage,
+      getStatistiken,
+      upsertTarife,
+      deleteOldEntries,
+      getAllSparten
+    };
+  }
+});
+
+// backend/lib/scraper-utils.js
+var require_scraper_utils = __commonJS({
+  "backend/lib/scraper-utils.js"(exports2, module2) {
+    var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    async function retryWithBackoff(fn, maxRetries = 3) {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          return await fn();
+        } catch (err) {
+          if (i === maxRetries - 1) throw err;
+          const delayMs = 1e3 * Math.pow(2, i);
+          console.log(`Retry ${i + 1}/${maxRetries} nach ${delayMs}ms...`);
+          await sleep(delayMs);
+        }
+      }
+    }
+    function createRateLimiter(minDelayMs = 1e3) {
+      let lastCallTime = 0;
+      return async function rateLimitedCall(fn) {
+        const now = Date.now();
+        const elapsed = now - lastCallTime;
+        if (elapsed < minDelayMs) {
+          await sleep(minDelayMs - elapsed);
+        }
+        lastCallTime = Date.now();
+        return fn();
+      };
+    }
+    function validatePrice(priceStr) {
+      const match = priceStr?.match(/[\d,\.]+/);
+      if (!match) return null;
+      const price = parseFloat(match[0].replace(",", "."));
+      return price >= 0.1 && price <= 1 ? price : null;
+    }
+    function validateBasicPrice(priceStr) {
+      const match = priceStr?.match(/[\d,\.]+/);
+      if (!match) return null;
+      const price = parseFloat(match[0].replace(",", "."));
+      return price >= 0 && price <= 500 ? price : null;
+    }
+    function validateProvider(name) {
+      if (!name || name.length < 2 || name.length > 50) return false;
+      if (/\d{4,}/.test(name)) return false;
+      return true;
+    }
+    function hashContent(anbieter, sparte, ap, gp) {
+      const crypto = require("crypto");
+      const str = `${anbieter}|${sparte}|${ap}|${gp}`;
+      return crypto.createHash("md5").update(str).digest("hex");
+    }
+    async function fetchWithUA(url) {
+      const headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      };
+      const response = await fetch(url, { headers, timeout: 3e4 });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.text();
+    }
+    module2.exports = {
+      sleep,
+      retryWithBackoff,
+      createRateLimiter,
+      validatePrice,
+      validateBasicPrice,
+      validateProvider,
+      hashContent,
+      fetchWithUA
+    };
+  }
+});
+
+// backend/routes/mitbewerber.js
+var require_mitbewerber = __commonJS({
+  "backend/routes/mitbewerber.js"(exports2, module2) {
+    var { getMarktlage, getStatistiken, getAllSparten, upsertTarife } = require_mitbewerberRepo();
+    var { hashContent } = require_scraper_utils();
+    var SAMPLE_TARIFE = [
+      { anbieter: "E.ON", sparte: "strom", arbeitspreis: 0.45, grundpreis: 180, bonus: 100, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "strom", arbeitspreis: 0.42, grundpreis: 185, bonus: 80, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "STROM.io", sparte: "strom", arbeitspreis: 0.38, grundpreis: 120, bonus: 50, bonus_bedingung: null },
+      { anbieter: "Stadtwerke", sparte: "strom", arbeitspreis: 0.47, grundpreis: 165, bonus: 0, bonus_bedingung: null },
+      { anbieter: "Eprimo", sparte: "strom", arbeitspreis: 0.4, grundpreis: 150, bonus: 150, bonus_bedingung: "Sofortbonus" },
+      { anbieter: "E.ON", sparte: "gas", arbeitspreis: 0.08, grundpreis: 120, bonus: 80, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "gas", arbeitspreis: 0.075, grundpreis: 125, bonus: 60, bonus_bedingung: null },
+      { anbieter: "STROM.io", sparte: "gas", arbeitspreis: 0.07, grundpreis: 100, bonus: 40, bonus_bedingung: null },
+      { anbieter: "Stadtwerke", sparte: "gas", arbeitspreis: 0.085, grundpreis: 110, bonus: 0, bonus_bedingung: null },
+      { anbieter: "E.ON", sparte: "heizstrom", arbeitspreis: 0.35, grundpreis: 150, bonus: 120, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "heizstrom", arbeitspreis: 0.33, grundpreis: 160, bonus: 100, bonus_bedingung: null },
+      { anbieter: "STROM.io", sparte: "heizstrom", arbeitspreis: 0.3, grundpreis: 130, bonus: 50, bonus_bedingung: null }
+    ];
+    module2.exports = async function(fastify) {
+      fastify.get("/marktlage", async (request, reply) => {
+        const { sparte, plz } = request.query;
+        if (!sparte || !plz) {
+          return reply.status(400).send({ error: "sparte und plz erforderlich" });
+        }
+        const plzGebiet = plz.substring(0, 3);
+        const tarife = await getMarktlage(sparte, plzGebiet);
+        return {
+          sparte,
+          plz_gebiet: plzGebiet,
+          anzahl: tarife.length,
+          anbieter: tarife.map((t) => ({
+            anbieter: t.anbieter,
+            arbeitspreis: t.arbeitspreis,
+            grundpreis: t.grundpreis,
+            bonus: t.bonus,
+            bonus_bedingung: t.bonus_bedingung,
+            quelle: t.quelle
+          })),
+          aktualisiert_am: tarife[0]?.aktualisiert_am || null
+        };
+      });
+      fastify.get("/statistik", async (request, reply) => {
+        const { sparte } = request.query;
+        if (!sparte) {
+          return reply.status(400).send({ error: "sparte erforderlich" });
+        }
+        const stats = await getStatistiken(sparte);
+        return {
+          sparte,
+          anzahl_anbieter: stats.anzahl_anbieter,
+          guentigster: stats.guentigster ? {
+            anbieter: stats.guentigster.anbieter,
+            arbeitspreis: stats.guentigster.arbeitspreis,
+            grundpreis: stats.guentigster.grundpreis,
+            bonus: stats.guentigster.bonus
+          } : null,
+          teuerster: stats.teuerster ? {
+            anbieter: stats.teuerster.anbieter,
+            arbeitspreis: stats.teuerster.arbeitspreis,
+            grundpreis: stats.teuerster.grundpreis,
+            bonus: stats.teuerster.bonus
+          } : null,
+          durchschnitt_arbeitspreis: stats.durchschnitt_arbeitspreis,
+          durchschnitt_bonus: stats.durchschnitt_bonus,
+          bonus_verteilung: stats.bonus_verteilung
+        };
+      });
+      fastify.get("/sparten", async (request, reply) => {
+        const sparten = await getAllSparten();
+        return { sparten };
+      });
+      fastify.get("/seed-test", async (request, reply) => {
+        const tarife = SAMPLE_TARIFE.map((t) => ({
+          ...t,
+          plz_gebiet: "100",
+          gueltig_ab: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+          gueltig_bis: null,
+          quelle: "test",
+          hash_content: hashContent(t.anbieter, t.sparte, t.arbeitspreis, t.grundpreis)
+        }));
+        const added = await upsertTarife(tarife);
+        return { ok: true, eingefuegt: added, gesamt: tarife.length };
+      });
+    };
+  }
+});
+
 // backend/app.js
 var require_app = __commonJS({
   "backend/app.js"(exports2, module2) {
@@ -45512,8 +45808,9 @@ var require_app = __commonJS({
       fastify.register(require_einsatzplaner());
       fastify.register(require_vertragsformulare());
       fastify.register(require_admin_import());
+      fastify.register(require_mitbewerber(), { prefix: "/api/mitbewerber" });
       fastify.get("/api/health", async () => ({ ok: true }));
-      if (!process.env.VERCEL) await ensureSchemas();
+      if (!process.env.VERCEL || process.env.VERCEL_ENV === "development") await ensureSchemas();
       return fastify;
     }
     module2.exports = buildApp2;
