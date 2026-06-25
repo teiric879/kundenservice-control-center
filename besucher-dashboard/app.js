@@ -819,15 +819,16 @@ setInterval(refreshVisits, 20000);
   function fmtGP(v){ return v!=null ? v.toFixed(2)+' €/Jahr' : '–'; }
   function fmtBonus(v){ return (v&&v>0) ? v.toFixed(0)+' €' : '–'; }
 
-  function renderKpis(stats){
+  function renderKpis(stats, anbieterCount){
     var box=document.getElementById('marktlage-kpis');
     if(!box) return;
     var g=stats.guentigster, t=stats.teuerster;
+    var count=anbieterCount!=null?anbieterCount:(stats.anzahl_anbieter||0);
     box.innerHTML=[
       '<div class="kpi-card card reveal ml-kpi ml-kpi--best"><div class="kpi-lbl">Günstigster</div><div class="kpi-val">'+(g?g.anbieter:'–')+'</div><div class="kpi-sub">'+(g?fmtAP(g.arbeitspreis):'–')+'</div>'+(g&&g.grundpreis?'<div class="kpi-sub2">GP '+fmtGP(g.grundpreis)+'</div>':'')+'</div>',
       '<div class="kpi-card card reveal ml-kpi"><div class="kpi-lbl">Teuerster</div><div class="kpi-val">'+(t?t.anbieter:'–')+'</div><div class="kpi-sub">'+(t?fmtAP(t.arbeitspreis):'–')+'</div>'+(t&&t.grundpreis?'<div class="kpi-sub2">GP '+fmtGP(t.grundpreis)+'</div>':'')+'</div>',
       '<div class="kpi-card card reveal ml-kpi"><div class="kpi-lbl">Ø Arbeitspreis</div><div class="kpi-val kpi-val--mono">'+(stats.avg_arbeitspreis?fmtAP(stats.avg_arbeitspreis):'–')+'</div><div class="kpi-sub">Marktdurchschnitt</div>'+(stats.avg_grundpreis?'<div class="kpi-sub2">Ø GP '+fmtGP(stats.avg_grundpreis)+'</div>':'')+'</div>',
-      '<div class="kpi-card card reveal ml-kpi"><div class="kpi-lbl">Anbieter im Markt</div><div class="kpi-val">'+(stats.anzahl_anbieter||0)+'</div><div class="kpi-sub">Tarife verglichen</div></div>'
+      '<div class="kpi-card card reveal ml-kpi"><div class="kpi-lbl">Anbieter im Markt</div><div class="kpi-val">'+count+'</div><div class="kpi-sub">Tarife verglichen</div></div>'
     ].join('');
   }
 
@@ -885,7 +886,7 @@ setInterval(refreshVisits, 20000);
 
     if(mlCache[cacheKey]){
       mlCurrentAnbieter=mlCache[cacheKey].anbieter;
-      renderKpis(mlCache[cacheKey].stats);
+      renderKpis(mlCache[cacheKey].stats, mlCurrentAnbieter.length);
       renderTable(mlCurrentAnbieter, showBonus, '');
       if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+mlCache[cacheKey].ts;
       return;
@@ -922,7 +923,7 @@ setInterval(refreshVisits, 20000);
         mlCache[otherKey]={stats:res[2].stats||stats, anbieter:res[2].anbieter||[], ts:ts};
       }
 
-      renderKpis(stats);
+      renderKpis(stats, mlCurrentAnbieter.length);
       renderTable(mlCurrentAnbieter, showBonus, '');
       if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+ts+(plz?' (PLZ '+plz+')':'');
       mlLoaded=true;

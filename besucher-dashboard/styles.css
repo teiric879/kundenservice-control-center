@@ -130,7 +130,7 @@ h1,h2,h3,.num{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.
 select{appearance:none;-webkit-appearance:none;border:1px solid var(--stroke);background:var(--glass);color:var(--ink);
   border-radius:13px;padding:10px 38px 10px 14px;font-weight:600;font-size:13px;font-family:inherit;cursor:pointer}
 select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--acc-hi);outline-offset:2px}
-.field::after{content:"";position:absolute;right:14px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);
+.field:has(select)::after{content:"";position:absolute;right:14px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);
   border-bottom:2px solid var(--muted);transform:translateY(-65%) rotate(45deg);pointer-events:none}
 select option{background:#ffffff;color:var(--ink)}
 .seg{display:inline-flex;border-radius:14px;padding:4px;gap:2px;background:var(--glass);border:1px solid var(--stroke)}
@@ -441,7 +441,7 @@ input[type=date]{border:1px solid var(--stroke);background:var(--glass);color:va
 
 /* Marktlage Input Styling */
 .ml-input-plz,.ml-input-search{border:1px solid var(--stroke);background:var(--glass);color:var(--ink);padding:10px 12px;border-radius:10px;font-size:13px;font-family:inherit;transition:all .2s;outline:none}
-.ml-input-plz{font-weight:500;letter-spacing:.3px;text-align:center}
+.ml-input-plz{font-weight:500;letter-spacing:.3px;text-align:center;width:96px}
 .ml-input-plz:focus,.ml-input-search:focus{border-color:var(--ci);background:var(--glass);box-shadow:inset 0 0 0 1.5px var(--ci) inset 0 1px 3px rgba(0,68,66,.08)}
 .ml-input-plz:focus{font-weight:600}
 .ml-input-plz::placeholder,.ml-input-search::placeholder{color:var(--muted-2);font-size:12.5px}
