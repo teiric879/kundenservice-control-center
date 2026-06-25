@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>e-regio · Kundenservice Control Center</title>
-<link rel="stylesheet" href="styles.css?v=17">
+<link rel="stylesheet" href="styles.css?v=19">
 <link rel="stylesheet" href="../shared/sidebar.css?v=2">
 </head>
 <body>
@@ -311,9 +311,10 @@
             <button class="ml-toggle-btn ml-toggle-btn--active" data-modul="modul1">Modul 1</button>
             <button class="ml-toggle-btn" data-modul="modul2">Modul 2</button>
           </div>
-          <div class="field" style="flex:0 0 auto;min-width:140px">
-            <label for="marktlagePlzInput" style="position:absolute;top:-18px;left:0;font-size:11px;font-weight:500;text-transform:uppercase;color:var(--muted);letter-spacing:.5px">PLZ</label>
-            <input type="text" id="marktlagePlzInput" placeholder="z.B. 53721" maxlength="5" autocomplete="off" inputmode="numeric" class="ml-input-plz" style="width:100%">
+          <div class="ml-plz-group">
+            <span class="ml-plz-label">PLZ</span>
+            <input type="text" id="marktlagePlzInput" placeholder="53721" maxlength="5" autocomplete="off" inputmode="numeric" class="ml-input-plz">
+            <span id="marktlagePlzOrt" class="ml-plz-ort"></span>
           </div>
           <div class="field">
             <input type="text" id="marktlageSuchInput" placeholder="Anbieter suchen..." autocomplete="off" class="ml-input-search">
@@ -349,7 +350,7 @@
 </div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
-<script src="app.js?v=22"></script>
+<script src="app.js?v=23"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=3"></script>
 </body>

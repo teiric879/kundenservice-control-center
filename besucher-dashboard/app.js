@@ -811,7 +811,7 @@ setInterval(refreshVisits, 20000);
    ══════════════════════════════════════════════════════ */
 (function(){
   var API_ML=(location.hostname==='127.0.0.1'?'http://127.0.0.1:3001':'')+'/api/mitbewerber';
-  var mlLoaded=false, mlCache={}, mlCurrentAnbieter=[];
+  var mlLoaded=false, mlCache={}, mlCurrentAnbieter=[], plzOrtCache={};
   // zaehlerart: gemeinsam für WP und NS. nsMessung nur bei heizstromTyp='ns'.
   var mlState={ sparte: 'strom', heizstromTyp: 'wp', zaehlerart: 'einzeltarif', nsMessung: 'getrennt', steuveMod: 'modul1' };
 
@@ -1019,10 +1019,34 @@ setInterval(refreshVisits, 20000);
     renderTable(mlCurrentAnbieter, bonusCheck.checked, suchInput?suchInput.value:'');
   });
 
+  // PLZ → Stadt Lookup
+  function lookupPlzOrt(plz){
+    var ortEl=document.getElementById('marktlagePlzOrt');
+    if(!ortEl) return;
+    if(plzOrtCache[plz]!==undefined){ ortEl.textContent=plzOrtCache[plz]; return; }
+    var baseUrl=API_ML.replace('/api/mitbewerber','');
+    fetch(baseUrl+'/api/plzpreise?plz='+plz)
+      .then(function(r){ return r.json(); })
+      .then(function(d){ var ort=(d.ok&&d.ort)?d.ort:''; plzOrtCache[plz]=ort; ortEl.textContent=ort; })
+      .catch(function(){ plzOrtCache[plz]=''; ortEl.textContent=''; });
+  }
+
   // PLZ input
   var plzInput=document.getElementById('marktlagePlzInput');
+  var plzOrtEl=document.getElementById('marktlagePlzOrt');
+  var plzOrtTimeout;
   if(plzInput){
-    plzInput.addEventListener('change', function(){ mlLoaded=false; loadMarktlage(); });
+    plzInput.addEventListener('input', function(){
+      var val=this.value.trim();
+      clearTimeout(plzOrtTimeout);
+      if(plzOrtEl && val.length<5) plzOrtEl.textContent='';
+      if(val.length===5) plzOrtTimeout=setTimeout(function(){ lookupPlzOrt(val); }, 300);
+    });
+    plzInput.addEventListener('change', function(){
+      var val=this.value.trim();
+      if(val.length===5) lookupPlzOrt(val);
+      mlLoaded=false; loadMarktlage();
+    });
     plzInput.addEventListener('keydown', function(e){ if(e.key==='Enter'){ mlLoaded=false; loadMarktlage(); } });
   }
 
