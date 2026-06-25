@@ -1,14 +1,27 @@
 const { getDb } = require('../driver');
 
-// Alle Mitbewerber-Preise für Sparte + PLZ + optional Heizstrom-Typ laden.
-async function getMarktlage(sparte, plzGebiet, heizstromTyp) {
+// Alle Mitbewerber-Preise für Sparte + PLZ + Varianten laden.
+async function getMarktlage(sparte, plzGebiet, heizstromTyp, wpMessung, nsZaehlerart, steuveMod) {
   const db = getDb('produkte');
   let query = `SELECT * FROM mitbewerber_preise WHERE sparte = ? AND plz_gebiet = ?`;
   const params = [sparte, plzGebiet];
 
-  if (sparte === 'heizstrom' && heizstromTyp) {
-    query += ` AND heizstrom_typ = ?`;
-    params.push(heizstromTyp);
+  if (sparte === 'heizstrom') {
+    if (heizstromTyp) {
+      query += ` AND heizstrom_typ = ?`;
+      params.push(heizstromTyp);
+
+      if (heizstromTyp === 'wp' && wpMessung) {
+        query += ` AND wp_messung = ?`;
+        params.push(wpMessung);
+      } else if (heizstromTyp === 'ns' && nsZaehlerart) {
+        query += ` AND ns_zaehlerart = ?`;
+        params.push(nsZaehlerart);
+      }
+    }
+  } else if (sparte === 'steuve' && steuveMod) {
+    query += ` AND steuve_modul = ?`;
+    params.push(steuveMod);
   }
 
   query += ` ORDER BY arbeitspreis ASC`;
@@ -78,13 +91,16 @@ async function upsertTarife(tarife) {
     try {
       const result = await db.run(
         `INSERT OR IGNORE INTO mitbewerber_preise
-         (id, anbieter, sparte, heizstrom_typ, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, anbieter, sparte, heizstrom_typ, wp_messung, ns_zaehlerart, steuve_modul, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           `${tarif.quelle}|${tarif.hash_content}`,
           tarif.anbieter,
           tarif.sparte,
           tarif.heizstrom_typ || null,
+          tarif.wp_messung || null,
+          tarif.ns_zaehlerart || null,
+          tarif.steuve_modul || null,
           tarif.plz_gebiet,
           tarif.arbeitspreis,
           tarif.grundpreis,

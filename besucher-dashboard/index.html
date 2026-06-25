@@ -284,14 +284,29 @@
               <option value="steuve">SteuVE §14a</option>
             </select>
           </div>
+          <!-- Heizstrom: Typ (WP|NS) Dropdown -->
           <div class="field" id="heizstromTypGroup" style="display:none">
             <select id="marktlageHeizstromTyp" aria-label="Heizstrom-Typ" autocomplete="off">
-              <option value="">Alle Varianten</option>
-              <option value="ns">Nachtspeicher</option>
               <option value="wp">Wärmepumpe</option>
-              <option value="wp_modul1">WP-Modul 1</option>
-              <option value="wp_modul2">WP-Modul 2</option>
+              <option value="ns">Nachtspeicher</option>
             </select>
+          </div>
+          <!-- Heizstrom WP: Messung Dropdown (getrennt|gemeinsam) -->
+          <div class="field" id="wpMessungGroup" style="display:none">
+            <select id="marktlageWpMessung" aria-label="Messung" autocomplete="off">
+              <option value="getrennt">Getrennte Messung</option>
+              <option value="gemeinsam">Gemeinsame Messung</option>
+            </select>
+          </div>
+          <!-- Heizstrom NS: Zählerart Toggle (Einzeltarif|Doppeltarif) -->
+          <div class="field ml-button-group" id="nsZaehlerartGroup" style="display:none">
+            <button class="ml-toggle-btn ml-toggle-btn--active" data-ns="einzeltarif">Einzeltarifzähler</button>
+            <button class="ml-toggle-btn" data-ns="doppeltarif">Doppeltarifzähler</button>
+          </div>
+          <!-- SteuVE: Modul Toggle (Modul1|Modul2) -->
+          <div class="field ml-button-group" id="steuvModulGroup" style="display:none">
+            <button class="ml-toggle-btn ml-toggle-btn--active" data-modul="modul1">Modul 1</button>
+            <button class="ml-toggle-btn" data-modul="modul2">Modul 2</button>
           </div>
           <div class="field">
             <input type="text" id="marktlagePlzInput" placeholder="z.B. 53721" maxlength="5" autocomplete="off" inputmode="numeric" class="ml-input-plz">

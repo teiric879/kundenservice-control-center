@@ -807,13 +807,12 @@ window.addEventListener('eregio:besuch-erfasst', function(){ refreshToday(); });
 setInterval(refreshVisits, 20000);
 
 /* ══════════════════════════════════════════════════════
-   MARKTLAGE – Mitbewerber-Preise
+   MARKTLAGE – Mitbewerber-Preise (Heizstrom + SteuVE Variants)
    ══════════════════════════════════════════════════════ */
 (function(){
   var API_ML=(location.hostname==='127.0.0.1'?'http://127.0.0.1:3001':'')+'/api/mitbewerber';
-  var mlLoaded=false;
-  var mlCache={};  // Cache: {sparte|plz|type: {stats, anbieter, ts}}
-  var mlCurrentAnbieter=[];  // Ungefilter Anbieter für Suche
+  var mlLoaded=false, mlCache={}, mlCurrentAnbieter=[];
+  var mlState={ sparte: 'strom', heizstromTyp: 'wp', wpMessung: 'getrennt', nsZaehlerart: 'einzeltarif', steuveMod: 'modul1' };
 
   function fmtAP(v){ return v!=null ? (v*100).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' ct/kWh' : '–'; }
   function fmtGP(v){ return v!=null ? v.toFixed(2)+' €/Jahr' : '–'; }
@@ -821,79 +820,68 @@ setInterval(refreshVisits, 20000);
 
   function renderKpis(stats){
     var box=document.getElementById('marktlage-kpis');
-    if(!box)return;
+    if(!box) return;
     var g=stats.guentigster, t=stats.teuerster;
     box.innerHTML=[
-      '<div class="kpi-card card reveal ml-kpi ml-kpi--best">'+
-        '<div class="kpi-lbl">Günstigster</div>'+
-        '<div class="kpi-val">'+(g?g.anbieter:'–')+'</div>'+
-        '<div class="kpi-sub">'+(g?fmtAP(g.arbeitspreis):'–')+'</div>'+
-        (g&&g.grundpreis?'<div class="kpi-sub2">GP '+fmtGP(g.grundpreis)+'</div>':'')+'</div>',
-      '<div class="kpi-card card reveal ml-kpi">'+
-        '<div class="kpi-lbl">Teuerster</div>'+
-        '<div class="kpi-val">'+(t?t.anbieter:'–')+'</div>'+
-        '<div class="kpi-sub">'+(t?fmtAP(t.arbeitspreis):'–')+'</div>'+
-        (t&&t.grundpreis?'<div class="kpi-sub2">GP '+fmtGP(t.grundpreis)+'</div>':'')+'</div>',
-      '<div class="kpi-card card reveal ml-kpi">'+
-        '<div class="kpi-lbl">Ø Arbeitspreis</div>'+
-        '<div class="kpi-val kpi-val--mono">'+(stats.durchschnitt_arbeitspreis?fmtAP(stats.durchschnitt_arbeitspreis):'–')+'</div>'+
-        '<div class="kpi-sub">Marktdurchschnitt</div></div>',
-      '<div class="kpi-card card reveal ml-kpi">'+
-        '<div class="kpi-lbl">Anbieter im Markt</div>'+
-        '<div class="kpi-val">'+(stats.anzahl_anbieter||0)+'</div>'+
-        '<div class="kpi-sub">Tarife verglichen</div></div>'
+      '<div class="kpi-card card reveal ml-kpi ml-kpi--best"><div class="kpi-lbl">Günstigster</div><div class="kpi-val">'+(g?g.anbieter:'–')+'</div><div class="kpi-sub">'+(g?fmtAP(g.arbeitspreis):'–')+'</div>'+(g&&g.grundpreis?'<div class="kpi-sub2">GP '+fmtGP(g.grundpreis)+'</div>':'')+'</div>',
+      '<div class="kpi-card card reveal ml-kpi"><div class="kpi-lbl">Teuerster</div><div class="kpi-val">'+(t?t.anbieter:'–')+'</div><div class="kpi-sub">'+(t?fmtAP(t.arbeitspreis):'–')+'</div>'+(t&&t.grundpreis?'<div class="kpi-sub2">GP '+fmtGP(t.grundpreis)+'</div>':'')+'</div>',
+      '<div class="kpi-card card reveal ml-kpi"><div class="kpi-lbl">Ø Arbeitspreis</div><div class="kpi-val kpi-val--mono">'+(stats.durchschnitt_arbeitspreis?fmtAP(stats.durchschnitt_arbeitspreis):'–')+'</div><div class="kpi-sub">Marktdurchschnitt</div></div>',
+      '<div class="kpi-card card reveal ml-kpi"><div class="kpi-lbl">Anbieter im Markt</div><div class="kpi-val">'+(stats.anzahl_anbieter||0)+'</div><div class="kpi-sub">Tarife verglichen</div></div>'
     ].join('');
   }
 
   function renderTable(anbieter, showBonus, searchTerm){
     var box=document.getElementById('marktlage-table-body');
-    if(!box)return;
+    if(!box) return;
     var filtered=anbieter;
     if(searchTerm){
       var term=searchTerm.toLowerCase();
-      filtered=anbieter.filter(function(a){
-        return a.anbieter.toLowerCase().includes(term) || (a.bonus_bedingung&&a.bonus_bedingung.toLowerCase().includes(term));
-      });
+      filtered=anbieter.filter(function(a){ return a.anbieter.toLowerCase().includes(term)||(a.bonus_bedingung&&a.bonus_bedingung.toLowerCase().includes(term)); });
     }
-    if(!filtered||!filtered.length){
-      box.innerHTML='<p style="text-align:center;padding:24px;opacity:.5">'+(searchTerm?'Keine Anbieter gefunden':'Keine Daten — Admin muss Mitbewerber-Daten importieren.')+'</p>';
-      return;
-    }
+    if(!filtered||!filtered.length){ box.innerHTML='<p style="text-align:center;padding:24px;opacity:.5">'+(searchTerm?'Keine Anbieter gefunden':'Keine Daten.')+'</p>'; return; }
     var cols=['<th>Anbieter</th><th>Arbeitspreis</th><th>Grundpreis</th>'];
     if(showBonus) cols.push('<th>Bonus</th><th>Bedingung</th>');
     cols.push('<th>Quelle</th>');
     var rows=filtered.map(function(a){
-      var tr='<td>'+a.anbieter+'</td>'+
-        '<td class="ml-price">'+fmtAP(a.arbeitspreis)+'</td>'+
-        '<td>'+fmtGP(a.grundpreis)+'</td>';
-      if(showBonus) tr+='<td>'+(a.bonus&&a.bonus>0?'<span class="ml-bonus-badge">'+fmtBonus(a.bonus)+'</span>':'–')+'</td>'+
-        '<td class="ml-cond">'+(a.bonus_bedingung||'–')+'</td>';
+      var tr='<td>'+a.anbieter+'</td><td class="ml-price">'+fmtAP(a.arbeitspreis)+'</td><td>'+fmtGP(a.grundpreis)+'</td>';
+      if(showBonus) tr+='<td>'+(a.bonus&&a.bonus>0?'<span class="ml-bonus-badge">'+fmtBonus(a.bonus)+'</span>':'–')+'</td><td class="ml-cond">'+(a.bonus_bedingung||'–')+'</td>';
       tr+='<td class="ml-src">'+a.quelle+'</td>';
       return '<tr>'+tr+'</tr>';
     });
     box.innerHTML='<table class="ml-table"><thead><tr>'+cols.join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>';
   }
 
-  function getCacheKey(sparte, heizstromTyp){
+  function getCacheKey(sparte, heizstromTyp, wpMessung, nsZaehlerart, steuveMod){
     var plzEl=document.getElementById('marktlagePlzInput');
     var plz=(plzEl&&plzEl.value.trim())||'';
     var key=sparte+'|'+(plz?plz.substring(0,3):'*');
-    if(heizstromTyp) key+='|'+heizstromTyp;
+    if(sparte==='heizstrom' && heizstromTyp){
+      key+='|'+heizstromTyp;
+      if(heizstromTyp==='wp' && wpMessung) key+='|'+wpMessung;
+      else if(heizstromTyp==='ns' && nsZaehlerart) key+='|'+nsZaehlerart;
+    } else if(sparte==='steuve' && steuveMod) key+='|'+steuveMod;
     return key;
   }
 
+  function buildApiUrl(sparte, plz, heizstromTyp, wpMessung, nsZaehlerart, steuveMod){
+    var url=API_ML+'/marktlage?sparte='+sparte+'&plz='+(plz||'10000');
+    if(sparte==='heizstrom' && heizstromTyp){
+      url+='&heizstrom_typ='+heizstromTyp;
+      if(heizstromTyp==='wp' && wpMessung) url+='&wp_messung='+wpMessung;
+      else if(heizstromTyp==='ns' && nsZaehlerart) url+='&ns_zaehlerart='+nsZaehlerart;
+    } else if(sparte==='steuve' && steuveMod) url+='&steuve_modul='+steuveMod;
+    return url;
+  }
+
   function loadMarktlage(){
-    var sparte=document.getElementById('marktlageSparteSel').value;
-    var heizstromTypEl=document.getElementById('marktlageHeizstromTyp');
-    var heizstromTyp=(heizstromTypEl&&heizstromTypEl.value)||'';
-    var cacheKey=getCacheKey(sparte, heizstromTyp);
+    var sparte=mlState.sparte, heizstromTyp=mlState.heizstromTyp, wpMessung=mlState.wpMessung, nsZaehlerart=mlState.nsZaehlerart, steuveMod=mlState.steuveMod;
+    var cacheKey=getCacheKey(sparte, heizstromTyp, wpMessung, nsZaehlerart, steuveMod);
     var showBonus=document.getElementById('marktlageBonusCheck').checked;
     var kpisBox=document.getElementById('marktlage-kpis');
     var infoEl=document.getElementById('marktlage-update-info');
     var plzEl=document.getElementById('marktlagePlzInput');
     var plz=(plzEl&&plzEl.value.trim())||'';
 
-    // Cache-Hit: nur UI rendern
     if(mlCache[cacheKey]){
       mlCurrentAnbieter=mlCache[cacheKey].anbieter;
       renderKpis(mlCache[cacheKey].stats);
@@ -904,19 +892,26 @@ setInterval(refreshVisits, 20000);
 
     if(kpisBox) kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;opacity:.5">Lade Marktdaten …</div>';
 
-    var plzParam=plz||'10000';
-    var apiUrl=API_ML+'/marktlage?sparte='+sparte+'&plz='+plzParam;
-    if(heizstromTyp) apiUrl+='&heizstrom_typ='+heizstromTyp;
+    var urls=[API_ML+'/statistik?sparte='+sparte, buildApiUrl(sparte, plz, heizstromTyp, wpMessung, nsZaehlerart, steuveMod)];
+    // SteuVE: parallel both modules
+    if(sparte==='steuve'){
+      var modul2Url=buildApiUrl(sparte, plz, heizstromTyp, wpMessung, nsZaehlerart, steuveMod==='modul1'?'modul2':'modul1');
+      urls.push(fetch(modul2Url).then(function(r){return r.json();}));
+    }
 
-    Promise.all([
-      fetch(API_ML+'/statistik?sparte='+sparte).then(function(r){return r.json();}),
-      fetch(apiUrl).then(function(r){return r.json();})
-    ]).then(function(res){
+    Promise.all(urls.map(function(u){return typeof u==='string'?fetch(u).then(function(r){return r.json();}):u;})).then(function(res){
       var stats=res[0], ml=res[1];
       var ts=ml.aktualisiert_am?new Date(ml.aktualisiert_am).toLocaleString('de-DE'):'unbekannt';
 
       mlCurrentAnbieter=ml.anbieter||[];
       mlCache[cacheKey]={stats:stats, anbieter:mlCurrentAnbieter, ts:ts};
+
+      // For SteuVE, also cache the other module
+      if(sparte==='steuve' && res[2]){
+        var otherModul=steuveMod==='modul1'?'modul2':'modul1';
+        var otherKey=getCacheKey(sparte, null, null, null, otherModul);
+        mlCache[otherKey]={stats:res[2].stats||stats, anbieter:res[2].anbieter||[], ts:ts};
+      }
 
       renderKpis(stats);
       renderTable(mlCurrentAnbieter, showBonus, '');
@@ -927,71 +922,108 @@ setInterval(refreshVisits, 20000);
     });
   }
 
-  // View-Aktivierung: Daten beim ersten Öffnen laden
-  var origViewSwitch=document.querySelectorAll('.mod-item[data-view]');
-  origViewSwitch.forEach(function(a){
+  // View activation
+  document.querySelectorAll('.mod-item[data-view]').forEach(function(a){
     if(a.dataset.view==='marktlage'){
-      a.addEventListener('click',function(){
-        if(!mlLoaded) loadMarktlage();
-      });
+      a.addEventListener('click', function(){ if(!mlLoaded) loadMarktlage(); });
     }
   });
 
-  // Controls
+  // Main sparte selector
   var sparteSel=document.getElementById('marktlageSparteSel');
   var heizstromTypSel=document.getElementById('marktlageHeizstromTyp');
+  var wpMessungSel=document.getElementById('marktlageWpMessung');
+  var nsZaehlerartGroup=document.getElementById('nsZaehlerartGroup');
+  var steuvModulGroup=document.getElementById('steuvModulGroup');
   var heizstromTypGroup=document.getElementById('heizstromTypGroup');
-  var bonusCheck=document.getElementById('marktlageBonusCheck');
-  var refreshBtn=document.getElementById('marktlageRefreshBtn');
-  var plzInput=document.getElementById('marktlagePlzInput');
-  var suchInput=document.getElementById('marktlageSuchInput');
-  var suchTimeout;
+  var wpMessungGroup=document.getElementById('wpMessungGroup');
 
-  function updateHeizstromTypVisibility(){
-    if(heizstromTypGroup) heizstromTypGroup.style.display=sparteSel&&sparteSel.value==='heizstrom'?'flex':'none';
+  function updateControlsVisibility(){
+    var sparte=sparteSel.value;
+    mlState.sparte=sparte;
+    heizstromTypGroup.style.display=(sparte==='heizstrom'?'flex':'none');
+    wpMessungGroup.style.display=(sparte==='heizstrom'&&mlState.heizstromTyp==='wp'?'flex':'none');
+    nsZaehlerartGroup.style.display=(sparte==='heizstrom'&&mlState.heizstromTyp==='ns'?'flex':'none');
+    steuvModulGroup.style.display=(sparte==='steuve'?'flex':'none');
   }
 
   if(sparteSel) sparteSel.addEventListener('change', function(){
-    updateHeizstromTypVisibility();
+    updateControlsVisibility();
+    mlLoaded=false;
     loadMarktlage();
   });
-  updateHeizstromTypVisibility();
 
-  if(heizstromTypSel) heizstromTypSel.addEventListener('change', loadMarktlage);
-
-  if(bonusCheck) bonusCheck.addEventListener('change', function(){
-    var showBonus=bonusCheck.checked;
-    renderTable(mlCurrentAnbieter, showBonus, suchInput?suchInput.value:'');
+  if(heizstromTypSel) heizstromTypSel.addEventListener('change', function(){
+    mlState.heizstromTyp=heizstromTypSel.value;
+    updateControlsVisibility();
+    mlLoaded=false;
+    loadMarktlage();
   });
 
-  if(plzInput){
-    plzInput.addEventListener('change', function(){
+  if(wpMessungSel) wpMessungSel.addEventListener('change', function(){
+    mlState.wpMessung=wpMessungSel.value;
+    mlLoaded=false;
+    loadMarktlage();
+  });
+
+  // NS Zählerart toggle
+  document.querySelectorAll('[data-ns]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('[data-ns]').forEach(function(b){ b.classList.remove('ml-toggle-btn--active'); });
+      this.classList.add('ml-toggle-btn--active');
+      mlState.nsZaehlerart=this.dataset.ns;
       mlLoaded=false;
       loadMarktlage();
     });
-    plzInput.addEventListener('keydown', function(e){
-      if(e.key==='Enter'){ mlLoaded=false; loadMarktlage(); }
+  });
+
+  // SteuVE modul toggle
+  document.querySelectorAll('[data-modul]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('[data-modul]').forEach(function(b){ b.classList.remove('ml-toggle-btn--active'); });
+      this.classList.add('ml-toggle-btn--active');
+      mlState.steuveMod=this.dataset.modul;
+      mlLoaded=false;
+      loadMarktlage();
     });
+  });
+
+  // Bonus toggle
+  var bonusCheck=document.getElementById('marktlageBonusCheck');
+  if(bonusCheck) bonusCheck.addEventListener('change', function(){
+    var suchInput=document.getElementById('marktlageSuchInput');
+    renderTable(mlCurrentAnbieter, bonusCheck.checked, suchInput?suchInput.value:'');
+  });
+
+  // PLZ input
+  var plzInput=document.getElementById('marktlagePlzInput');
+  if(plzInput){
+    plzInput.addEventListener('change', function(){ mlLoaded=false; loadMarktlage(); });
+    plzInput.addEventListener('keydown', function(e){ if(e.key==='Enter'){ mlLoaded=false; loadMarktlage(); } });
   }
 
+  // Search input
+  var suchInput=document.getElementById('marktlageSuchInput');
+  var suchTimeout;
   if(suchInput){
     suchInput.addEventListener('input', function(){
       clearTimeout(suchTimeout);
       suchTimeout=setTimeout(function(){
-        var showBonus=bonusCheck?bonusCheck.checked:true;
-        renderTable(mlCurrentAnbieter, showBonus, suchInput.value);
+        renderTable(mlCurrentAnbieter, bonusCheck.checked, suchInput.value);
       }, 300);
     });
   }
 
+  // Refresh button
+  var refreshBtn=document.getElementById('marktlageRefreshBtn');
   if(refreshBtn) refreshBtn.addEventListener('click', function(){
-    var sparte=sparteSel?sparteSel.value:'strom';
-    var heizstromTyp=(heizstromTypSel&&heizstromTypSel.value)||'';
-    var cacheKey=getCacheKey(sparte, heizstromTyp);
+    var cacheKey=getCacheKey(mlState.sparte, mlState.heizstromTyp, mlState.wpMessung, mlState.nsZaehlerart, mlState.steuveMod);
     delete mlCache[cacheKey];
     mlLoaded=false;
     loadMarktlage();
   });
+
+  updateControlsVisibility();
 }());
 
 })();

@@ -82,8 +82,11 @@ const PRODUKTE_ALTERS = [
   "ALTER TABLE gueltigkeiten ADD COLUMN quelle TEXT DEFAULT 'import'",
   "ALTER TABLE preise        ADD COLUMN quelle TEXT DEFAULT 'import'",
   "ALTER TABLE konditionen   ADD COLUMN quelle TEXT DEFAULT 'import'",
-  // Mitbewerber-Preise: Heizstrom-Varianten (WP/NS/Module)
+  // Mitbewerber-Preise: Heizstrom-Varianten + SteuVE-Module
   'ALTER TABLE mitbewerber_preise ADD COLUMN heizstrom_typ TEXT',
+  'ALTER TABLE mitbewerber_preise ADD COLUMN wp_messung TEXT',
+  'ALTER TABLE mitbewerber_preise ADD COLUMN ns_zaehlerart TEXT',
+  'ALTER TABLE mitbewerber_preise ADD COLUMN steuve_modul TEXT',
 ];
 
 const PRODUKTE_POST_INDEXES = `
@@ -156,7 +159,10 @@ const PRODUKTE_REGISTRY = `
     id               TEXT PRIMARY KEY,
     anbieter         TEXT NOT NULL,
     sparte           TEXT NOT NULL,
-    heizstrom_typ    TEXT,             -- Nur relevant wenn sparte='heizstrom' (ns|wp|wp_modul1|wp_modul2)
+    heizstrom_typ    TEXT,             -- 'wp'|'ns' (nur bei sparte='heizstrom')
+    wp_messung       TEXT,             -- 'getrennt'|'gemeinsam' (nur bei heizstrom_typ='wp')
+    ns_zaehlerart    TEXT,             -- 'einzeltarif'|'doppeltarif' (nur bei heizstrom_typ='ns')
+    steuve_modul     TEXT,             -- 'modul1'|'modul2' (nur bei sparte='steuve')
     plz_gebiet       TEXT,
     arbeitspreis     REAL,
     grundpreis       REAL,
@@ -168,7 +174,7 @@ const PRODUKTE_REGISTRY = `
     aktualisiert_am  TEXT NOT NULL,
     hash_content     TEXT
   );
-  CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, heizstrom_typ, plz_gebiet);
+  CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, heizstrom_typ, wp_messung, ns_zaehlerart, steuve_modul, plz_gebiet);
   CREATE INDEX IF NOT EXISTS idx_mitbewerber_anbieter ON mitbewerber_preise(anbieter, sparte);
 `;
 
