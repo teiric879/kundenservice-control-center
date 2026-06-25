@@ -812,6 +812,7 @@ setInterval(refreshVisits, 20000);
 (function(){
   var API_ML=(location.hostname==='127.0.0.1'?'http://127.0.0.1:3001':'')+'/api/mitbewerber';
   var mlLoaded=false;
+  var mlCache={};  // Cache: {sparte: {stats, anbieter, ts}}
 
   function fmtAP(v){ return v!=null ? v.toFixed(3)+' €/kWh' : '–'; }
   function fmtGP(v){ return v!=null ? v.toFixed(2)+' €/Jahr' : '–'; }
@@ -870,6 +871,15 @@ setInterval(refreshVisits, 20000);
     var showBonus=document.getElementById('marktlageBonusCheck').checked;
     var kpisBox=document.getElementById('marktlage-kpis');
     var infoEl=document.getElementById('marktlage-update-info');
+
+    // Cache-Hit: nur UI rendern (0ms statt 1-2s API-Latenz)
+    if(mlCache[sparte]){
+      renderKpis(mlCache[sparte].stats);
+      renderTable(mlCache[sparte].anbieter, showBonus);
+      if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+mlCache[sparte].ts;
+      return;
+    }
+
     if(kpisBox) kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;opacity:.5">Lade Marktdaten …</div>';
 
     Promise.all([
@@ -877,12 +887,14 @@ setInterval(refreshVisits, 20000);
       fetch(API_ML+'/marktlage?sparte='+sparte+'&plz=10000').then(function(r){return r.json();})
     ]).then(function(res){
       var stats=res[0], ml=res[1];
+      var ts=ml.aktualisiert_am?new Date(ml.aktualisiert_am).toLocaleString('de-DE'):'unbekannt';
+
+      // Cache speichern für sofortige Wiederverwendung
+      mlCache[sparte]={stats:stats, anbieter:ml.anbieter||[], ts:ts};
+
       renderKpis(stats);
       renderTable(ml.anbieter||[], showBonus);
-      if(infoEl){
-        var ts=ml.aktualisiert_am?new Date(ml.aktualisiert_am).toLocaleString('de-DE'):'unbekannt';
-        infoEl.textContent='Zuletzt aktualisiert: '+ts;
-      }
+      if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+ts;
       mlLoaded=true;
     })['catch'](function(err){
       if(kpisBox) kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#c55">Fehler: '+err.message+'</div>';
@@ -905,12 +917,10 @@ setInterval(refreshVisits, 20000);
   var refreshBtn=document.getElementById('marktlageRefreshBtn');
   if(sparteSel) sparteSel.addEventListener('change', loadMarktlage);
   if(bonusCheck) bonusCheck.addEventListener('change', function(){
+    var sparte=sparteSel?sparteSel.value:'strom';
     var showBonus=bonusCheck.checked;
-    // Nur Tabelle neu rendern ohne neuen Fetch
-    fetch(API_ML+'/marktlage?sparte='+(sparteSel?sparteSel.value:'strom')+'&plz=10000')
-      .then(function(r){return r.json();})
-      .then(function(ml){ renderTable(ml.anbieter||[], showBonus); })
-      ['catch'](function(){});
+    // Bonus-Toggle: Nur cached Daten neu rendern (kein API-Fetch!)
+    if(mlCache[sparte]) renderTable(mlCache[sparte].anbieter, showBonus);
   });
   if(refreshBtn) refreshBtn.addEventListener('click', function(){
     mlLoaded=false;
