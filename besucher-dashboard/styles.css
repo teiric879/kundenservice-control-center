@@ -462,6 +462,9 @@ input[type=date]{border:1px solid var(--stroke);background:var(--glass);color:va
 .ml-toggle-btn--active{background:var(--turq);color:var(--ci);font-weight:700}
 .ml-toggle-btn + .ml-toggle-btn{border-left:1px solid var(--stroke)}
 
+.ml-anbieter-cell{display:flex;align-items:center}
+.ml-avatar{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;color:#fff;font-size:9px;font-weight:700;letter-spacing:.3px;margin-right:8px;flex-shrink:0}
+
 @media(prefers-reduced-motion:reduce){
   *,body::before,body::after{animation:none!important;transition:none!important}
   .reveal{opacity:1;transform:none}

@@ -260,7 +260,15 @@ async function loadWeek() {
   for (const n of notes) S.notes.set(`${n.date}|${n.agent_id}`, n);
 
   renderGrid();
-  renderNotes();
+
+  var dr = document.getElementById('notesDrawer');
+  if (dr) {
+    var savedOpen = localStorage.getItem('notesDrawerOpen') === '1';
+    if (savedOpen) dr.classList.add('open');
+    dr.querySelector('.notes-drawer-handle').setAttribute('aria-expanded', String(savedOpen));
+    renderNotes();
+    _notesDrawerRendered = true;
+  }
 }
 
 function updateWeekLabel() {
@@ -877,6 +885,16 @@ function showTab(name) {
 
   if (name === 'dashboard') loadStats();
   if (name === 'monat')     loadMonthView();
+}
+
+/* ── Notizen Drawer ─────────────────────────────────────────────────────── */
+var _notesDrawerRendered = false;
+function toggleNotesDrawer() {
+  var dr = document.getElementById('notesDrawer');
+  var isOpen = dr.classList.toggle('open');
+  dr.querySelector('.notes-drawer-handle').setAttribute('aria-expanded', String(isOpen));
+  localStorage.setItem('notesDrawerOpen', isOpen ? '1' : '0');
+  if (isOpen && !_notesDrawerRendered) { renderNotes(); _notesDrawerRendered = true; }
 }
 
 /* ── Boot ───────────────────────────────────────────────────────────────── */

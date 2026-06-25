@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Einsatzplaner · e-regio</title>
-<link rel="stylesheet" href="styles.css?v=9">
+<link rel="stylesheet" href="styles.css?v=10">
 <link rel="stylesheet" href="../shared/sidebar.css?v=2">
 </head>
 <body>
@@ -55,6 +55,13 @@
             <rect x="1" y="9" width="4" height="6" rx="1"/><rect x="6" y="5" width="4" height="10" rx="1"/><rect x="11" y="1" width="4" height="14" rx="1"/>
           </svg>
           Besucher-Dashboard
+          <span class="ext-dot"></span>
+        </a>
+        <a class="mod-item" href="../besucher-dashboard/?view=marktlage">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <polyline points="1 11 5 7 9 9 15 3"/><line x1="1" y1="15" x2="15" y2="15"/>
+          </svg>
+          Marktlage
           <span class="ext-dot"></span>
         </a>
         <a class="mod-item" href="../produkt-id-tool/">
@@ -153,15 +160,6 @@
           <div id="planerGrid"></div>
         </div>
 
-        <div class="notes-section reveal" style="animation-delay:.12s">
-          <div class="notes-title">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-              <path d="M3 3h10a1 1 0 011 1v8a1 1 0 01-1 1H6l-4 2V4a1 1 0 011-1z"/>
-            </svg>
-            NOTIZEN DER WOCHE
-          </div>
-          <div id="notesGrid"></div>
-        </div>
       </div>
     </div>
 
@@ -334,6 +332,20 @@
 <!-- ── Toast ─────────────────────────────────────────────────────────── -->
 <div id="toast" class="toast"></div>
 
+<!-- ── Notizen Drawer ────────────────────────────────────────────────── -->
+<div id="notesDrawer" class="notes-drawer">
+  <button class="notes-drawer-handle" onclick="toggleNotesDrawer()" aria-expanded="false">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+      <path d="M3 3h10a1 1 0 011 1v8a1 1 0 01-1 1H6l-4 2V4a1 1 0 011-1z"/>
+    </svg>
+    <span>NOTIZEN DER WOCHE</span>
+    <svg class="notes-drawer-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8L6 4l4 4"/></svg>
+  </button>
+  <div class="notes-drawer-body">
+    <div id="notesGrid"></div>
+  </div>
+</div>
+
 <script>
 function toggleModItems(btn, id) {
   const items = document.getElementById(id);
@@ -341,7 +353,7 @@ function toggleModItems(btn, id) {
   btn.classList.toggle('collapsed');
 }
 </script>
-<script src="app.js?v=20260623c"></script>
+<script src="app.js?v=20260625a"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=3"></script>
 </body>

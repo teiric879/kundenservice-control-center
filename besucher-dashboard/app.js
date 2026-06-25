@@ -765,6 +765,8 @@ function bootLoad(){
       render(true);
       initErfassen();
       var rz;window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){render(false);},160);});
+      var vparam=new URLSearchParams(location.search).get('view');
+      if(vparam){var vnavEl=document.querySelector('.mod-item[data-view="'+vparam+'"]');if(vnavEl)vnavEl.click();}
       refreshToday(); // heutige Zeilen sofort frisch nachladen (korrigiert evtl. gecachten Verlauf)
     });
 }
@@ -819,6 +821,18 @@ setInterval(refreshVisits, 20000);
   function fmtGP(v){ return v!=null ? v.toFixed(2)+' €/Jahr' : '–'; }
   function fmtBonus(v){ return (v&&v>0) ? v.toFixed(0)+' €' : '–'; }
 
+  function providerColor(name){
+    var colors=['#2d7a6e','#5b8db8','#c0783d','#7b6fa8','#b05c6a','#4a8a5a','#8a6c3a'];
+    var h=0; for(var i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))%colors.length;
+    return colors[Math.abs(h)];
+  }
+  function providerAvatar(name){
+    var parts=name.trim().split(/\s+/);
+    var ini=(parts[0][0]+(parts[1]?parts[1][0]:parts[0][1]||'')).toUpperCase();
+    var c=providerColor(name);
+    return '<span class="ml-avatar" style="background:'+c+'">'+ini+'</span>';
+  }
+
   function renderKpis(stats, anbieterCount){
     var box=document.getElementById('marktlage-kpis');
     if(!box) return;
@@ -845,7 +859,7 @@ setInterval(refreshVisits, 20000);
     if(showBonus) cols.push('<th>Bonus</th><th>Bedingung</th>');
     cols.push('<th>Quelle</th>');
     var rows=filtered.map(function(a){
-      var tr='<td>'+a.anbieter+'</td><td class="ml-price">'+fmtAP(a.arbeitspreis)+'</td><td>'+fmtGP(a.grundpreis)+'</td>';
+      var tr='<td class="ml-anbieter-cell">'+providerAvatar(a.anbieter)+a.anbieter+'</td><td class="ml-price">'+fmtAP(a.arbeitspreis)+'</td><td>'+fmtGP(a.grundpreis)+'</td>';
       if(showBonus) tr+='<td>'+(a.bonus&&a.bonus>0?'<span class="ml-bonus-badge">'+fmtBonus(a.bonus)+'</span>':'–')+'</td><td class="ml-cond">'+(a.bonus_bedingung||'–')+'</td>';
       tr+='<td class="ml-src">'+a.quelle+'</td>';
       return '<tr>'+tr+'</tr>';
@@ -935,7 +949,10 @@ setInterval(refreshVisits, 20000);
   // View activation
   document.querySelectorAll('.mod-item[data-view]').forEach(function(a){
     if(a.dataset.view==='marktlage'){
-      a.addEventListener('click', function(){ if(!mlLoaded) loadMarktlage(); });
+      a.addEventListener('click', function(){
+        loadMarktlage();
+        updateControlsVisibility();
+      });
     }
   });
 
