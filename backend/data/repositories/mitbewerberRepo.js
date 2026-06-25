@@ -123,8 +123,8 @@ async function upsertTarife(tarife) {
     try {
       const result = await db.run(
         `INSERT OR IGNORE INTO mitbewerber_preise
-         (id, anbieter, sparte, heizstrom_typ, zaehlerart, ns_messung, steuve_modul, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, anbieter, sparte, heizstrom_typ, zaehlerart, ns_messung, steuve_modul, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content, logo_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           `${tarif.quelle}|${tarif.hash_content}`,
           tarif.anbieter,
@@ -143,6 +143,7 @@ async function upsertTarife(tarife) {
           tarif.quelle,
           new Date().toISOString(),
           tarif.hash_content,
+          tarif.logo_url || null,
         ]
       );
       if (result.changes) added++;

@@ -90,6 +90,8 @@ const PRODUKTE_ALTERS = [
   // Korrekte Spalten (ersetzen wp_messung/ns_zaehlerart logisch)
   'ALTER TABLE mitbewerber_preise ADD COLUMN zaehlerart TEXT',
   'ALTER TABLE mitbewerber_preise ADD COLUMN ns_messung TEXT',
+  // Provider-Logos (aus Scraper extrahiert)
+  'ALTER TABLE mitbewerber_preise ADD COLUMN logo_url TEXT',
 ];
 
 const PRODUKTE_POST_INDEXES = `
@@ -175,7 +177,8 @@ const PRODUKTE_REGISTRY = `
     gueltig_bis      TEXT,
     quelle           TEXT NOT NULL DEFAULT 'scrape',
     aktualisiert_am  TEXT NOT NULL,
-    hash_content     TEXT
+    hash_content     TEXT,
+    logo_url         TEXT
   );
   CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, heizstrom_typ, zaehlerart, ns_messung, steuve_modul, plz_gebiet);
   CREATE INDEX IF NOT EXISTS idx_mitbewerber_anbieter ON mitbewerber_preise(anbieter, sparte);

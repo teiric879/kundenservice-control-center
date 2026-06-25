@@ -1,0 +1,35 @@
+name: Nightly Mitbewerber Sync
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 02:00 UTC täglich (= 03:00/04:00 MEZ/MESZ)
+  workflow_dispatch:       # Manueller Trigger für Tests
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: scripts/sync-mitbewerber/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd scripts/sync-mitbewerber
+          npm ci
+
+      - name: Run Mitbewerber Sync
+        env:
+          PRODUKTE_DB_URL:        ${{ secrets.PRODUKTE_DB_URL }}
+          PRODUKTE_DB_AUTH_TOKEN: ${{ secrets.PRODUKTE_DB_AUTH_TOKEN }}
+        run: |
+          cd scripts/sync-mitbewerber
+          node index.js

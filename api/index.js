@@ -9309,11 +9309,16 @@ var require_ddl = __commonJS({
       "ALTER TABLE gueltigkeiten ADD COLUMN quelle TEXT DEFAULT 'import'",
       "ALTER TABLE preise        ADD COLUMN quelle TEXT DEFAULT 'import'",
       "ALTER TABLE konditionen   ADD COLUMN quelle TEXT DEFAULT 'import'",
-      // Mitbewerber-Preise: Heizstrom-Varianten + SteuVE-Module
+      // Mitbewerber-Preise: Heizstrom-Varianten + SteuVE-Module (alte Spalten bleiben für Turso-Compat)
       "ALTER TABLE mitbewerber_preise ADD COLUMN heizstrom_typ TEXT",
       "ALTER TABLE mitbewerber_preise ADD COLUMN wp_messung TEXT",
       "ALTER TABLE mitbewerber_preise ADD COLUMN ns_zaehlerart TEXT",
-      "ALTER TABLE mitbewerber_preise ADD COLUMN steuve_modul TEXT"
+      "ALTER TABLE mitbewerber_preise ADD COLUMN steuve_modul TEXT",
+      // Korrekte Spalten (ersetzen wp_messung/ns_zaehlerart logisch)
+      "ALTER TABLE mitbewerber_preise ADD COLUMN zaehlerart TEXT",
+      "ALTER TABLE mitbewerber_preise ADD COLUMN ns_messung TEXT",
+      // Provider-Logos (aus Scraper extrahiert)
+      "ALTER TABLE mitbewerber_preise ADD COLUMN logo_url TEXT"
     ];
     var PRODUKTE_POST_INDEXES = `
   CREATE INDEX IF NOT EXISTS idx_preise_plz ON preise(plz, sparte);
@@ -9381,8 +9386,8 @@ var require_ddl = __commonJS({
     anbieter         TEXT NOT NULL,
     sparte           TEXT NOT NULL,
     heizstrom_typ    TEXT,             -- 'wp'|'ns' (nur bei sparte='heizstrom')
-    wp_messung       TEXT,             -- 'getrennt'|'gemeinsam' (nur bei heizstrom_typ='wp')
-    ns_zaehlerart    TEXT,             -- 'einzeltarif'|'doppeltarif' (nur bei heizstrom_typ='ns')
+    zaehlerart       TEXT,             -- 'einzeltarif'|'doppeltarif' (bei WP und NS)
+    ns_messung       TEXT,             -- 'getrennt'|'gemeinsam' (nur bei heizstrom_typ='ns')
     steuve_modul     TEXT,             -- 'modul1'|'modul2' (nur bei sparte='steuve')
     plz_gebiet       TEXT,
     arbeitspreis     REAL,
@@ -9393,9 +9398,10 @@ var require_ddl = __commonJS({
     gueltig_bis      TEXT,
     quelle           TEXT NOT NULL DEFAULT 'scrape',
     aktualisiert_am  TEXT NOT NULL,
-    hash_content     TEXT
+    hash_content     TEXT,
+    logo_url         TEXT
   );
-  CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, heizstrom_typ, wp_messung, ns_zaehlerart, steuve_modul, plz_gebiet);
+  CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, heizstrom_typ, zaehlerart, ns_messung, steuve_modul, plz_gebiet);
   CREATE INDEX IF NOT EXISTS idx_mitbewerber_anbieter ON mitbewerber_preise(anbieter, sparte);
 `;
     var BESUCHER_TABLES = `
@@ -45529,7 +45535,7 @@ var require_admin_import = __commonJS({
 var require_mitbewerberRepo = __commonJS({
   "backend/data/repositories/mitbewerberRepo.js"(exports2, module2) {
     var { getDb } = require_driver();
-    async function getMarktlage(sparte, plzGebiet, heizstromTyp, wpMessung, nsZaehlerart, steuveMod) {
+    async function getMarktlage(sparte, plzGebiet, heizstromTyp, zaehlerart, nsMessung, steuveMod) {
       const db = getDb("produkte");
       let query = `SELECT * FROM mitbewerber_preise WHERE sparte = ? AND plz_gebiet = ?`;
       const params = [sparte, plzGebiet];
@@ -45537,12 +45543,13 @@ var require_mitbewerberRepo = __commonJS({
         if (heizstromTyp) {
           query += ` AND heizstrom_typ = ?`;
           params.push(heizstromTyp);
-          if (heizstromTyp === "wp" && wpMessung) {
-            query += ` AND wp_messung = ?`;
-            params.push(wpMessung);
-          } else if (heizstromTyp === "ns" && nsZaehlerart) {
-            query += ` AND ns_zaehlerart = ?`;
-            params.push(nsZaehlerart);
+          if (zaehlerart) {
+            query += ` AND zaehlerart = ?`;
+            params.push(zaehlerart);
+          }
+          if (heizstromTyp === "ns" && nsMessung) {
+            query += ` AND ns_messung = ?`;
+            params.push(nsMessung);
           }
         }
       } else if (sparte === "steuve" && steuveMod) {
@@ -45553,33 +45560,59 @@ var require_mitbewerberRepo = __commonJS({
       const rows = await db.all(query, params);
       return rows || [];
     }
-    async function getStatistiken(sparte) {
+    async function getStatistiken(sparte, heizstromTyp, zaehlerart, nsMessung, steuveMod) {
       const db = getDb("produkte");
-      const stats = await db.get(
-        `SELECT
+      let query = `SELECT
        COUNT(*) as anzahl_anbieter,
+       AVG(arbeitspreis) as avg_arbeitspreis,
+       AVG(grundpreis) as avg_grundpreis,
        MIN(arbeitspreis) as min_arbeitspreis,
        MAX(arbeitspreis) as max_arbeitspreis,
-       AVG(arbeitspreis) as avg_arbeitspreis,
        MIN(bonus) as min_bonus,
        MAX(bonus) as max_bonus,
        AVG(CASE WHEN bonus > 0 THEN bonus ELSE NULL END) as avg_bonus_nonnull
      FROM mitbewerber_preise
-     WHERE sparte = ? AND arbeitspreis IS NOT NULL`,
-        [sparte]
-      );
-      const cheapest = await db.get(
-        `SELECT * FROM mitbewerber_preise
-     WHERE sparte = ? AND arbeitspreis IS NOT NULL
-     ORDER BY arbeitspreis ASC LIMIT 1`,
-        [sparte]
-      );
-      const most_expensive = await db.get(
-        `SELECT * FROM mitbewerber_preise
-     WHERE sparte = ? AND arbeitspreis IS NOT NULL
-     ORDER BY arbeitspreis DESC LIMIT 1`,
-        [sparte]
-      );
+     WHERE sparte = ?`;
+      const params = [sparte];
+      if (sparte === "heizstrom") {
+        if (heizstromTyp) {
+          query += ` AND heizstrom_typ = ?`;
+          params.push(heizstromTyp);
+          if (zaehlerart) {
+            query += ` AND zaehlerart = ?`;
+            params.push(zaehlerart);
+          }
+          if (heizstromTyp === "ns" && nsMessung) {
+            query += ` AND ns_messung = ?`;
+            params.push(nsMessung);
+          }
+        }
+      } else if (sparte === "steuve" && steuveMod) {
+        query += ` AND steuve_modul = ?`;
+        params.push(steuveMod);
+      }
+      query += ` AND arbeitspreis IS NOT NULL`;
+      const stats = await db.get(query, params);
+      let cheapQuery = `SELECT * FROM mitbewerber_preise WHERE sparte = ? AND arbeitspreis IS NOT NULL`;
+      let cheapParams = [sparte];
+      if (sparte === "heizstrom" && heizstromTyp) {
+        cheapQuery += ` AND heizstrom_typ = ?`;
+        cheapParams.push(heizstromTyp);
+        if (zaehlerart) {
+          cheapQuery += ` AND zaehlerart = ?`;
+          cheapParams.push(zaehlerart);
+        }
+        if (heizstromTyp === "ns" && nsMessung) {
+          cheapQuery += ` AND ns_messung = ?`;
+          cheapParams.push(nsMessung);
+        }
+      } else if (sparte === "steuve" && steuveMod) {
+        cheapQuery += ` AND steuve_modul = ?`;
+        cheapParams.push(steuveMod);
+      }
+      cheapQuery += ` ORDER BY arbeitspreis ASC LIMIT 1`;
+      const cheapest = await db.get(cheapQuery, cheapParams);
+      const most_expensive = await db.get(cheapQuery.replace("ASC", "DESC"), cheapParams);
       const bonusDistribution = await db.all(
         `SELECT
        CASE WHEN bonus IS NULL OR bonus = 0 THEN 'ohne' ELSE 'mit_bedingung' END as kategorie,
@@ -45593,8 +45626,9 @@ var require_mitbewerberRepo = __commonJS({
         anzahl_anbieter: stats?.anzahl_anbieter || 0,
         guentigster: cheapest || null,
         teuerster: most_expensive || null,
-        durchschnitt_arbeitspreis: stats?.avg_arbeitspreis || 0,
-        durchschnitt_bonus: stats?.avg_bonus_nonnull || 0,
+        avg_arbeitspreis: stats?.avg_arbeitspreis || 0,
+        avg_grundpreis: stats?.avg_grundpreis || 0,
+        avg_bonus: stats?.avg_bonus_nonnull || 0,
         bonus_verteilung: bonusDistribution || []
       };
     }
@@ -45605,15 +45639,15 @@ var require_mitbewerberRepo = __commonJS({
         try {
           const result = await db.run(
             `INSERT OR IGNORE INTO mitbewerber_preise
-         (id, anbieter, sparte, heizstrom_typ, wp_messung, ns_zaehlerart, steuve_modul, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, anbieter, sparte, heizstrom_typ, zaehlerart, ns_messung, steuve_modul, plz_gebiet, arbeitspreis, grundpreis, bonus, bonus_bedingung, gueltig_ab, gueltig_bis, quelle, aktualisiert_am, hash_content, logo_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               `${tarif.quelle}|${tarif.hash_content}`,
               tarif.anbieter,
               tarif.sparte,
               tarif.heizstrom_typ || null,
-              tarif.wp_messung || null,
-              tarif.ns_zaehlerart || null,
+              tarif.zaehlerart || null,
+              tarif.ns_messung || null,
               tarif.steuve_modul || null,
               tarif.plz_gebiet,
               tarif.arbeitspreis,
@@ -45624,7 +45658,8 @@ var require_mitbewerberRepo = __commonJS({
               tarif.gueltig_bis,
               tarif.quelle,
               (/* @__PURE__ */ new Date()).toISOString(),
-              tarif.hash_content
+              tarif.hash_content,
+              tarif.logo_url || null
             ]
           );
           if (result.changes) added++;
@@ -45736,6 +45771,7 @@ var require_scraper_utils = __commonJS({
 var require_mitbewerber = __commonJS({
   "backend/routes/mitbewerber.js"(exports2, module2) {
     var { getMarktlage, getStatistiken, getAllSparten, upsertTarife } = require_mitbewerberRepo();
+    var { getDb } = require_driver();
     var { hashContent } = require_scraper_utils();
     var SAMPLE_TARIFE = [
       // Strom
@@ -45746,21 +45782,28 @@ var require_mitbewerber = __commonJS({
       { anbieter: "E.ON", sparte: "gas", arbeitspreis: 0.08, grundpreis: 120, bonus: 80, bonus_bedingung: "Neukundenbonus" },
       { anbieter: "Vattenfall", sparte: "gas", arbeitspreis: 0.075, grundpreis: 125, bonus: 60, bonus_bedingung: null },
       { anbieter: "STROM.io", sparte: "gas", arbeitspreis: 0.07, grundpreis: 100, bonus: 40, bonus_bedingung: null },
-      // Heizstrom – Wärmepumpe + Getrennte Messung
-      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "wp", wp_messung: "getrennt", arbeitspreis: 0.28, grundpreis: 100, bonus: 100, bonus_bedingung: "Neukundenbonus" },
-      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "wp", wp_messung: "getrennt", arbeitspreis: 0.26, grundpreis: 110, bonus: 80, bonus_bedingung: null },
-      { anbieter: "STROM.io", sparte: "heizstrom", heizstrom_typ: "wp", wp_messung: "getrennt", arbeitspreis: 0.24, grundpreis: 90, bonus: 40, bonus_bedingung: null },
-      // Heizstrom – Wärmepumpe + Gemeinsame Messung
-      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "wp", wp_messung: "gemeinsam", arbeitspreis: 0.3, grundpreis: 80, bonus: 120, bonus_bedingung: "Neukundenbonus" },
-      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "wp", wp_messung: "gemeinsam", arbeitspreis: 0.28, grundpreis: 95, bonus: 90, bonus_bedingung: null },
-      { anbieter: "STROM.io", sparte: "heizstrom", heizstrom_typ: "wp", wp_messung: "gemeinsam", arbeitspreis: 0.26, grundpreis: 75, bonus: 50, bonus_bedingung: null },
-      // Heizstrom – Nachtspeicher + Einzeltarifzähler
-      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "ns", ns_zaehlerart: "einzeltarif", arbeitspreis: 0.35, grundpreis: 150, bonus: 120, bonus_bedingung: "Neukundenbonus" },
-      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "ns", ns_zaehlerart: "einzeltarif", arbeitspreis: 0.33, grundpreis: 160, bonus: 100, bonus_bedingung: null },
-      // Heizstrom – Nachtspeicher + Doppeltarifzähler
-      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "ns", ns_zaehlerart: "doppeltarif", arbeitspreis: 0.32, grundpreis: 140, bonus: 110, bonus_bedingung: "Neukundenbonus" },
-      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "ns", ns_zaehlerart: "doppeltarif", arbeitspreis: 0.3, grundpreis: 150, bonus: 90, bonus_bedingung: null },
-      { anbieter: "STROM.io", sparte: "heizstrom", heizstrom_typ: "ns", ns_zaehlerart: "doppeltarif", arbeitspreis: 0.28, grundpreis: 120, bonus: 60, bonus_bedingung: null },
+      // Heizstrom – Wärmepumpe + Einzeltarifzähler
+      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "wp", zaehlerart: "einzeltarif", arbeitspreis: 0.28, grundpreis: 100, bonus: 100, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "wp", zaehlerart: "einzeltarif", arbeitspreis: 0.26, grundpreis: 110, bonus: 80, bonus_bedingung: null },
+      { anbieter: "STROM.io", sparte: "heizstrom", heizstrom_typ: "wp", zaehlerart: "einzeltarif", arbeitspreis: 0.24, grundpreis: 90, bonus: 40, bonus_bedingung: null },
+      // Heizstrom – Wärmepumpe + Doppeltarifzähler
+      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "wp", zaehlerart: "doppeltarif", arbeitspreis: 0.3, grundpreis: 80, bonus: 120, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "wp", zaehlerart: "doppeltarif", arbeitspreis: 0.28, grundpreis: 95, bonus: 90, bonus_bedingung: null },
+      { anbieter: "STROM.io", sparte: "heizstrom", heizstrom_typ: "wp", zaehlerart: "doppeltarif", arbeitspreis: 0.26, grundpreis: 75, bonus: 50, bonus_bedingung: null },
+      // Heizstrom – Nachtspeicher + Einzeltarifzähler + Getrennte Messung
+      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "ns", zaehlerart: "einzeltarif", ns_messung: "getrennt", arbeitspreis: 0.35, grundpreis: 150, bonus: 120, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "ns", zaehlerart: "einzeltarif", ns_messung: "getrennt", arbeitspreis: 0.33, grundpreis: 160, bonus: 100, bonus_bedingung: null },
+      // Heizstrom – Nachtspeicher + Einzeltarifzähler + Gemeinsame Messung
+      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "ns", zaehlerart: "einzeltarif", ns_messung: "gemeinsam", arbeitspreis: 0.36, grundpreis: 145, bonus: 110, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "ns", zaehlerart: "einzeltarif", ns_messung: "gemeinsam", arbeitspreis: 0.34, grundpreis: 155, bonus: 90, bonus_bedingung: null },
+      // Heizstrom – Nachtspeicher + Doppeltarifzähler + Getrennte Messung
+      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "ns", zaehlerart: "doppeltarif", ns_messung: "getrennt", arbeitspreis: 0.32, grundpreis: 140, bonus: 110, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "ns", zaehlerart: "doppeltarif", ns_messung: "getrennt", arbeitspreis: 0.3, grundpreis: 150, bonus: 90, bonus_bedingung: null },
+      { anbieter: "STROM.io", sparte: "heizstrom", heizstrom_typ: "ns", zaehlerart: "doppeltarif", ns_messung: "getrennt", arbeitspreis: 0.28, grundpreis: 120, bonus: 60, bonus_bedingung: null },
+      // Heizstrom – Nachtspeicher + Doppeltarifzähler + Gemeinsame Messung
+      { anbieter: "E.ON", sparte: "heizstrom", heizstrom_typ: "ns", zaehlerart: "doppeltarif", ns_messung: "gemeinsam", arbeitspreis: 0.31, grundpreis: 135, bonus: 100, bonus_bedingung: "Neukundenbonus" },
+      { anbieter: "Vattenfall", sparte: "heizstrom", heizstrom_typ: "ns", zaehlerart: "doppeltarif", ns_messung: "gemeinsam", arbeitspreis: 0.29, grundpreis: 145, bonus: 80, bonus_bedingung: null },
+      { anbieter: "STROM.io", sparte: "heizstrom", heizstrom_typ: "ns", zaehlerart: "doppeltarif", ns_messung: "gemeinsam", arbeitspreis: 0.27, grundpreis: 115, bonus: 50, bonus_bedingung: null },
       // SteuVE §14a – Modul 1
       { anbieter: "E.ON", sparte: "steuve", steuve_modul: "modul1", arbeitspreis: 0.22, grundpreis: 70, bonus: 50, bonus_bedingung: null },
       { anbieter: "Vattenfall", sparte: "steuve", steuve_modul: "modul1", arbeitspreis: 0.2, grundpreis: 75, bonus: 40, bonus_bedingung: null },
@@ -45772,17 +45815,17 @@ var require_mitbewerber = __commonJS({
     ];
     module2.exports = async function(fastify) {
       fastify.get("/marktlage", async (request, reply) => {
-        const { sparte, plz, heizstrom_typ, wp_messung, ns_zaehlerart, steuve_modul } = request.query;
+        const { sparte, plz, heizstrom_typ, zaehlerart, ns_messung, steuve_modul } = request.query;
         if (!sparte || !plz) {
           return reply.status(400).send({ error: "sparte und plz erforderlich" });
         }
         const plzGebiet = plz.substring(0, 3);
-        const tarife = await getMarktlage(sparte, plzGebiet, heizstrom_typ, wp_messung, ns_zaehlerart, steuve_modul);
+        const tarife = await getMarktlage(sparte, plzGebiet, heizstrom_typ, zaehlerart, ns_messung, steuve_modul);
         return {
           sparte,
           heizstrom_typ: heizstrom_typ || null,
-          wp_messung: wp_messung || null,
-          ns_zaehlerart: ns_zaehlerart || null,
+          zaehlerart: zaehlerart || null,
+          ns_messung: ns_messung || null,
           steuve_modul: steuve_modul || null,
           plz_gebiet: plzGebiet,
           anzahl: tarife.length,
@@ -45798,11 +45841,11 @@ var require_mitbewerber = __commonJS({
         };
       });
       fastify.get("/statistik", async (request, reply) => {
-        const { sparte } = request.query;
+        const { sparte, heizstrom_typ, zaehlerart, ns_messung, steuve_modul } = request.query;
         if (!sparte) {
           return reply.status(400).send({ error: "sparte erforderlich" });
         }
-        const stats = await getStatistiken(sparte);
+        const stats = await getStatistiken(sparte, heizstrom_typ, zaehlerart, ns_messung, steuve_modul);
         return {
           sparte,
           anzahl_anbieter: stats.anzahl_anbieter,
@@ -45818,8 +45861,9 @@ var require_mitbewerber = __commonJS({
             grundpreis: stats.teuerster.grundpreis,
             bonus: stats.teuerster.bonus
           } : null,
-          durchschnitt_arbeitspreis: stats.durchschnitt_arbeitspreis,
-          durchschnitt_bonus: stats.durchschnitt_bonus,
+          avg_arbeitspreis: stats.avg_arbeitspreis,
+          avg_grundpreis: stats.avg_grundpreis,
+          avg_bonus: stats.avg_bonus,
           bonus_verteilung: stats.bonus_verteilung
         };
       });
@@ -45829,13 +45873,15 @@ var require_mitbewerber = __commonJS({
         return { sparten: allSparten };
       });
       fastify.get("/seed-test", async (request, reply) => {
+        const db = getDb("produkte");
+        await db.run(`DELETE FROM mitbewerber_preise WHERE quelle = 'test'`);
         const tarife = SAMPLE_TARIFE.map((t) => ({
           ...t,
           plz_gebiet: "100",
           gueltig_ab: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
           gueltig_bis: null,
           quelle: "test",
-          hash_content: hashContent(t.anbieter, t.sparte, t.arbeitspreis, t.grundpreis)
+          hash_content: hashContent(t.anbieter, t.sparte, t.arbeitspreis, t.grundpreis, t.heizstrom_typ, t.zaehlerart, t.ns_messung, t.steuve_modul)
         }));
         const added = await upsertTarife(tarife);
         return { ok: true, eingefuegt: added, gesamt: tarife.length };

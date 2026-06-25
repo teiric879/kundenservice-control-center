@@ -859,7 +859,8 @@ setInterval(refreshVisits, 20000);
     if(showBonus) cols.push('<th>Bonus</th><th>Bedingung</th>');
     cols.push('<th>Quelle</th>');
     var rows=filtered.map(function(a){
-      var tr='<td class="ml-anbieter-cell">'+providerAvatar(a.anbieter)+a.anbieter+'</td><td class="ml-price">'+fmtAP(a.arbeitspreis)+'</td><td>'+fmtGP(a.grundpreis)+'</td>';
+      var icon=a.logo_url?'<img src="'+a.logo_url+'" class="ml-provider-logo" alt="" onerror="this.style.display=\'none\'">':providerAvatar(a.anbieter);
+      var tr='<td class="ml-anbieter-cell">'+icon+a.anbieter+'</td><td class="ml-price">'+fmtAP(a.arbeitspreis)+'</td><td>'+fmtGP(a.grundpreis)+'</td>';
       if(showBonus) tr+='<td>'+(a.bonus&&a.bonus>0?'<span class="ml-bonus-badge">'+fmtBonus(a.bonus)+'</span>':'–')+'</td><td class="ml-cond">'+(a.bonus_bedingung||'–')+'</td>';
       tr+='<td class="ml-src">'+a.quelle+'</td>';
       return '<tr>'+tr+'</tr>';
