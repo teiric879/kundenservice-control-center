@@ -45488,6 +45488,49 @@ var require_importHistoryRepo = __commonJS({
   }
 });
 
+// backend/routes/admin-import.js
+var require_admin_import = __commonJS({
+  "backend/routes/admin-import.js"(exports2, module2) {
+    var besucherRepo = require_besucherRepo();
+    var einsatzplanerRepo = require_einsatzplanerRepo();
+    var importHistoryRepo = require_importHistoryRepo();
+    module2.exports = async function adminImportRoutes(fastify) {
+      fastify.get("/api/admin/import/besucher/cutoff", async () => {
+        return { cutoff: await besucherRepo.maxDatum() };
+      });
+      fastify.post("/api/admin/import/besucher", async (req, reply) => {
+        const { rows, source_file } = req.body || {};
+        if (!Array.isArray(rows)) return reply.code(400).send({ error: "rows[] erforderlich" });
+        const res = await besucherRepo.bulkInsertVisits(rows);
+        await importHistoryRepo.log({
+          kind: "besucher",
+          source_file,
+          added: res.added,
+          skipped: res.skipped,
+          detail: { cutoff: res.cutoff, range: res.range, received: rows.length }
+        });
+        return { ok: true, ...res };
+      });
+      fastify.post("/api/admin/import/einsatzplan", async (req, reply) => {
+        const { rows, source_file } = req.body || {};
+        if (!Array.isArray(rows)) return reply.code(400).send({ error: "rows[] erforderlich" });
+        const res = await einsatzplanerRepo.bulkInsertAssignments(rows);
+        await importHistoryRepo.log({
+          kind: "einsatzplan",
+          source_file,
+          added: res.added,
+          skipped: res.skipped,
+          detail: { existing: res.existing, unknownCount: res.unknownCount, unknownKuerzel: res.unknownKuerzel, received: rows.length }
+        });
+        return { ok: true, ...res };
+      });
+      fastify.get("/api/admin/import-history", async (req) => {
+        return { history: await importHistoryRepo.list(req.query?.limit) };
+      });
+    };
+  }
+});
+
 // backend/data/repositories/mitbewerberRepo.js
 var require_mitbewerberRepo = __commonJS({
   "backend/data/repositories/mitbewerberRepo.js"(exports2, module2) {
@@ -45626,13 +45669,6 @@ var require_mitbewerberRepo = __commonJS({
       }
       return added;
     }
-    async function deleteByQuellen(quellen) {
-      if (!quellen || !quellen.length) return 0;
-      const db = getDb("produkte");
-      const ph = quellen.map(() => "?").join(",");
-      const res = await db.run(`DELETE FROM mitbewerber_preise WHERE quelle IN (${ph})`, quellen);
-      return res?.changes || 0;
-    }
     async function deleteOldEntries(ageHours = 72) {
       const db = getDb("produkte");
       const cutoffTime = new Date(Date.now() - ageHours * 3600 * 1e3).toISOString();
@@ -45654,150 +45690,8 @@ var require_mitbewerberRepo = __commonJS({
       getMarktlage,
       getStatistiken,
       upsertTarife,
-      deleteByQuellen,
       deleteOldEntries,
       getAllSparten
-    };
-  }
-});
-
-// backend/routes/admin-import.js
-var require_admin_import = __commonJS({
-  "backend/routes/admin-import.js"(exports2, module2) {
-    var besucherRepo = require_besucherRepo();
-    var einsatzplanerRepo = require_einsatzplanerRepo();
-    var importHistoryRepo = require_importHistoryRepo();
-    var mitbewerberRepo = require_mitbewerberRepo();
-    var crypto = require("crypto");
-    module2.exports = async function adminImportRoutes(fastify) {
-      fastify.get("/api/admin/import/besucher/cutoff", async () => {
-        return { cutoff: await besucherRepo.maxDatum() };
-      });
-      fastify.post("/api/admin/import/besucher", async (req, reply) => {
-        const { rows, source_file } = req.body || {};
-        if (!Array.isArray(rows)) return reply.code(400).send({ error: "rows[] erforderlich" });
-        const res = await besucherRepo.bulkInsertVisits(rows);
-        await importHistoryRepo.log({
-          kind: "besucher",
-          source_file,
-          added: res.added,
-          skipped: res.skipped,
-          detail: { cutoff: res.cutoff, range: res.range, received: rows.length }
-        });
-        return { ok: true, ...res };
-      });
-      fastify.post("/api/admin/import/einsatzplan", async (req, reply) => {
-        const { rows, source_file } = req.body || {};
-        if (!Array.isArray(rows)) return reply.code(400).send({ error: "rows[] erforderlich" });
-        const res = await einsatzplanerRepo.bulkInsertAssignments(rows);
-        await importHistoryRepo.log({
-          kind: "einsatzplan",
-          source_file,
-          added: res.added,
-          skipped: res.skipped,
-          detail: { existing: res.existing, unknownCount: res.unknownCount, unknownKuerzel: res.unknownKuerzel, received: rows.length }
-        });
-        return { ok: true, ...res };
-      });
-      fastify.post("/api/admin/import/mitbewerber", async (req, reply) => {
-        const { rows, source_file, clear_test } = req.body || {};
-        if (!Array.isArray(rows) || !rows.length) return reply.code(400).send({ error: "rows[] erforderlich" });
-        const quellen = [...new Set(rows.map((r) => r.quelle || "import"))];
-        await mitbewerberRepo.deleteByQuellen(quellen);
-        if (clear_test) await mitbewerberRepo.deleteByQuellen(["test"]);
-        const prepared = rows.map((r) => ({
-          ...r,
-          quelle: r.quelle || "import",
-          gueltig_ab: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-          gueltig_bis: null,
-          hash_content: crypto.createHash("md5").update(
-            [r.anbieter, r.sparte, r.plz_gebiet, r.heizstrom_typ, r.zaehlerart, r.ns_messung, r.steuve_modul, r.arbeitspreis, r.grundpreis, r.bonus].join("|")
-          ).digest("hex")
-        }));
-        const added = await mitbewerberRepo.upsertTarife(prepared);
-        await importHistoryRepo.log({
-          kind: "mitbewerber",
-          source_file,
-          added,
-          skipped: rows.length - added,
-          detail: { quellen, received: rows.length }
-        });
-        return { ok: true, added, skipped: rows.length - added, total: rows.length };
-      });
-      fastify.get("/api/admin/import-history", async (req) => {
-        return { history: await importHistoryRepo.list(req.query?.limit) };
-      });
-    };
-  }
-});
-
-// backend/lib/scraper-utils.js
-var require_scraper_utils = __commonJS({
-  "backend/lib/scraper-utils.js"(exports2, module2) {
-    var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    async function retryWithBackoff(fn, maxRetries = 3) {
-      for (let i = 0; i < maxRetries; i++) {
-        try {
-          return await fn();
-        } catch (err) {
-          if (i === maxRetries - 1) throw err;
-          const delayMs = 1e3 * Math.pow(2, i);
-          console.log(`Retry ${i + 1}/${maxRetries} nach ${delayMs}ms...`);
-          await sleep(delayMs);
-        }
-      }
-    }
-    function createRateLimiter(minDelayMs = 1e3) {
-      let lastCallTime = 0;
-      return async function rateLimitedCall(fn) {
-        const now = Date.now();
-        const elapsed = now - lastCallTime;
-        if (elapsed < minDelayMs) {
-          await sleep(minDelayMs - elapsed);
-        }
-        lastCallTime = Date.now();
-        return fn();
-      };
-    }
-    function validatePrice(priceStr) {
-      const match = priceStr?.match(/[\d,\.]+/);
-      if (!match) return null;
-      const price = parseFloat(match[0].replace(",", "."));
-      return price >= 0.1 && price <= 1 ? price : null;
-    }
-    function validateBasicPrice(priceStr) {
-      const match = priceStr?.match(/[\d,\.]+/);
-      if (!match) return null;
-      const price = parseFloat(match[0].replace(",", "."));
-      return price >= 0 && price <= 500 ? price : null;
-    }
-    function validateProvider(name) {
-      if (!name || name.length < 2 || name.length > 50) return false;
-      if (/\d{4,}/.test(name)) return false;
-      return true;
-    }
-    function hashContent(anbieter, sparte, ap, gp) {
-      const crypto = require("crypto");
-      const str = `${anbieter}|${sparte}|${ap}|${gp}`;
-      return crypto.createHash("md5").update(str).digest("hex");
-    }
-    async function fetchWithUA(url) {
-      const headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-      };
-      const response = await fetch(url, { headers, timeout: 3e4 });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.text();
-    }
-    module2.exports = {
-      sleep,
-      retryWithBackoff,
-      createRateLimiter,
-      validatePrice,
-      validateBasicPrice,
-      validateProvider,
-      hashContent,
-      fetchWithUA
     };
   }
 });
@@ -45807,7 +45701,10 @@ var require_mitbewerber = __commonJS({
   "backend/routes/mitbewerber.js"(exports2, module2) {
     var { getMarktlage, getStatistiken, getAllSparten, upsertTarife } = require_mitbewerberRepo();
     var { getDb } = require_driver();
-    var { hashContent } = require_scraper_utils();
+    var crypto = require("crypto");
+    function hashContent(...parts) {
+      return crypto.createHash("md5").update(parts.filter((p) => p != null).join("|")).digest("hex");
+    }
     var SAMPLE_TARIFE = [
       // Strom
       { anbieter: "E.ON", sparte: "strom", arbeitspreis: 0.45, grundpreis: 180, bonus: 100, bonus_bedingung: "Neukundenbonus" },

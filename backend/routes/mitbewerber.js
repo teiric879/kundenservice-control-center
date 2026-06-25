@@ -1,6 +1,11 @@
 const { getMarktlage, getStatistiken, getAllSparten, upsertTarife } = require('../data/repositories/mitbewerberRepo');
 const { getDb } = require('../data/driver');
-const { hashContent } = require('../lib/scraper-utils');
+const crypto = require('crypto');
+
+// Hash für Duplikat-Detection (seed-test). Früher aus scraper-utils, jetzt inline.
+function hashContent(...parts) {
+  return crypto.createHash('md5').update(parts.filter(p => p != null).join('|')).digest('hex');
+}
 
 // Test-Tarife zum Validieren der UI-Kette. plz_gebiet '100' deckt PLZ 10000 ab.
 const SAMPLE_TARIFE = [
