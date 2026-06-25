@@ -821,6 +821,11 @@ setInterval(refreshVisits, 20000);
   function fmtGP(v){ return v!=null ? v.toFixed(2)+' €/Jahr' : '–'; }
   function fmtBonus(v){ return (v&&v>0) ? v.toFixed(0)+' €' : '–'; }
 
+  function srcBadge(q){
+    var cls=q==='check24'?'ml-src-badge--check24':q==='verivox'?'ml-src-badge--verivox':'ml-src-badge--test';
+    return '<span class="ml-src-badge '+cls+'">'+q+'</span>';
+  }
+
   function providerColor(name){
     var colors=['#2d7a6e','#5b8db8','#c0783d','#7b6fa8','#b05c6a','#4a8a5a','#8a6c3a'];
     var h=0; for(var i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))%colors.length;
@@ -862,7 +867,7 @@ setInterval(refreshVisits, 20000);
       var icon=a.logo_url?'<img src="'+a.logo_url+'" class="ml-provider-logo" alt="" onerror="this.style.display=\'none\'">':providerAvatar(a.anbieter);
       var tr='<td class="ml-anbieter-cell">'+icon+a.anbieter+'</td><td class="ml-price">'+fmtAP(a.arbeitspreis)+'</td><td>'+fmtGP(a.grundpreis)+'</td>';
       if(showBonus) tr+='<td>'+(a.bonus&&a.bonus>0?'<span class="ml-bonus-badge">'+fmtBonus(a.bonus)+'</span>':'–')+'</td><td class="ml-cond">'+(a.bonus_bedingung||'–')+'</td>';
-      tr+='<td class="ml-src">'+a.quelle+'</td>';
+      tr+='<td>'+srcBadge(a.quelle)+'</td>';
       return '<tr>'+tr+'</tr>';
     });
     box.innerHTML='<table class="ml-table"><thead><tr>'+cols.join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>';
@@ -903,7 +908,7 @@ setInterval(refreshVisits, 20000);
       mlCurrentAnbieter=mlCache[cacheKey].anbieter;
       renderKpis(mlCache[cacheKey].stats, mlCurrentAnbieter.length);
       renderTable(mlCurrentAnbieter, showBonus, '');
-      if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+mlCache[cacheKey].ts;
+      if(infoEl) infoEl.innerHTML='<span class="ml-update-chip">↻ '+mlCache[cacheKey].ts+'</span>';
       return;
     }
 
@@ -940,7 +945,7 @@ setInterval(refreshVisits, 20000);
 
       renderKpis(stats, mlCurrentAnbieter.length);
       renderTable(mlCurrentAnbieter, showBonus, '');
-      if(infoEl) infoEl.textContent='Zuletzt aktualisiert: '+ts+(plz?' (PLZ '+plz+')':'');
+      if(infoEl) infoEl.innerHTML='<span class="ml-update-chip">↻ '+ts+(plz?' · PLZ '+plz:'')+'</span>';
       mlLoaded=true;
     })['catch'](function(err){
       if(kpisBox) kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#c55">Fehler: '+err.message+'</div>';
