@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>e-regio · Kundenservice Control Center</title>
-<link rel="stylesheet" href="styles.css?v=16">
+<link rel="stylesheet" href="styles.css?v=17">
 <link rel="stylesheet" href="../shared/sidebar.css?v=2">
 </head>
 <body>
@@ -76,7 +76,24 @@
         </div>
       </div>
 
-      <!-- ── Modul 3: Einsatzplaner ── -->
+      <!-- ── Modul 3: Marktlage ── -->
+      <div class="mod-group" id="mg-marktlage">
+        <button class="mod-toggle" id="mt-marktlage" data-mg="marktlage" aria-expanded="false">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+          </svg>
+          <span class="mod-label">Marktlage</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mod-items" id="mi-marktlage">
+          <a data-view="marktlage" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+            Marktübersicht
+          </a>
+        </div>
+      </div>
+
+      <!-- ── Modul 4: Einsatzplaner ── -->
       <div class="mod-group" id="mg-einsatzplaner">
         <a href="../einsatzplaner/" class="mod-toggle" style="text-decoration:none">
           <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -125,71 +142,163 @@
         </div>
       </div>
 
-      <div class="kpis" id="kpis"></div>
-      <div class="kpis" id="kpis-loc" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px"></div>
-
-      <div class="card reveal" id="forecastCard" style="animation-delay:.03s;margin-bottom:18px">
-        <div class="p-head"><div><h3>Besucherprognose</h3><div class="sub">Hochrechnung aus historischem &#216; Wochentag &times; Monat (12 Monate) &amp; laufendem Tag</div></div></div>
-        <div class="fc-grid" id="fcGrid"></div>
+      <!-- ── Tab-Navigation ── -->
+      <div class="dash-tabs" id="dashTabs" role="tablist">
+        <button class="dash-tab active" data-tab="uebersicht" role="tab" aria-selected="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          Übersicht
+        </button>
+        <button class="dash-tab" data-tab="standorte" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          Standorte
+        </button>
+        <button class="dash-tab" data-tab="analyse" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 7 13.5 15.5l-5-5L2 17"/><path d="M16 7h6v6"/></svg>
+          Analyse
+        </button>
       </div>
 
-      <div class="panels">
-        <div class="card reveal" style="animation-delay:.05s">
+      <!-- ══ Tab 1: Übersicht ══ -->
+      <div class="dash-tab-panel active" id="tab-uebersicht">
+        <div class="kpis" id="kpis"></div>
+
+        <div class="card reveal" id="forecastCard" style="animation-delay:.03s;margin-bottom:18px">
+          <div class="p-head"><div><h3>Besucherprognose</h3><div class="sub">Hochrechnung aus historischem &#216; Wochentag &times; Monat (12 Monate) &amp; laufendem Tag</div></div></div>
+          <div class="fc-grid" id="fcGrid"></div>
+        </div>
+
+        <div class="card reveal" style="animation-delay:.05s;margin-bottom:18px">
           <div class="p-head"><div><h3>Besuchsverlauf</h3><div class="sub" id="trendSub">–</div></div></div>
           <div id="chartTrend"></div>
         </div>
-        <div class="card reveal" style="animation-delay:.12s">
-          <div class="p-head"><div><h3>Je Standort</h3><div class="sub">Anteil im Zeitraum</div></div></div>
-          <div id="chartStandort"></div>
-          <div class="legend" id="legendStandort"></div>
-        </div>
-      </div>
 
-      <div class="panels-3">
-        <div class="card reveal" style="animation-delay:.18s">
-          <h3>Top-Kategorien</h3><div class="sub">Häufigste Anliegen</div>
-          <div id="chartKat"></div>
-        </div>
-        <div class="card reveal" style="animation-delay:.24s">
-          <h3>Nach Wochentag</h3><div class="sub">Verteilung Mo–So</div>
-          <div id="chartWday"></div>
-        </div>
-        <div class="card reveal" style="animation-delay:.30s">
-          <h3>Nach Uhrzeit</h3><div class="sub">Stoßzeiten · Personalplanung</div>
-          <div id="chartHour"></div>
-        </div>
-      </div>
-
-      <div class="panels" style="margin-top:18px">
-        <div class="card reveal" style="animation-delay:.36s">
-          <div class="p-head"><div><h3>Themen-Anteile</h3><div class="sub">Anteil je Anliegen im Zeitraum</div></div></div>
-          <div class="donut-layout">
-            <div id="chartKatDonut" class="donut-canvas"></div>
-            <div class="legend donut-legend" id="legendKatDonut"></div>
+        <div class="panels-3">
+          <div class="card reveal" style="animation-delay:.18s">
+            <h3>Top-Kategorien</h3><div class="sub">Häufigste Anliegen</div>
+            <div id="chartKat"></div>
+          </div>
+          <div class="card reveal" style="animation-delay:.24s">
+            <h3>Nach Wochentag</h3><div class="sub">Verteilung Mo–So</div>
+            <div id="chartWday"></div>
+          </div>
+          <div class="card reveal" style="animation-delay:.30s">
+            <h3>Nach Uhrzeit</h3><div class="sub">Stoßzeiten · Personalplanung</div>
+            <div id="chartHour"></div>
           </div>
         </div>
-        <div class="card reveal" style="animation-delay:.42s">
-          <div class="p-head"><div><h3>Themen nach Wochentag &amp; Uhrzeit</h3><div class="sub">Tag &amp; Uhrzeit filtern · Anliegen in Prozent und Summe</div></div></div>
-          <div class="te" id="themeExplorer">
-            <div class="te-filters">
-              <div class="te-frow">
-                <span class="te-flbl">Wochentag</span>
-                <div class="te-days" id="teDays" role="group" aria-label="Wochentag filtern"></div>
-              </div>
-              <div class="te-frow">
-                <span class="te-flbl">Uhrzeit</span>
-                <div class="te-slider" id="teSlider">
-                  <div class="te-track"><div class="te-fill" id="teFill"></div></div>
-                  <input type="range" id="teH0" aria-label="Uhrzeit von" autocomplete="off">
-                  <input type="range" id="teH1" aria-label="Uhrzeit bis" autocomplete="off">
-                </div>
-                <span class="te-range-lbl" id="teRangeLbl">–</span>
-              </div>
+
+        <div class="panels" style="margin-top:18px">
+          <div class="card reveal" style="animation-delay:.36s">
+            <div class="p-head"><div><h3>Themen-Anteile</h3><div class="sub">Anteil je Anliegen im Zeitraum</div></div></div>
+            <div class="donut-layout">
+              <div id="chartKatDonut" class="donut-canvas"></div>
+              <div class="legend donut-legend" id="legendKatDonut"></div>
             </div>
-            <div class="te-summary" id="teSummary"></div>
-            <div class="te-results" id="teResults"></div>
+          </div>
+          <div class="card reveal" style="animation-delay:.42s">
+            <div class="p-head"><div><h3>Themen nach Wochentag &amp; Uhrzeit</h3><div class="sub">Tag &amp; Uhrzeit filtern · Anliegen in Prozent und Summe</div></div></div>
+            <div class="te" id="themeExplorer">
+              <div class="te-filters">
+                <div class="te-frow">
+                  <span class="te-flbl">Wochentag</span>
+                  <div class="te-days" id="teDays" role="group" aria-label="Wochentag filtern"></div>
+                </div>
+                <div class="te-frow">
+                  <span class="te-flbl">Uhrzeit</span>
+                  <div class="te-slider" id="teSlider">
+                    <div class="te-track"><div class="te-fill" id="teFill"></div></div>
+                    <input type="range" id="teH0" aria-label="Uhrzeit von" autocomplete="off">
+                    <input type="range" id="teH1" aria-label="Uhrzeit bis" autocomplete="off">
+                  </div>
+                  <span class="te-range-lbl" id="teRangeLbl">–</span>
+                </div>
+              </div>
+              <div class="te-summary" id="teSummary"></div>
+              <div class="te-results" id="teResults"></div>
+            </div>
           </div>
         </div>
+      </div><!-- /tab-uebersicht -->
+
+      <!-- ══ Tab 2: Standorte ══ -->
+      <div class="dash-tab-panel" id="tab-standorte">
+        <div class="kpis" id="kpis-loc" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px"></div>
+
+        <div class="panels" style="margin-bottom:18px">
+          <div class="card reveal" style="animation-delay:.05s">
+            <div class="p-head"><div><h3>Standortverteilung</h3><div class="sub">Anteil im gewählten Zeitraum</div></div></div>
+            <div id="chartStandort"></div>
+            <div class="legend" id="legendStandort"></div>
+          </div>
+          <div id="standortInsightRight" style="display:flex;flex-direction:column;gap:18px"></div>
+        </div>
+
+        <div class="panels" style="margin-bottom:18px" id="standortCards">
+          <!-- JS fills: Euskirchen + Kall insight cards -->
+        </div>
+
+        <div class="card reveal" id="standortInsightText" style="animation-delay:.2s">
+          <!-- JS fills: auto-generated text insights -->
+        </div>
+      </div><!-- /tab-standorte -->
+
+      <!-- ══ Tab 3: Analyse ══ -->
+      <div class="dash-tab-panel" id="tab-analyse">
+        <div class="card reveal" style="animation-delay:.04s;margin-bottom:18px">
+          <div class="p-head"><div><h3>Besuchsheatmap</h3><div class="sub">Stoßzeiten und Auslastung · Wochentag × Uhrzeit</div></div></div>
+          <div id="chartHeatmap"></div>
+        </div>
+
+        <div class="panels" style="margin-bottom:18px">
+          <div class="card reveal" style="animation-delay:.08s">
+            <div class="p-head"><div><h3>Monatsvergleich</h3><div class="sub">Besucherzahlen der letzten 12 Monate</div></div></div>
+            <div id="chartMonthly"></div>
+          </div>
+          <div class="card reveal" style="animation-delay:.12s">
+            <div class="p-head"><div><h3>Forecast &amp; Vergleich</h3><div class="sub">Prognose · aktueller Stand · Abweichung zur Vorperiode</div></div></div>
+            <div id="fcAnalysis"></div>
+          </div>
+        </div>
+
+        <div class="card reveal" style="animation-delay:.16s">
+          <div class="p-head"><div><h3>Trendanalyse Kategorien</h3><div class="sub">Entwicklung der häufigsten Anliegen im Zeitverlauf (monatlich)</div></div></div>
+          <div id="chartKatTrend"></div>
+        </div>
+      </div><!-- /tab-analyse -->
+
+    </section>
+
+    <!-- MARKTLAGE -->
+    <section class="view" id="view-marktlage">
+      <div class="topbar">
+        <div class="title">
+          <h1>Marktlage</h1>
+          <p>Aktuelle Mitbewerber-Preise und Markt-Statistiken</p>
+        </div>
+        <div class="controls">
+          <div class="field">
+            <select id="marktlageSparteSel" aria-label="Sparte" autocomplete="off">
+              <option value="strom">Strom</option>
+              <option value="gas">Gas</option>
+              <option value="heizstrom">Heizstrom</option>
+            </select>
+          </div>
+          <label class="ml-toggle-label" id="marktlageBonusToggle">
+            <input type="checkbox" id="marktlageBonusCheck" checked>
+            <span>Bonus anzeigen</span>
+          </label>
+          <button class="seg-btn glass" id="marktlageRefreshBtn">Neu laden</button>
+        </div>
+      </div>
+
+      <div id="marktlage-kpis" class="kpis"></div>
+
+      <div class="card reveal" id="marktlage-table-card" style="animation-delay:.05s;margin-top:18px">
+        <div class="p-head">
+          <div><h3>Alle Anbieter</h3><div class="sub" id="marktlage-update-info">–</div></div>
+        </div>
+        <div id="marktlage-table-body"></div>
+        <p class="marktlage-disclaimer">Preise aus öffentlichen Quellen (Check24 / Verivox). Keine Gewähr. Bonus-Bedingungen beim jeweiligen Anbieter prüfen.</p>
       </div>
     </section>
 
@@ -205,7 +314,7 @@
 </div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=3"></script>
 </body>

@@ -402,11 +402,244 @@ function renderForecast(anim){
   if(anim&&!RM)raf(function(){box.querySelectorAll('.fc-wd-track i').forEach(function(el){el.style.transition='height .45s var(--ease)';el.style.height=el.dataset.h+'%';});});
 }
 
+/* ---------- Tab 2: Standorte ---------- */
+function renderStandortTab(rows,anim){
+  renderDonut(rows,anim);
+  var total=rows.length||1;
+  var standorte=['Euskirchen','Kall'];
+  var cards=standorte.map(function(name){
+    var sRows=rows.filter(function(r){return r.standort===name;});
+    var count=sRows.length;
+    var daySet={};sRows.forEach(function(r){daySet[r.ymd]=true;});
+    var uniqueDays=Object.keys(daySet).length||1;
+    var avgPerDay=count?(count/uniqueDays).toFixed(1):'0';
+    var anteil=Math.round(count/total*100);
+    var katCounts={};sRows.forEach(function(r){if(r.kategorie){var k=stripPfx(r.kategorie);katCounts[k]=(katCounts[k]||0)+1;}});
+    var katItems=Object.keys(katCounts).map(function(k){return {k:k,v:katCounts[k]};}).sort(function(a,b){return b.v-a.v;});
+    var topKat=katItems.length?katItems[0].k:'–';
+    var wdayCounts=[0,0,0,0,0,0,0];sRows.forEach(function(r){if(r.dow>=0&&r.dow<=6)wdayCounts[r.dow]++;});
+    var topWday=wdayCounts.indexOf(Math.max.apply(null,wdayCounts));
+    var topWdayName=WDF[topWday]||'–';
+    var hourCounts={};sRows.forEach(function(r){if(r.stunde>0&&r.stunde<=23)hourCounts[r.stunde]=(hourCounts[r.stunde]||0)+1;});
+    var hourItems=Object.keys(hourCounts).map(function(h){return {h:+h,v:hourCounts[h]};}).sort(function(a,b){return b.v-a.v;});
+    var topHour=hourItems.length?hourItems[0].h:null;
+    var spitzenzeit=topHour!==null?(topHour+':00–'+(topHour+1)+':00 Uhr'):'–';
+    return {name:name,count:count,avgPerDay:avgPerDay,anteil:anteil,topKat:topKat,topWdayName:topWdayName,spitzenzeit:spitzenzeit};
+  });
+  var cBox=document.getElementById('standortCards');if(!cBox)return;
+  cBox.innerHTML=cards.map(function(c){
+    return '<div class="si-card reveal">'+
+      '<div class="si-title"><h3>'+c.name+'</h3><span class="si-badge">'+c.anteil+'% aller Besuche</span></div>'+
+      '<div class="si-rows">'+
+        '<div class="si-row"><span class="si-label">Besucher gesamt</span><span class="si-val accent">'+nf(c.count)+'</span></div>'+
+        '<div class="si-row"><span class="si-label">&#216; pro Öffnungstag</span><span class="si-val">'+c.avgPerDay+'</span></div>'+
+        '<div class="si-row"><span class="si-label">Häufigstes Anliegen</span><span class="si-val">'+c.topKat+'</span></div>'+
+        '<div class="si-row"><span class="si-label">Stärkster Wochentag</span><span class="si-val">'+c.topWdayName+'</span></div>'+
+        '<div class="si-row"><span class="si-label">Spitzenzeit</span><span class="si-val">'+c.spitzenzeit+'</span></div>'+
+      '</div>'+
+      '<div class="si-pct-bar"><i data-w="'+c.anteil+'" style="width:'+(anim&&!RM?'0':c.anteil)+'%"></i></div>'+
+    '</div>';
+  }).join('');
+  if(anim&&!RM)raf(function(){cBox.querySelectorAll('.si-pct-bar i').forEach(function(el){el.style.width=el.dataset.w+'%';});});
+  var tBox=document.getElementById('standortInsightText');
+  if(tBox&&cards.length>=2){
+    var e=cards[0],k=cards[1];
+    tBox.innerHTML='<h3 style="margin:0 0 14px;font-size:17px;font-weight:600">Automatische Insights</h3>'+
+      '<div class="si-text-box">'+
+        '<div class="si-text-item"><div class="si-text-dot" style="background:'+PAL[0]+'"></div>'+
+          '<p><b>'+e.name+'</b> generiert '+e.anteil+'% aller Besucher. Spitzenzeit ist '+e.spitzenzeit+'. Häufigstes Anliegen ist <b>'+e.topKat+'</b>.</p></div>'+
+        '<div class="si-text-item"><div class="si-text-dot" style="background:'+PAL[3]+'"></div>'+
+          '<p><b>'+k.name+'</b> generiert '+k.anteil+'% aller Besucher. Spitzenzeit ist '+k.spitzenzeit+'. Häufigstes Anliegen ist <b>'+k.topKat+'</b>.</p></div>'+
+      '</div>';
+  }
+  var rBox=document.getElementById('standortInsightRight');
+  if(rBox){
+    rBox.innerHTML=cards.map(function(c){
+      return '<div class="card" style="flex:1">'+
+        '<div style="font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-bottom:6px">'+c.name.toUpperCase()+'</div>'+
+        '<div style="font-family:Space Grotesk,sans-serif;font-size:32px;font-weight:700;color:var(--acc-ink);letter-spacing:-.5px">'+nf(c.count)+'</div>'+
+        '<div style="font-size:12px;color:var(--muted-2);margin-top:4px;font-weight:600">Besuche &nbsp;·&nbsp; <b style="color:var(--ink)">'+c.anteil+'%</b></div>'+
+      '</div>';
+    }).join('');
+  }
+}
+
+/* ---------- Tab 3: Heatmap ---------- */
+function renderHeatmap(rows,anim){
+  var box=document.getElementById('chartHeatmap');if(!box)return;
+  var timed=rows.filter(function(r){return r.stunde>0&&r.stunde<=23&&r.dow>=0&&r.dow<=4;});
+  if(!timed.length){box.innerHTML='<p class="sub" style="text-align:center;padding:32px 0">Keine zeitgestempelten Daten im gewählten Zeitraum.</p>';return;}
+  var mnH=23,mxH=0;
+  timed.forEach(function(r){if(r.stunde<mnH)mnH=r.stunde;if(r.stunde>mxH)mxH=r.stunde;});
+  var grid={},maxVal=0;
+  timed.forEach(function(r){var key=r.dow+'_'+r.stunde;grid[key]=(grid[key]||0)+1;if(grid[key]>maxVal)maxVal=grid[key];});
+  var days=[0,1,2,3,4],hours=[];
+  for(var h=mnH;h<=mxH;h++)hours.push(h);
+  var cellW=44,cellH=36,padL=46,padT=28,padB=18;
+  var W=padL+hours.length*cellW+16,H=padT+days.length*cellH+padB;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="height:'+H+'px">';
+  hours.forEach(function(h,i){var x=padL+i*cellW+cellW/2;s+='<text class="axis" x="'+x.toFixed(1)+'" y="18" text-anchor="middle">'+h+'</text>';});
+  days.forEach(function(d,di){
+    var y=padT+di*cellH;
+    s+='<text class="axis" x="'+(padL-8)+'" y="'+(y+cellH/2+4)+'" text-anchor="end">'+WD[d]+'</text>';
+    hours.forEach(function(h,hi){
+      var v=grid[d+'_'+h]||0,ratio=maxVal>0?v/maxVal:0;
+      var r2=Math.round(200-(200-0)*ratio),g2=Math.round(230-(230-68)*ratio),b2=Math.round(225-(225-66)*ratio);
+      var fill=v===0?'rgba(6,59,55,.05)':'rgb('+r2+','+g2+','+b2+')';
+      var x=padL+hi*cellW;
+      s+='<rect x="'+(x+2)+'" y="'+(y+2)+'" width="'+(cellW-4)+'" height="'+(cellH-4)+'" rx="6" fill="'+fill+'" data-d="'+d+'" data-h="'+h+'" data-v="'+v+'" style="cursor:default"/>';
+      if(v>0){var tf=ratio>0.5?'#EAF6F2':'var(--ink)';s+='<text x="'+(x+cellW/2)+'" y="'+(y+cellH/2+4)+'" text-anchor="middle" font-size="11" font-weight="600" fill="'+tf+'">'+v+'</text>';}
+    });
+  });
+  s+='</svg>';
+  box.innerHTML='<div class="heatmap-wrap">'+s+'</div>';
+  box.querySelectorAll('rect[data-v]').forEach(function(rc){
+    rc.addEventListener('mousemove',function(e){showTip(e,WDF[+rc.dataset.d]+' · '+rc.dataset.h+':00 Uhr: <b>'+nf(+rc.dataset.v)+'</b>');});
+    rc.addEventListener('mouseleave',hideTip);
+  });
+}
+
+/* ---------- Tab 3: Monatsvergleich ---------- */
+function renderMonthlyComparison(anim){
+  var box=document.getElementById('chartMonthly');if(!box)return;
+  var buckets=[];
+  for(var i=11;i>=0;i--){
+    var d=addMonths(new Date(nowDate.getFullYear(),nowDate.getMonth(),1),-i);
+    var y2=d.getFullYear(),mo=d.getMonth();
+    var from=y2*10000+(mo+1)*100+1,to=dateToYmd(new Date(y2,mo+1,0));
+    var count=0;
+    for(var j=0;j<V.length;j++){var r=V[j];if(r.ymd>=from&&r.ymd<=to&&matchStand(r.standort))count++;}
+    buckets.push({label:MON[mo]+' '+(''+y2).slice(2),v:count,isCurrent:i===0});
+  }
+  var W=Math.max(360,Math.round(box.clientWidth)||640),H=220,pad={l:44,r:14,t:16,b:30};
+  var n=buckets.length,max=Math.max(1,Math.max.apply(null,buckets.map(function(x){return x.v;})));
+  var iw=W-pad.l-pad.r,ih=H-pad.t-pad.b,gap=iw/n,bw=Math.min(42,gap*0.65);
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="height:220px"><defs>'+
+    '<linearGradient id="mg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="'+ACC+'"/><stop offset="1" stop-color="#8c6b00"/></linearGradient>'+
+    '<linearGradient id="mg2" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1d9e75"/><stop offset="1" stop-color="#0a5e42"/></linearGradient></defs>';
+  for(var g=0;g<=4;g++){var gv=Math.round(max*g/4),gy=pad.t+ih-ih*g/4;
+    s+='<line class="gridline" x1="'+pad.l+'" y1="'+gy+'" x2="'+(W-pad.r)+'" y2="'+gy+'"/>';
+    s+='<text class="axis" x="'+(pad.l-6)+'" y="'+(gy+4)+'" text-anchor="end">'+nf(gv)+'</text>';}
+  buckets.forEach(function(d,i){
+    var x=pad.l+gap*i+(gap-bw)/2,bh=Math.max(0,ih*d.v/max),y=pad.t+ih-bh;
+    s+='<rect class="bar" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="5" fill="'+(d.isCurrent?'url(#mg2)':'url(#mg)')+'" data-i="'+i+'" style="transform-box:fill-box;transform-origin:center bottom;'+(anim&&!RM?'transform:scaleY(0)':'')+'" />';
+    s+='<text class="axis" x="'+(x+bw/2).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+d.label+'</text>';
+  });
+  s+='</svg>';box.innerHTML=s;
+  if(anim&&!RM)raf(function(){box.querySelectorAll('.bar').forEach(function(el,i){el.style.transition='transform .4s cubic-bezier(.22,.61,.36,1) '+(i*.02)+'s';el.style.transform='scaleY(1)';});});
+  box.querySelectorAll('.bar').forEach(function(rc){rc.addEventListener('mousemove',function(e){var d=buckets[+rc.dataset.i];showTip(e,d.label+': <b>'+nf(d.v)+'</b>');});rc.addEventListener('mouseleave',hideTip);});
+}
+
+/* ---------- Tab 3: Forecast-Analyse ---------- */
+function renderForecastAnalysis(anim){
+  var box=document.getElementById('fcAnalysis');if(!box)return;
+  var wdm=weekdayMonthAvg(),y=nowDate.getFullYear(),m=nowDate.getMonth(),todayWd=(nowDate.getDay()+6)%7;
+  var avgToday=wdm[m][todayWd],actualToday=countRange(nowYmd,nowYmd);
+  var cum=hourlyCum(todayWd),curHour=new Date().getHours(),frac=cum[Math.min(23,Math.max(0,curHour))]||0;
+  var projToday=(frac>=0.15&&actualToday>0)?Math.round(actualToday/frac):Math.round(avgToday);
+  projToday=Math.max(projToday,actualToday);
+  var restTodayAvg=Math.max(0,avgToday-actualToday);
+  var mStart=new Date(y,m,1),mEnd=new Date(y,m+1,0);
+  var actualMonth=countRange(dateToYmd(mStart),nowYmd);
+  var remMonth=0;for(var t=addDays(nowDate,1);t<=mEnd;t=addDays(t,1))remMonth+=wdm[t.getMonth()][(t.getDay()+6)%7];
+  var projMonth=Math.round(actualMonth+restTodayAvg+remMonth);
+  var pmEnd=addDays(mStart,-1),pmStart=new Date(pmEnd.getFullYear(),pmEnd.getMonth(),1);
+  var prevMonth=countRange(dateToYmd(pmStart),dateToYmd(pmEnd));
+  var next7=restTodayAvg;for(var t2=addDays(nowDate,1);t2<=addDays(nowDate,7);t2=addDays(t2,1))next7+=wdm[t2.getMonth()][(t2.getDay()+6)%7];
+  next7=Math.round(next7);
+  var md=prevMonth>0?Math.round((projMonth-prevMonth)/prevMonth*100):0;
+  var dc=md>0?'up':md<0?'down':'flat',ds=md>0?'+':'';
+  box.innerHTML='<div class="fca-grid">'+
+    '<div class="fca-row">'+
+      '<div style="flex:1"><div class="fca-label">Prognose heute</div><div class="fca-sub">aktuell '+nf(actualToday)+' · Ø '+WD[todayWd]+' '+nf(Math.round(avgToday))+'</div></div>'+
+      '<div class="fca-val">'+nf(projToday)+'</div>'+
+    '</div>'+
+    '<div class="fca-row">'+
+      '<div style="flex:1"><div class="fca-label">Prognose '+MON[m]+'. gesamt</div><div class="fca-sub">bislang '+nf(actualMonth)+' · Vormonat '+nf(prevMonth)+'</div></div>'+
+      '<div class="fca-val">'+nf(projMonth)+'</div>'+
+      '<span class="fca-delta '+dc+'">'+ds+md+'%</span>'+
+    '</div>'+
+    '<div class="fca-row">'+
+      '<div style="flex:1"><div class="fca-label">Nächste 7 Tage</div><div class="fca-sub">voraussichtlich</div></div>'+
+      '<div class="fca-val">'+nf(next7)+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------- Tab 3: Kategorie-Trend ---------- */
+function renderKatTrend(anim){
+  var box=document.getElementById('chartKatTrend');if(!box)return;
+  var months=[];
+  for(var i=11;i>=0;i--){
+    var d=addMonths(new Date(nowDate.getFullYear(),nowDate.getMonth(),1),-i);
+    var y2=d.getFullYear(),mo=d.getMonth();
+    months.push({label:MON[mo]+' '+(''+y2).slice(2),from:y2*10000+(mo+1)*100+1,to:dateToYmd(new Date(y2,mo+1,0))});
+  }
+  var katTotals={};
+  for(var j=0;j<V.length;j++){var r=V[j];if(r.kategorie&&matchStand(r.standort)){var k=stripPfx(r.kategorie);katTotals[k]=(katTotals[k]||0)+1;}}
+  var topKats=Object.keys(katTotals).sort(function(a,b){return katTotals[b]-katTotals[a];}).slice(0,5);
+  if(!topKats.length){box.innerHTML='<p class="sub" style="text-align:center;padding:32px 0">Keine Kategoriedaten vorhanden.</p>';return;}
+  var KATPAL=['#004442','#1d9e75','#3a96c9','#dea600','#d4537e'];
+  var series=topKats.map(function(kat){
+    var vals=months.map(function(mo){
+      var c=0;
+      for(var ii=0;ii<V.length;ii++){var rr=V[ii];if(rr.ymd>=mo.from&&rr.ymd<=mo.to&&matchStand(rr.standort)&&rr.kategorie&&stripPfx(rr.kategorie)===kat)c++;}
+      return c;
+    });
+    return {label:kat,vals:vals};
+  });
+  var W=Math.max(360,Math.round(box.clientWidth)||760),H=260,pad={l:44,r:14,t:18,b:30};
+  var n=months.length,iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
+  var allVals=series.reduce(function(acc,s){return acc.concat(s.vals);},[]);
+  var max=Math.max(1,Math.max.apply(null,allVals));
+  function X(i){return pad.l+(n<=1?iw/2:iw*i/(n-1));}
+  function Y(v){return pad.t+ih-ih*v/max;}
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="height:260px"><defs>';
+  series.forEach(function(sr,si){s+='<linearGradient id="ktg'+si+'" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="'+KATPAL[si]+'" stop-opacity=".2"/><stop offset="1" stop-color="'+KATPAL[si]+'" stop-opacity="0"/></linearGradient>';});
+  s+='</defs>';
+  for(var g=0;g<=4;g++){var gv=Math.round(max*g/4),gy=Y(gv);
+    s+='<line class="gridline" x1="'+pad.l+'" y1="'+gy+'" x2="'+(W-pad.r)+'" y2="'+gy+'"/>';
+    s+='<text class="axis" x="'+(pad.l-6)+'" y="'+(gy+4)+'" text-anchor="end">'+nf(gv)+'</text>';}
+  var lblEvery=Math.ceil(n/8);
+  months.forEach(function(mo,i){if(i%lblEvery===0||i===n-1)s+='<text class="axis" x="'+X(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+mo.label+'</text>';});
+  series.forEach(function(sr,si){
+    var col=KATPAL[si],line='';
+    sr.vals.forEach(function(v,i){line+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)+' ';});
+    var area=line+'L'+X(n-1).toFixed(1)+' '+Y(0)+' L'+X(0).toFixed(1)+' '+Y(0)+' Z';
+    s+='<path d="'+area+'" fill="url(#ktg'+si+')" opacity="'+(anim&&!RM?'0':'1')+'" class="kt-area" data-si="'+si+'"/>';
+    s+='<path class="kt-line" d="'+line+'" fill="none" stroke="'+col+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" data-si="'+si+'"'+(anim&&!RM?' style="stroke-dasharray:3000;stroke-dashoffset:3000"':'')+'/>';
+    sr.vals.forEach(function(v,i){s+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="3" fill="'+col+'" stroke="#fff" stroke-width="1.5" data-si="'+si+'" data-i="'+i+'" data-v="'+v+'" style="cursor:default"/>';});
+  });
+  s+='</svg>';
+  var legH='<div class="kattrend-legend">'+series.map(function(sr,si){return '<span><i style="background:'+KATPAL[si]+'"></i>'+sr.label+'</span>';}).join('')+'</div>';
+  box.innerHTML=legH+s;
+  if(anim&&!RM){raf(function(){
+    box.querySelectorAll('.kt-line').forEach(function(l){var len=l.getTotalLength?l.getTotalLength():3000;l.style.strokeDasharray=len;l.style.strokeDashoffset=len;l.style.transition='stroke-dashoffset .6s cubic-bezier(.22,.61,.36,1) '+(+l.dataset.si*.08)+'s';l.style.strokeDashoffset=0;});
+    box.querySelectorAll('.kt-area').forEach(function(a){a.style.transition='opacity .4s ease '+(+a.dataset.si*.08)+'s';a.style.opacity=1;});
+  });}
+  box.querySelectorAll('circle[data-v]').forEach(function(c){c.addEventListener('mousemove',function(e){var si=+c.dataset.si,i=+c.dataset.i;showTip(e,series[si].label+' · '+months[i].label+': <b>'+nf(+c.dataset.v)+'</b>');});c.addEventListener('mouseleave',hideTip);});
+}
+
+/* ---------- Tab switching ---------- */
+function initDashTabs(){
+  var tabs=document.getElementById('dashTabs');if(!tabs)return;
+  tabs.addEventListener('click',function(e){
+    var btn=e.target.closest('.dash-tab');if(!btn)return;
+    document.querySelectorAll('.dash-tab').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-selected','false');});
+    document.querySelectorAll('.dash-tab-panel').forEach(function(p){p.classList.remove('active');});
+    btn.classList.add('active');btn.setAttribute('aria-selected','true');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    render(true);
+  });
+}
+
 /* ---------- render ---------- */
 function render(anim){
   var r=currentRange(),rows=rowsIn(r[0],r[1]);
   document.getElementById('rangeInfo').textContent=fmtDE(r[0])+' – '+fmtDE(r[1])+' · '+nf(rows.length)+' Besuche'+(state.standort!=='all'?' · '+state.standort:'');
-  renderKPIs(anim);renderLocKPIs(anim);renderForecast(anim);renderTrend(rows,r[0],r[1],anim);renderDonut(rows,anim);renderKat(rows,anim);renderWday(rows,anim);renderHour(rows,anim);renderKatDonut(rows,anim);renderThemeResults(anim);
+  renderKPIs(anim);renderLocKPIs(anim);renderForecast(anim);renderTrend(rows,r[0],r[1],anim);renderKat(rows,anim);renderWday(rows,anim);renderHour(rows,anim);renderKatDonut(rows,anim);renderThemeResults(anim);
+  renderStandortTab(rows,anim);
+  renderHeatmap(rows,anim);renderMonthlyComparison(anim);renderForecastAnalysis(anim);renderKatTrend(anim);
 }
 
 /* ---------- controls ---------- */
@@ -527,6 +760,7 @@ function bootLoad(){
       _applyMaxima();
       _booted=true;
       initControls();
+      initDashTabs();
       initThemeExplorer();
       render(true);
       initErfassen();
@@ -571,4 +805,117 @@ document.addEventListener('visibilitychange', refreshVisits);
 window.addEventListener('focus', refreshVisits);
 window.addEventListener('eregio:besuch-erfasst', function(){ refreshToday(); });
 setInterval(refreshVisits, 20000);
+
+/* ══════════════════════════════════════════════════════
+   MARKTLAGE – Mitbewerber-Preise
+   ══════════════════════════════════════════════════════ */
+(function(){
+  var API_ML=(location.hostname==='127.0.0.1'?'http://127.0.0.1:3001':'')+'/api/mitbewerber';
+  var mlLoaded=false;
+
+  function fmtAP(v){ return v!=null ? v.toFixed(3)+' €/kWh' : '–'; }
+  function fmtGP(v){ return v!=null ? v.toFixed(2)+' €/Jahr' : '–'; }
+  function fmtBonus(v){ return (v&&v>0) ? v.toFixed(0)+' €' : '–'; }
+
+  function renderKpis(stats){
+    var box=document.getElementById('marktlage-kpis');
+    if(!box)return;
+    var g=stats.guentigster, t=stats.teuerster;
+    box.innerHTML=[
+      '<div class="kpi-card card reveal ml-kpi ml-kpi--best">'+
+        '<div class="kpi-lbl">Günstigster</div>'+
+        '<div class="kpi-val">'+(g?g.anbieter:'–')+'</div>'+
+        '<div class="kpi-sub">'+(g?fmtAP(g.arbeitspreis):'–')+'</div>'+
+        (g&&g.grundpreis?'<div class="kpi-sub2">GP '+fmtGP(g.grundpreis)+'</div>':'')+'</div>',
+      '<div class="kpi-card card reveal ml-kpi">'+
+        '<div class="kpi-lbl">Teuerster</div>'+
+        '<div class="kpi-val">'+(t?t.anbieter:'–')+'</div>'+
+        '<div class="kpi-sub">'+(t?fmtAP(t.arbeitspreis):'–')+'</div>'+
+        (t&&t.grundpreis?'<div class="kpi-sub2">GP '+fmtGP(t.grundpreis)+'</div>':'')+'</div>',
+      '<div class="kpi-card card reveal ml-kpi">'+
+        '<div class="kpi-lbl">Ø Arbeitspreis</div>'+
+        '<div class="kpi-val kpi-val--mono">'+(stats.durchschnitt_arbeitspreis?stats.durchschnitt_arbeitspreis.toFixed(3):'–')+'</div>'+
+        '<div class="kpi-sub">€/kWh Marktdurchschnitt</div></div>',
+      '<div class="kpi-card card reveal ml-kpi">'+
+        '<div class="kpi-lbl">Anbieter im Markt</div>'+
+        '<div class="kpi-val">'+(stats.anzahl_anbieter||0)+'</div>'+
+        '<div class="kpi-sub">Tarife verglichen</div></div>'
+    ].join('');
+  }
+
+  function renderTable(anbieter, showBonus){
+    var box=document.getElementById('marktlage-table-body');
+    if(!box)return;
+    if(!anbieter||!anbieter.length){
+      box.innerHTML='<p style="text-align:center;padding:24px;opacity:.5">Keine Daten — Admin muss Mitbewerber-Daten importieren.</p>';
+      return;
+    }
+    var cols=['<th>Anbieter</th><th>Arbeitspreis</th><th>Grundpreis</th>'];
+    if(showBonus) cols.push('<th>Bonus</th><th>Bedingung</th>');
+    cols.push('<th>Quelle</th>');
+    var rows=anbieter.map(function(a){
+      var tr='<td>'+a.anbieter+'</td>'+
+        '<td class="ml-price">'+fmtAP(a.arbeitspreis)+'</td>'+
+        '<td>'+fmtGP(a.grundpreis)+'</td>';
+      if(showBonus) tr+='<td>'+(a.bonus&&a.bonus>0?'<span class="ml-bonus-badge">'+fmtBonus(a.bonus)+'</span>':'–')+'</td>'+
+        '<td class="ml-cond">'+(a.bonus_bedingung||'–')+'</td>';
+      tr+='<td class="ml-src">'+a.quelle+'</td>';
+      return '<tr>'+tr+'</tr>';
+    });
+    box.innerHTML='<table class="ml-table"><thead><tr>'+cols.join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>';
+  }
+
+  function loadMarktlage(){
+    var sparte=document.getElementById('marktlageSparteSel').value;
+    var showBonus=document.getElementById('marktlageBonusCheck').checked;
+    var kpisBox=document.getElementById('marktlage-kpis');
+    var infoEl=document.getElementById('marktlage-update-info');
+    if(kpisBox) kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;opacity:.5">Lade Marktdaten …</div>';
+
+    Promise.all([
+      fetch(API_ML+'/statistik?sparte='+sparte).then(function(r){return r.json();}),
+      fetch(API_ML+'/marktlage?sparte='+sparte+'&plz=10000').then(function(r){return r.json();})
+    ]).then(function(res){
+      var stats=res[0], ml=res[1];
+      renderKpis(stats);
+      renderTable(ml.anbieter||[], showBonus);
+      if(infoEl){
+        var ts=ml.aktualisiert_am?new Date(ml.aktualisiert_am).toLocaleString('de-DE'):'unbekannt';
+        infoEl.textContent='Zuletzt aktualisiert: '+ts;
+      }
+      mlLoaded=true;
+    })['catch'](function(err){
+      if(kpisBox) kpisBox.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#c55">Fehler: '+err.message+'</div>';
+    });
+  }
+
+  // View-Aktivierung: Daten beim ersten Öffnen laden
+  var origViewSwitch=document.querySelectorAll('.mod-item[data-view]');
+  origViewSwitch.forEach(function(a){
+    if(a.dataset.view==='marktlage'){
+      a.addEventListener('click',function(){
+        if(!mlLoaded) loadMarktlage();
+      });
+    }
+  });
+
+  // Controls
+  var sparteSel=document.getElementById('marktlageSparteSel');
+  var bonusCheck=document.getElementById('marktlageBonusCheck');
+  var refreshBtn=document.getElementById('marktlageRefreshBtn');
+  if(sparteSel) sparteSel.addEventListener('change', loadMarktlage);
+  if(bonusCheck) bonusCheck.addEventListener('change', function(){
+    var showBonus=bonusCheck.checked;
+    // Nur Tabelle neu rendern ohne neuen Fetch
+    fetch(API_ML+'/marktlage?sparte='+(sparteSel?sparteSel.value:'strom')+'&plz=10000')
+      .then(function(r){return r.json();})
+      .then(function(ml){ renderTable(ml.anbieter||[], showBonus); })
+      ['catch'](function(){});
+  });
+  if(refreshBtn) refreshBtn.addEventListener('click', function(){
+    mlLoaded=false;
+    loadMarktlage();
+  });
+}());
+
 })();

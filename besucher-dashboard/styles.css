@@ -342,6 +342,72 @@ input[type=date]{border:1px solid var(--stroke);background:var(--glass);color:va
 
 .view{display:none}.view.active{display:block}
 
+/* ── Dashboard Tab-Navigation ── */
+.dash-tabs{display:flex;gap:6px;margin-bottom:22px;background:var(--glass);border:1px solid var(--stroke);
+  border-radius:16px;padding:5px;width:fit-content;box-shadow:var(--inner)}
+.dash-tab{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;
+  color:var(--muted);padding:10px 20px;border-radius:12px;font-weight:600;font-size:13.5px;
+  font-family:inherit;cursor:pointer;transition:all .2s var(--ease)}
+.dash-tab svg{width:15px;height:15px;flex:0 0 15px;opacity:.7}
+.dash-tab:hover{color:var(--ink);background:var(--glass-hi)}
+.dash-tab.active{background:linear-gradient(135deg,var(--acc),var(--acc-2));color:#3d2f00;
+  box-shadow:0 6px 18px rgba(222,166,0,.30)}
+.dash-tab.active svg{opacity:1}
+.dash-tab-panel{display:none}
+.dash-tab-panel.active{display:block}
+
+/* ── Standort Insight Cards ── */
+.si-card{background:var(--glass);border:1px solid var(--stroke);border-radius:var(--radius);
+  box-shadow:var(--shadow),var(--inner);padding:22px 24px;position:relative;overflow:hidden}
+.si-card::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(140deg,rgba(255,255,255,.6),transparent 40%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;opacity:.6}
+.si-title{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.si-title h3{margin:0;font-size:17px;font-weight:600;color:var(--ink)}
+.si-badge{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:99px;
+  background:var(--turq);color:var(--ci);border:1px solid var(--turq-2)}
+.si-rows{display:flex;flex-direction:column;gap:10px}
+.si-row{display:flex;justify-content:space-between;align-items:baseline;
+  border-bottom:1px solid rgba(6,59,55,.07);padding-bottom:10px}
+.si-row:last-child{border-bottom:none;padding-bottom:0}
+.si-label{font-size:12.5px;color:var(--muted);font-weight:600}
+.si-val{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;
+  color:var(--ink);font-variant-numeric:tabular-nums}
+.si-val.accent{color:var(--acc-ink)}
+.si-pct-bar{margin-top:14px;height:7px;background:var(--track);border-radius:99px;overflow:hidden}
+.si-pct-bar i{display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--acc),var(--acc-2));transition:width .5s var(--ease)}
+
+/* Standort Insight Text */
+.si-text-box{display:flex;flex-direction:column;gap:12px;padding:4px 0}
+.si-text-item{display:flex;gap:12px;align-items:flex-start}
+.si-text-dot{width:8px;height:8px;border-radius:50%;background:var(--acc);flex:0 0 8px;margin-top:5px}
+.si-text-item p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.55}
+.si-text-item p b{color:var(--ink)}
+
+/* ── Heatmap ── */
+.heatmap-wrap{overflow-x:auto;margin-top:8px}
+.heatmap-wrap svg{display:block;min-width:440px}
+
+/* ── Forecast Analysis ── */
+.fca-grid{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+.fca-row{display:flex;align-items:center;gap:16px;padding:13px 15px;
+  background:var(--glass-hi);border:1px solid var(--stroke);border-radius:14px}
+.fca-label{font-size:12.5px;font-weight:600;color:var(--muted);flex:1}
+.fca-val{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;
+  color:var(--acc-ink);letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.fca-delta{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.fca-delta.up{color:#0f6e56;background:rgba(29,158,117,.14)}
+.fca-delta.down{color:#993c1d;background:rgba(216,90,48,.14)}
+.fca-delta.flat{color:var(--muted);background:var(--glass-hi)}
+.fca-sub{font-size:11.5px;color:var(--muted-2);font-weight:600;margin-top:2px}
+
+/* ── Kategorie-Trendlinien ── */
+.kattrend-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:12px}
+.kattrend-legend span{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted)}
+.kattrend-legend i{width:18px;height:3px;border-radius:2px;display:inline-block}
+
 @media(max-width:1180px){
   .app{grid-template-columns:1fr}
   .sidebar{display:none}
@@ -349,6 +415,29 @@ input[type=date]{border:1px solid var(--stroke);background:var(--glass);color:va
   .kpis{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:560px){.kpis{grid-template-columns:1fr}.main{padding:20px 16px 36px}}
+
+/* ── Marktlage ── */
+.ml-kpi{padding:20px 22px;min-width:0}
+.ml-kpi--best{border-color:var(--pos)!important;background:linear-gradient(135deg,rgba(15,110,86,.06),transparent)!important}
+.kpi-lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);margin-bottom:6px}
+.kpi-val{font-size:22px;font-weight:700;color:var(--ink);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-val--mono{font-family:'Space Grotesk',monospace;color:var(--pos)}
+.kpi-sub{font-size:12.5px;color:var(--muted);margin-top:4px;font-weight:600}
+.kpi-sub2{font-size:11.5px;color:var(--muted-2);margin-top:2px}
+.ml-table{width:100%;border-collapse:collapse;font-size:13px}
+.ml-table th{text-align:left;padding:9px 12px 9px 0;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);border-bottom:1px solid var(--stroke)}
+.ml-table td{padding:10px 12px 10px 0;border-bottom:1px solid var(--stroke);vertical-align:middle}
+.ml-table tr:last-child td{border-bottom:none}
+.ml-table tr:hover td{background:var(--glass-hi)}
+.ml-price{font-family:'Space Grotesk',monospace;font-weight:700;color:var(--pos);font-size:14px}
+.ml-bonus-badge{display:inline-block;background:rgba(191,146,0,.15);color:var(--acc-ink);font-weight:700;font-size:12px;padding:2px 8px;border-radius:6px;border:1px solid rgba(191,146,0,.25)}
+.ml-cond{font-size:12px;color:var(--muted);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ml-src{font-size:11px;color:var(--muted-2);text-transform:capitalize}
+.marktlage-disclaimer{font-size:11px;color:var(--muted-2);margin-top:16px;padding-top:12px;border-top:1px solid var(--stroke)}
+.ml-toggle-label{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);font-weight:500;cursor:pointer;user-select:none}
+.ml-toggle-label input{accent-color:var(--pos);width:15px;height:15px;cursor:pointer}
+.seg-btn{padding:6px 14px;font-size:13px;font-weight:600;font-family:inherit;border:1px solid var(--stroke);border-radius:10px;background:var(--glass);color:var(--ink);cursor:pointer;transition:all .15s}
+.seg-btn:hover{background:var(--glass-hi);border-color:var(--stroke-hi)}
 
 @media(prefers-reduced-motion:reduce){
   *,body::before,body::after{animation:none!important;transition:none!important}

@@ -21,10 +21,9 @@ async function buildApp() {
 
   fastify.get('/api/health', async () => ({ ok: true }));
 
-  // Schema-Setup NUR lokal. Auf Vercel (process.env.VERCEL gesetzt) sind die Turso-
-  // Tabellen bereits provisioniert — das Setup würde pro Cold-Start sonst mehrere
-  // Turso-Round-Trips kosten (u.a. 17 sequenzielle Agent-Seeds) und nur Latenz bringen.
-  if (!process.env.VERCEL) await ensureSchemas();
+  // Schema-Setup lokal + bei vercel dev (VERCEL_ENV=development).
+  // In Production/Preview sind Turso-Tabellen bereits provisioniert → überspringen (Latenz).
+  if (!process.env.VERCEL || process.env.VERCEL_ENV === 'development') await ensureSchemas();
   return fastify;
 }
 
