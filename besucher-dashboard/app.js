@@ -412,7 +412,7 @@ function renderKPIs(anim){
       s:'Ø-Niveau = 100 · erwartet '+nf(Math.round(exp))});
   }
   // 3) Spitzenwert: Stunde (Tagesfilter) / Monat (Gesamt) / Tag
-  if(info.grain==='hour'){var ph=peakHourOf(rows);cards.push({l:'Stärkste Abschlusszeit',i:'sun',v:ph?ph.v:0,d:null,s:ph?(ph.h+'–'+(ph.h+1)+' Uhr'):'—'});}
+  if(info.grain==='hour'){var ph=peakHourOf(rows);cards.push({l:'Stärkste Besuchszeit',i:'sun',v:ph?ph.v:0,d:null,s:ph?(ph.h+'–'+(ph.h+1)+' Uhr'):'—'});}
   else if(info.isAll){var pm=peakMonthOf(rows);cards.push({l:'Stärkster Monat',i:'sun',v:pm?pm.v:0,d:null,s:pm?ymLabel(pm.ym):'—'});}
   else{var pd=peakDayOf(rows);cards.push({l:'Stärkster Tag',i:'sun',v:pd?pd.v:0,d:null,s:pd?ymdShort(pd.ymd):'—'});}
   // 4) Top-Anliegen im Zeitraum
@@ -573,7 +573,7 @@ function renderStandortTab(rows,anim){
         '<div class="si-row"><span class="si-label">&#216; pro Öffnungstag (Mo–Fr)</span><span class="si-val">'+c.avgPerDay+'</span></div>'+
         '<div class="si-row"><span class="si-label">Häufigstes Anliegen</span><span class="si-val">'+esc(c.topKat)+'</span></div>'+
         '<div class="si-row"><span class="si-label">Stärkster Wochentag</span><span class="si-val">'+c.topWdayName+'</span></div>'+
-        '<div class="si-row"><span class="si-label">Stärkste Abschlusszeit</span><span class="si-val">'+c.spitzenzeit+'</span></div>'+
+        '<div class="si-row"><span class="si-label">Stärkste Besuchszeit</span><span class="si-val">'+c.spitzenzeit+'</span></div>'+
         '<div class="si-row"><span class="si-label">'+(info.cmpLabel||'ggü. Vorperiode')+'</span>'+auff+'</div>'+
       '</div>'+
       '<div class="si-pct-bar"><i data-w="'+c.anteil+'" style="width:'+(anim&&!RM?'0':c.anteil)+'%"></i></div>'+
@@ -902,7 +902,7 @@ function renderInsights(rows,info,anim){
   if(info.prevA!=null){var prev=countRange(info.prevA,info.prevB);if(prev>0){var d=Math.round((rows.length-prev)/prev*100);
     out.push('Der Zeitraum liegt <b>'+(d>0?'+':'')+d+'%</b> '+(d>=0?'über':'unter')+' dem vergleichbaren Vorzeitraum ('+nf(rows.length)+' vs. '+nf(prev)+').');}}
   // 2) Stärkste Abschlusszeit
-  var ph=peakHourOf(rows);if(ph)out.push('Die stärkste Abschlusszeit war <b>'+ph.h+':00–'+(ph.h+1)+':00 Uhr</b> ('+nf(ph.v)+' Abschlüsse).');
+  var ph=peakHourOf(rows);if(ph)out.push('Die stärkste Besuchszeit war <b>'+ph.h+':00–'+(ph.h+1)+':00 Uhr</b> ('+nf(ph.v)+' Abschlüsse).');
   // 3) Top-Anliegen
   var tk=topKatOf(rows,1);if(tk.length)out.push('<b>'+esc(tk[0].label)+'</b> macht <b>'+tk[0].pct+'%</b> aller Besuche aus.');
   // 4) Standortvergleich Ø/Öffnungstag
