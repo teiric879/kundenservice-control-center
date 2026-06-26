@@ -8,11 +8,20 @@ import { openPdfModal } from './modules/pdf-modal.js?v=20260626a';
 const LOCAL_HOSTS = ['127.0.0.1', 'localhost'];
 const API_BASE = LOCAL_HOSTS.includes(location.hostname) ? `http://${location.hostname}:3001` : '';
 
-// Produktdaten aus API laden (überschreibt data.js wenn API erreichbar)
+// Produktdaten aus API laden. Der statische data.js-Fallback wird NUR nachgeladen, wenn
+// die API nicht erreichbar ist → spart die ~16 KB auf dem Normalpfad (online).
 try {
   const resp = await fetch(`${API_BASE}/api/produktdaten`);
   if (resp.ok) window.PRODUKTDATEN = await resp.json();
-} catch { /* API nicht erreichbar – nutze data.js Fallback */ }
+} catch { /* API nicht erreichbar */ }
+if (!window.PRODUKTDATEN) {
+  // data.js setzt window.PRODUKTDATEN als Seiteneffekt; erst jetzt (offline-Fallback) laden.
+  await new Promise((res) => {
+    const s = document.createElement('script');
+    s.src = 'data.js'; s.onload = res; s.onerror = res;
+    document.head.appendChild(s);
+  });
+}
 
 // Vertragsformulare laden → window.VERTRAG_MAP['sparte-ProduktKey'] = [{id, name, ...}]
 window.VERTRAG_MAP = {};

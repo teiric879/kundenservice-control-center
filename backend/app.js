@@ -27,6 +27,10 @@ async function buildApp() {
     contentSecurityPolicy: false, // API liefert JSON/PDF, keine eigene HTML-UI
   });
 
+  // Antworten komprimieren (gzip/br). Greift v.a. lokal/self-hosted – auf Vercel komprimiert
+  // bereits der Edge. threshold:1024 → winzige JSON-Antworten bleiben unkomprimiert (kein Overhead).
+  await fastify.register(require('@fastify/compress'), { global: true, threshold: 1024 });
+
   // Rate-Limit global; Bulk-Import-Routen zusätzlich strenger (siehe Routen).
   await fastify.register(require('@fastify/rate-limit'), {
     global: true,
