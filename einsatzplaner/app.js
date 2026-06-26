@@ -2,16 +2,21 @@
 const API = (location.hostname === '127.0.0.1' ? 'http://127.0.0.1:3001' : '') + '/api/einsatzplaner';
 
 const LOCATIONS = [
-  { id: 'kall',       label: 'Kall',       slots: ['B1','B2'] },
-  { id: 'euskirchen', label: 'Euskirchen', slots: ['Z','B1','B2','B3','BO1','BO2','BO3','BO4','BO5'] },
-  { id: 'homeoffice', label: 'HomeOffice', slots: ['H1','H2','H3','H4','H5','H6','H7','H8'] },
+  { id: 'kall', label: 'Kall', slots: ['B1','B2'] },
+  { id: 'euskirchen', label: 'Euskirchen',
+    slots: ['Z','B1','B2','B3'],
+    extra: { slots: ['BO1','BO2','BO3','BO4','BO5'], defaultShow: 1 }
+  },
+  { id: 'homeoffice', label: 'HomeOffice',
+    slots: ['H1','H2','H3'],
+    extra: { slots: ['H4','H5','H6','H7','H8'], defaultShow: 0 }
+  },
 ];
 const SLOT_LABELS = {
   Z: 'Zentrale', B1: 'Berater 1', B2: 'Berater 2', B3: 'Berater 3',
-  BO1: 'Backoffice 1', BO2: 'Backoffice 2', BO3: 'Backoffice 3',
-  BO4: 'Backoffice 4', BO5: 'Backoffice 5',
-  H1:'HO 1', H2:'HO 2', H3:'HO 3', H4:'HO 4',
-  H5:'HO 5', H6:'HO 6', H7:'HO 7', H8:'HO 8',
+  BO1: 'Backoffice', BO2: 'Backoffice', BO3: 'Backoffice', BO4: 'Backoffice', BO5: 'Backoffice',
+  H1: 'HomeOffice', H2: 'HomeOffice', H3: 'HomeOffice', H4: 'HomeOffice',
+  H5: 'HomeOffice', H6: 'HomeOffice', H7: 'HomeOffice', H8: 'HomeOffice',
 };
 const DAYS = ['Mo','Di','Mi','Do','Fr'];
 
@@ -26,6 +31,23 @@ const REQUIRED_SLOTS = [
 ];
 const REQUIRED_SET = new Set(REQUIRED_SLOTS.map(r => `${r.loc}|${r.slot}`));
 function isRequired(loc, slot) { return REQUIRED_SET.has(`${loc}|${slot}`); }
+
+/* ── Einklappbare Zeilen (Backoffice/HomeOffice) ─────────────────────────── */
+var S_EXPAND = new Set(); // loc-IDs die aufgeklappt sind
+function toggleExpand(locId) {
+  S_EXPAND.has(locId) ? S_EXPAND.delete(locId) : S_EXPAND.add(locId);
+  renderGrid();
+}
+function visibleSlots(loc) {
+  if (!loc.extra) return loc.slots;
+  const extra = S_EXPAND.has(loc.id)
+    ? loc.extra.slots
+    : loc.extra.slots.slice(0, loc.extra.defaultShow);
+  return [...loc.slots, ...extra];
+}
+function allSlots(loc) {
+  return loc.extra ? [...loc.slots, ...loc.extra.slots] : loc.slots;
+}
 
 /* Liefert den Besetzungsstatus eines Tages anhand einer Assignment-Map
    (Wochenplan: S.assignments, Monatsplan: S.monthData). */
@@ -313,12 +335,17 @@ function renderGrid() {
   </div>`;
 
   for (const loc of LOCATIONS) {
+    const shown = visibleSlots(loc);
+    const extraTotal = loc.extra?.slots.length ?? 0;
+    const extraShown = S_EXPAND.has(loc.id) ? extraTotal : (loc.extra?.defaultShow ?? 0);
+    const remaining  = extraTotal - extraShown;
+
     html += `<div class="pg-section">
       <div class="pg-section-lbl">
         <span class="loc-pip ${loc.id}"></span>${loc.label}
       </div>
     </div>`;
-    for (const slot of loc.slots) {
+    for (const slot of shown) {
       html += `<div class="pg-row">
         <div class="pg-slot-label">${SLOT_LABELS[slot] ?? slot}</div>
         ${days.map((date, i) => {
@@ -327,6 +354,19 @@ function renderGrid() {
           return cellHtml(date, loc.id, slot, list);
         }).join('')}
       </div>`;
+    }
+    if (loc.extra) {
+      if (!S_EXPAND.has(loc.id) && remaining > 0) {
+        html += `<div class="pg-row expand-row">
+          <button class="expand-btn" onclick="toggleExpand('${loc.id}')">▼ ${remaining} weitere</button>
+          <div style="grid-column:span 5"></div>
+        </div>`;
+      } else if (S_EXPAND.has(loc.id)) {
+        html += `<div class="pg-row expand-row">
+          <button class="expand-btn" onclick="toggleExpand('${loc.id}')">▲ einklappen</button>
+          <div style="grid-column:span 5"></div>
+        </div>`;
+      }
     }
   }
 
@@ -343,6 +383,7 @@ function cellHtml(date, loc, slot, list) {
       <span class="band-kz">${esc(a.kuerzel)}</span>
       <span class="band-name">${esc(a.name)}</span>
       <span class="band-t">${esc(a.time_from)}–${esc(clampTo16(a.time_to))}</span>
+      <button class="band-remove" onclick="event.stopPropagation();removeAssignment(${Number(a.id)})" title="Zuweisung entfernen">×</button>
     </div>`).join('');
 
   // Zweiten Berater nur anbieten, wenn 08:00–16:00 noch nicht lückenlos besetzt ist
@@ -454,11 +495,18 @@ function showCtx(e, assignmentId, date, loc, slot) {
 
 function closeCtx() { document.getElementById('ctxMenu').classList.add('hidden'); }
 
+async function removeAssignment(id) {
+  try {
+    await api(`/assignments/${id}`, { method: 'DELETE' });
+    await loadWeek();
+    toast('Zuweisung entfernt');
+  } catch (e) {
+    toast('Fehler beim Entfernen – bitte neu laden', false);
+  }
+}
 async function ctxRemove() {
   closeCtx();
-  await api(`/assignments/${S.ctxAssignmentId}`, { method: 'DELETE' });
-  await loadWeek();
-  toast('Zuweisung entfernt');
+  await removeAssignment(S.ctxAssignmentId);
 }
 
 function ctxSwap() {
@@ -690,7 +738,7 @@ function renderMonthGrid(workDays) {
   for (const loc of LOCATIONS) {
     // Section label spans all columns
     html += `<div class="mg-section">${loc.label}</div>`;
-    for (const slot of loc.slots) {
+    for (const slot of allSlots(loc)) {
       const lbl = SLOT_LABELS[slot] ?? slot;
       html += `<div class="mg-slot-lbl">${lbl}</div>`;
       for (const date of workDays) {
@@ -892,6 +940,7 @@ function showTab(name) {
   document.querySelector(`.tab-btn[data-tab="${name}"]`)?.classList.add('active');
   document.querySelector(`.mod-item[data-tab-link="${name}"]`)?.classList.add('active');
   document.getElementById('weekNav').style.display = (name === 'plan') ? '' : 'none';
+  document.getElementById('beraterLeiste')?.classList.toggle('hidden', name === 'dashboard');
 
   if (name === 'dashboard') loadStats();
   if (name === 'monat')     loadMonthView();

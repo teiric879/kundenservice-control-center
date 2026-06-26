@@ -106,13 +106,6 @@
       </div>
     </nav>
 
-    <!-- Agent Selection Panel -->
-    <div class="agent-panel" id="agentPanel">
-      <div class="ap-label">BERATER AUSWÄHLEN</div>
-      <div class="agent-pills" id="agentPills"></div>
-      <button class="pill-clear hidden" id="pillClear" onclick="clearSelection()">✕ Auswahl aufheben</button>
-    </div>
-
     <div class="side-foot">
       <div>Einsatzplaner 2026</div>
       <div>e-regio Regionetz GmbH</div>
@@ -176,6 +169,13 @@
         </svg>
         Dashboard
       </button>
+    </div>
+
+    <!-- ── Berater-Leiste ────────────────────────────────────────────────── -->
+    <div class="berater-leiste" id="beraterLeiste">
+      <span class="bl-label">Berater</span>
+      <div class="bl-pills" id="agentPills"></div>
+      <button class="bl-clear hidden" id="pillClear" onclick="clearSelection()">✕ Auswahl</button>
     </div>
 
     <!-- ── Tab: Wochenplan ─────────────────────────────────────────────── -->
@@ -378,7 +378,7 @@ function toggleModItems(btn, id) {
   btn.classList.toggle('collapsed');
 }
 </script>
-<script src="app.js?v=20260625a"></script>
+<script src="app.js?v=20260626a"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=3"></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">

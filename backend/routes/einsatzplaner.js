@@ -15,12 +15,12 @@ module.exports = async function einsatzplanerRoutes(fastify) {
   });
 
   fastify.patch('/api/einsatzplaner/agents/:id', async (req) => {
-    await repo.updateAgent(req.params.id, req.body ?? {});
+    await repo.updateAgent(Number(req.params.id), req.body ?? {});
     return { ok: true };
   });
 
   fastify.delete('/api/einsatzplaner/agents/:id', async (req) => {
-    await repo.deleteAgent(req.params.id);
+    await repo.deleteAgent(Number(req.params.id));
     return { ok: true };
   });
 
@@ -38,12 +38,12 @@ module.exports = async function einsatzplanerRoutes(fastify) {
 
   fastify.patch('/api/einsatzplaner/assignments/:id', async (req) => {
     const { time_from, time_to } = req.body ?? {};
-    await repo.patchAssignment(req.params.id, time_from, time_to);
+    await repo.patchAssignment(Number(req.params.id), time_from, time_to);
     return { ok: true };
   });
 
   fastify.delete('/api/einsatzplaner/assignments/:id', async (req) => {
-    await repo.deleteAssignment(req.params.id);
+    await repo.deleteAssignment(Number(req.params.id));
     return { ok: true };
   });
 
