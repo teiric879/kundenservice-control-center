@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>e-regio · Produkt-ID Tool</title>
-<link rel="stylesheet" href="styles.css?v=10">
+<link rel="stylesheet" href="styles.css?v=11">
 <link rel="stylesheet" href="../shared/tokens.css?v=1">
 <link rel="stylesheet" href="../shared/sidebar.css?v=3">
 </head>
@@ -338,7 +338,7 @@
     <div class="content-top">
       <div class="tab-strip" id="tabStrip" role="tablist">
         <button class="tab-btn active" data-tab="kunde" role="tab" aria-selected="true">Kundeninformationen</button>
-        <button class="tab-btn" data-tab="sach" role="tab" aria-selected="false">Sachbearbeiterinformationen</button>
+        <button class="tab-btn" data-tab="sach" role="tab" aria-selected="false">Sachbearbeiterinfos</button>
       </div>
       <div class="result-meta" id="resultMeta"></div>
     </div>
@@ -355,9 +355,10 @@
 
 </div>
 <script src="data.js"></script>
-<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-<script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.min.js"></script>
-<script type="module" src="app.js?v=20260624c"></script>
+<!-- pdf-lib + fontkit werden NICHT mehr eager geladen, sondern erst beim Öffnen
+     eines PDF-Formulars (siehe modules/pdf-modal.js → loadPdfLib). Spart ~0,5 MB
+     CDN-Skript auf jedem Seitenaufruf. -->
+<script type="module" src="app.js?v=20260626a"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=3"></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">

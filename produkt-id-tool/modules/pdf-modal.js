@@ -35,6 +35,32 @@ function loadPdfJs() {
   return _pdfjsPromise;
 }
 
+// ── pdf-lib + fontkit: erst bei Bedarf laden ─────────────────────────────────
+// Früher per eager <script> auf jedem Seitenaufruf (~0,5 MB CDN). Jetzt erst beim
+// ersten Öffnen eines PDF-Formulars. Versionen gepinnt (statt unpkg „latest" →
+// kein Redirect-Roundtrip, reproduzierbar). Befüllt window.PDFLib + window.fontkit.
+const PDFLIB_VER  = '1.17.1';
+const FONTKIT_VER = '1.1.1';
+let _pdfLibPromise = null;
+function _loadScriptOnce(src, ready) {
+  return new Promise((resolve, reject) => {
+    if (ready()) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Laden fehlgeschlagen: ' + src));
+    document.head.appendChild(s);
+  });
+}
+function loadPdfLib() {
+  if (!_pdfLibPromise) {
+    _pdfLibPromise = _loadScriptOnce(`https://unpkg.com/pdf-lib@${PDFLIB_VER}/dist/pdf-lib.min.js`, () => window.PDFLib)
+      .then(() => _loadScriptOnce(`https://unpkg.com/@pdf-lib/fontkit@${FONTKIT_VER}/dist/fontkit.umd.min.js`, () => window.fontkit))
+      .catch(err => { _pdfLibPromise = null; throw err; });   // Fehlversuch nicht cachen
+  }
+  return _pdfLibPromise;
+}
+
 // Minimaler LinkService-Stub – Formular-Widgets brauchen keinen echten Service,
 // die AnnotationLayer.render() erwartet ihn aber als Objekt.
 const linkServiceStub = {
@@ -528,6 +554,10 @@ export async function openPdfModal(btn) {
   const entries  = (window.VERTRAG_MAP || {})[key] || [];
 
   if (!entries.length) return;
+
+  // pdf-lib + fontkit jetzt (lazy) laden – vor dem Befüllen der Formularfelder.
+  // Schlägt das fehl (offline o.Ä.), zeigt fillFormFields ohnehin das unbearbeitete PDF.
+  try { await loadPdfLib(); } catch { /* graceful: PDF wird ohne Autofill angezeigt */ }
 
   let fill = {};
   try { fill = JSON.parse(btn.dataset.fill || '{}'); } catch { /* kein/ungültiges JSON */ }

@@ -363,7 +363,7 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
 .content{
   flex:1;min-width:0;
   display:flex;flex-direction:column;
-  padding:22px 28px 28px;
+  padding:48px 28px 28px;
   overflow:hidden;
 }
 

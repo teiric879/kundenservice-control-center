@@ -38,6 +38,17 @@ var minYmd=20160101, maxYmd=20260101, dataMaxYmd=20260101;
 var nowYmd=dateToYmd(new Date()), nowDate=ymdToDate(nowYmd);
 var state={standort:'all',period:'heute',from:null,to:null};
 
+/* ---------- Memoisierung schwerer Aggregationen ----------
+   weekdayMonthAvg / hourlyCum / Monats-Buckets / Kategorie-Trend scannen das komplette V und
+   hängen NUR von den Rohdaten + Standort (+ heutigem Datum) ab, NICHT vom gewählten Zeitraum.
+   Bisher liefen sie bei JEDEM Filter-/Resize-/Tab-Wechsel neu – Prognose + Prognose-Analyse
+   riefen weekdayMonthAvg/hourlyCum sogar doppelt pro render() auf. _dataVer wird bei jeder
+   V-Änderung erhöht und invalidiert dadurch alle Caches (gleiches Ergebnis wie vorher, nur
+   ohne Wiederholung). */
+var _dataVer=0;
+function bumpData(){_dataVer++;}
+function memo(fn,keyFn){var k,v;return function(a){var nk=keyFn(a);if(nk!==k){k=nk;v=fn(a);}return v;};}
+
 /* ---------- filter ---------- */
 function matchStand(s){return state.standort==='all'||s===state.standort;}
 function countRange(a,b){
@@ -350,7 +361,7 @@ function renderLocKPIs(anim){
 }
 
 /* ---------- Besucherprognose ---------- */
-function weekdayMonthAvg(){
+var weekdayMonthAvg=memo(function(){
   var endDate=ymdToDate(dataMaxYmd),startDate=ymdToDate(minYmd);
   var perDay={};
   for(var i=0;i<V.length;i++){
@@ -362,8 +373,8 @@ function weekdayMonthAvg(){
   for(var mo=0;mo<12;mo++){sum[mo]=[0,0,0,0,0,0,0];cnt[mo]=[0,0,0,0,0,0,0];}
   for(var t=new Date(startDate);t<=endDate;t=addDays(t,1)){var mo2=t.getMonth(),wd=(t.getDay()+6)%7,yy=dateToYmd(t);sum[mo2][wd]+=perDay[yy]||0;cnt[mo2][wd]++;}
   return sum.map(function(s,mo){return s.map(function(v,w){return cnt[mo][w]?v/cnt[mo][w]:0;});});
-}
-function hourlyCum(wd){
+}, function(){return _dataVer+'|'+state.standort;});
+var hourlyCum=memo(function(wd){
   var byHour=new Array(24).fill(0),total=0;
   for(var i=0;i<V.length;i++){
     var r=V[i];if(r.ymd>dataMaxYmd)break;
@@ -373,7 +384,7 @@ function hourlyCum(wd){
   }
   var cum=[],acc=0;for(var h=0;h<24;h++){acc+=byHour[h];cum[h]=total?acc/total:0;}
   return cum;
-}
+}, function(wd){return _dataVer+'|'+state.standort+'|'+wd;});
 function renderForecast(anim){
   var box=document.getElementById('fcGrid');if(!box)return;
   var wdm=weekdayMonthAvg(),y=nowDate.getFullYear(),m=nowDate.getMonth(),todayWd=(nowDate.getDay()+6)%7;
@@ -504,8 +515,7 @@ function renderHeatmap(rows,anim){
 }
 
 /* ---------- Tab 3: Monatsvergleich ---------- */
-function renderMonthlyComparison(anim){
-  var box=document.getElementById('chartMonthly');if(!box)return;
+var _monthlyBuckets=memo(function(){
   var buckets=[];
   for(var i=11;i>=0;i--){
     var d=addMonths(new Date(nowDate.getFullYear(),nowDate.getMonth(),1),-i);
@@ -515,6 +525,11 @@ function renderMonthlyComparison(anim){
     for(var j=0;j<V.length;j++){var r=V[j];if(r.ymd>=from&&r.ymd<=to&&matchStand(r.standort))count++;}
     buckets.push({label:MON[mo]+' '+(''+y2).slice(2),v:count,isCurrent:i===0});
   }
+  return buckets;
+}, function(){return _dataVer+'|'+state.standort+'|'+nowYmd;});
+function renderMonthlyComparison(anim){
+  var box=document.getElementById('chartMonthly');if(!box)return;
+  var buckets=_monthlyBuckets();
   var W=Math.max(360,Math.round(box.clientWidth)||640),H=220,pad={l:44,r:14,t:16,b:30};
   var n=buckets.length,max=Math.max(1,Math.max.apply(null,buckets.map(function(x){return x.v;})));
   var iw=W-pad.l-pad.r,ih=H-pad.t-pad.b,gap=iw/n,bw=Math.min(42,gap*0.65);
@@ -571,8 +586,7 @@ function renderForecastAnalysis(anim){
 }
 
 /* ---------- Tab 3: Kategorie-Trend ---------- */
-function renderKatTrend(anim){
-  var box=document.getElementById('chartKatTrend');if(!box)return;
+var _katTrendData=memo(function(){
   var months=[];
   for(var i=11;i>=0;i--){
     var d=addMonths(new Date(nowDate.getFullYear(),nowDate.getMonth(),1),-i);
@@ -582,8 +596,6 @@ function renderKatTrend(anim){
   var katTotals={};
   for(var j=0;j<V.length;j++){var r=V[j];if(r.kategorie&&matchStand(r.standort)){var k=stripPfx(r.kategorie);katTotals[k]=(katTotals[k]||0)+1;}}
   var topKats=Object.keys(katTotals).sort(function(a,b){return katTotals[b]-katTotals[a];}).slice(0,5);
-  if(!topKats.length){box.innerHTML='<p class="sub" style="text-align:center;padding:32px 0">Keine Kategoriedaten vorhanden.</p>';return;}
-  var KATPAL=['#004442','#dea600','#1f9bb0','#1d9e75','#3a7ca5'];
   var series=topKats.map(function(kat){
     var vals=months.map(function(mo){
       var c=0;
@@ -592,6 +604,13 @@ function renderKatTrend(anim){
     });
     return {label:kat,vals:vals};
   });
+  return {months:months,series:series};
+}, function(){return _dataVer+'|'+state.standort+'|'+nowYmd;});
+function renderKatTrend(anim){
+  var box=document.getElementById('chartKatTrend');if(!box)return;
+  var _kt=_katTrendData(),months=_kt.months,series=_kt.series;
+  if(!series.length){box.innerHTML='<p class="sub" style="text-align:center;padding:32px 0">Keine Kategoriedaten vorhanden.</p>';return;}
+  var KATPAL=['#004442','#dea600','#1f9bb0','#1d9e75','#3a7ca5'];
   var W=Math.max(360,Math.round(box.clientWidth)||760),H=260,pad={l:44,r:14,t:18,b:30};
   var n=months.length,iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
   var allVals=series.reduce(function(acc,s){return acc.concat(s.vals);},[]);
@@ -714,7 +733,7 @@ function initErfassen(){
         var kat=decodeURIComponent(b.dataset.k);
         var now=new Date();
         var entry={ymd:dateToYmd(now),standort:sel,kategorie:kat,stunde:now.getHours(),dow:(now.getDay()+6)%7};
-        V.push(entry);   // optimistisch – Live-Reload (POST→Event) gleicht V danach mit der DB ab
+        V.push(entry);bumpData();   // optimistisch – Live-Reload (POST→Event) gleicht V danach mit der DB ab
         if(window.erfassBesuch){_erfassenSelfFired=true;window.erfassBesuch(sel,kat).catch(function(){});}
         render(false);
         b.classList.add('bump');
@@ -762,6 +781,7 @@ function bootLoad(){
       nowYmd=dateToYmd(new Date());nowDate=ymdToDate(nowYmd);
       V.length=0;rows.forEach(function(r){V.push(parseApiRow(r));});
       _applyMaxima();
+      bumpData();
       _booted=true;
       initControls();
       initDashTabs();
@@ -789,6 +809,7 @@ function refreshToday(){
       for(var i=V.length-1;i>=0;i--){if(V[i].ymd>=nowYmd)V.splice(i,1);} // alten Heute-Teil entfernen
       rows.forEach(function(r){V.push(parseApiRow(r));});               // frischen Heute-Teil anhängen (bleibt sortiert)
       dataMaxYmd=V.length?V[V.length-1].ymd:nowYmd;maxYmd=Math.max(dataMaxYmd,nowYmd);
+      bumpData();
       render(false);
       if(redrawErfassGrid)redrawErfassGrid();
     })

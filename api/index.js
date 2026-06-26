@@ -9412,8 +9412,9 @@ var require_ddl = __commonJS({
     kategorie TEXT,
     stunde    INTEGER DEFAULT -1
   );
-  CREATE INDEX IF NOT EXISTS idx_besuche_datum    ON besuche(datum);
-  CREATE INDEX IF NOT EXISTS idx_besuche_standort ON besuche(standort);
+  CREATE INDEX IF NOT EXISTS idx_besuche_datum     ON besuche(datum);
+  CREATE INDEX IF NOT EXISTS idx_besuche_standort  ON besuche(standort);
+  CREATE INDEX IF NOT EXISTS idx_besuche_kategorie ON besuche(kategorie);
 `;
     var BESUCHER_ALTERS = [
       "ALTER TABLE besuche ADD COLUMN ts TEXT"

@@ -192,8 +192,9 @@ const BESUCHER_TABLES = `
     kategorie TEXT,
     stunde    INTEGER DEFAULT -1
   );
-  CREATE INDEX IF NOT EXISTS idx_besuche_datum    ON besuche(datum);
-  CREATE INDEX IF NOT EXISTS idx_besuche_standort ON besuche(standort);
+  CREATE INDEX IF NOT EXISTS idx_besuche_datum     ON besuche(datum);
+  CREATE INDEX IF NOT EXISTS idx_besuche_standort  ON besuche(standort);
+  CREATE INDEX IF NOT EXISTS idx_besuche_kategorie ON besuche(kategorie);
 `;
 
 // Migration für bestehende besucher-DBs: voller Zeitstempel (aus Access 'Uhrzeit').
