@@ -110,6 +110,9 @@
       cfg = await r.json();
     } catch (e) { return; } // API offline → keine Leiste anzeigen
     if (!cfg || !cfg.ok || !cfg.standorte || !cfg.standorte.length || !cfg.kategorien || !cfg.kategorien.length) return;
+    // Test-/Junk-Standorte (z.B. "__TESTBOT__") nie als Button anzeigen.
+    cfg.standorte = cfg.standorte.filter(function(s){ return s && !/test/i.test(s); });
+    if (!cfg.standorte.length) return;
     standort = localStorage.getItem(LS_STANDORT);
     if (!standort || cfg.standorte.indexOf(standort) < 0) standort = cfg.standorte[0];
     render();

@@ -6,7 +6,7 @@
 <title>e-regio · Kundenservice Control Center</title>
 <link rel="stylesheet" href="../shared/fonts.css?v=1">
 <link rel="stylesheet" href="../shared/tokens.css?v=1">
-<link rel="stylesheet" href="styles.css?v=23">
+<link rel="stylesheet" href="styles.css?v=24">
 <link rel="stylesheet" href="../shared/sidebar.css?v=3">
 </head>
 <body>
@@ -188,6 +188,11 @@
       <div class="dash-tab-panel active" id="tab-uebersicht">
         <div class="kpis" id="kpis"></div>
 
+        <div class="card reveal" id="insightsCard" style="animation-delay:.02s;margin-bottom:18px">
+          <div class="p-head"><div><h3>Automatische Erkenntnisse</h3><div class="sub">Regelbasiert aus dem gewählten Zeitraum</div></div></div>
+          <div id="insightsBox"></div>
+        </div>
+
         <div class="card reveal" id="forecastCard" style="animation-delay:.03s;margin-bottom:18px">
           <div class="p-head"><div><h3>Besucherprognose</h3><div class="sub">Hochrechnung aus historischem &#216; Wochentag &times; Monat (12 Monate) &amp; laufendem Tag</div></div></div>
           <div class="fc-grid" id="fcGrid"></div>
@@ -208,7 +213,7 @@
             <div id="chartWday"></div>
           </div>
           <div class="card reveal" style="animation-delay:.30s">
-            <h3>Nach Uhrzeit</h3><div class="sub">Stoßzeiten · Personalplanung</div>
+            <h3>Nach Abschlusszeit</h3><div class="sub">Beratungsende je Uhrzeit · Stoßzeiten</div>
             <div id="chartHour"></div>
           </div>
         </div>
@@ -263,6 +268,17 @@
           <!-- JS fills: Euskirchen + Kall insight cards -->
         </div>
 
+        <div class="panels" style="margin-bottom:18px">
+          <div class="card reveal" style="animation-delay:.15s">
+            <div class="p-head"><div><h3>Standortvergleich</h3><div class="sub">Kennzahlen im direkten Vergleich</div></div></div>
+            <div id="standortCompare"></div>
+          </div>
+          <div class="card reveal" style="animation-delay:.18s">
+            <div class="p-head"><div><h3>Themenprofil je Standort</h3><div class="sub">Top-Anliegen als relativer Anteil</div></div></div>
+            <div class="th-grid" id="standortThemen"></div>
+          </div>
+        </div>
+
         <div class="card reveal" id="standortInsightText" style="animation-delay:.2s">
           <!-- JS fills: auto-generated text insights -->
         </div>
@@ -271,7 +287,7 @@
       <!-- ══ Tab 3: Analyse ══ -->
       <div class="dash-tab-panel" id="tab-analyse">
         <div class="card reveal" style="animation-delay:.04s;margin-bottom:18px">
-          <div class="p-head"><div><h3>Besuchsheatmap</h3><div class="sub">Stoßzeiten und Auslastung · Wochentag × Uhrzeit</div></div></div>
+          <div class="p-head"><div><h3>Besuchsheatmap</h3><div class="sub">Abschlüsse nach Wochentag & Uhrzeit (Beratungsende)</div></div></div>
           <div id="chartHeatmap"></div>
         </div>
 
@@ -281,12 +297,45 @@
             <div id="chartMonthly"></div>
           </div>
           <div class="card reveal" style="animation-delay:.12s">
-            <div class="p-head"><div><h3>Forecast &amp; Vergleich</h3><div class="sub">Prognose · aktueller Stand · Abweichung zur Vorperiode</div></div></div>
+            <div class="p-head"><div><h3>Vorperiodenvergleich</h3><div class="sub">Aktueller Zeitraum vs. vergleichbarer Vorzeitraum</div></div></div>
             <div id="fcAnalysis"></div>
           </div>
         </div>
 
-        <div class="card reveal" style="animation-delay:.16s">
+        <div class="panels" style="margin-bottom:18px">
+          <div class="card reveal" style="animation-delay:.14s">
+            <div class="p-head"><div><h3>Anliegen nach Abschlusszeit</h3><div class="sub">Zeilenanteil je Anliegen · wann werden Themen abgeschlossen?</div></div></div>
+            <div id="chartAnliegenHour"></div>
+          </div>
+          <div class="card reveal" style="animation-delay:.16s">
+            <div class="p-head"><div><h3>Anliegen nach Wochentag</h3><div class="sub">Zeilenanteil je Anliegen · Mo–Fr</div></div></div>
+            <div id="chartAnliegenWday"></div>
+          </div>
+        </div>
+
+        <div class="panels" style="margin-bottom:18px">
+          <div class="card reveal" style="animation-delay:.18s">
+            <div class="p-head"><div><h3>Monatsphasen</h3><div class="sub">Top-Anliegen je Monatsanfang / -mitte / -ende</div></div></div>
+            <div id="chartMonthPhases"></div>
+          </div>
+          <div class="card reveal" style="animation-delay:.2s">
+            <div class="p-head"><div><h3>Pareto der Anliegen</h3><div class="sub">Wenige Themen, viele Besuche</div></div></div>
+            <div id="chartPareto"></div>
+          </div>
+        </div>
+
+        <div class="panels" style="margin-bottom:18px">
+          <div class="card reveal" style="animation-delay:.22s">
+            <div class="p-head"><div><h3>Ausreißer-Tage</h3><div class="sub">Tage mit ungewöhnlich vielen/wenigen Besuchen</div></div></div>
+            <div id="chartOutliers"></div>
+          </div>
+          <div class="card reveal" style="animation-delay:.24s">
+            <div class="p-head"><div><h3>Datenqualität</h3><div class="sub">Fehlende Angaben im Zeitraum</div></div></div>
+            <div id="dqBox"></div>
+          </div>
+        </div>
+
+        <div class="card reveal" style="animation-delay:.26s">
           <div class="p-head"><div><h3>Trendanalyse Kategorien</h3><div class="sub">Entwicklung der häufigsten Anliegen im Zeitverlauf (monatlich)</div></div></div>
           <div id="chartKatTrend"></div>
         </div>
@@ -376,9 +425,9 @@
 </div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
-<script src="app.js?v=28"></script>
+<script src="app.js?v=29"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
-<script src="../shared/erfass-bar.js?v=3"></script>
+<script src="../shared/erfass-bar.js?v=4"></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">
 <script src="../shared/werkzeuge.js?v=6"></script>
 </body>

@@ -454,6 +454,49 @@ input[type=date]{border:1px solid var(--stroke);background:var(--glass);color:va
 .ml-table tbody tr:first-child td{background:rgba(255,195,0,.045);box-shadow:inset 3px 0 0 var(--acc)}
 .ml-table tbody tr:first-child:hover td{background:var(--turq-bg)}
 
+/* ── Analyse/Standort-Erweiterungen (gleiche CD-Tokens) ── */
+/* Standort-Vergleichstabelle */
+.cmp-table{width:100%;border-collapse:collapse;font-size:13px}
+.cmp-table th{text-align:left;padding:9px 10px 9px 0;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);border-bottom:1px solid var(--stroke)}
+.cmp-table th:not(:first-child),.cmp-table td:not(:first-child){text-align:right;font-family:'Hanken Grotesk',sans-serif;font-weight:600;color:var(--ink)}
+.cmp-table td{padding:9px 10px 9px 0;border-bottom:1px solid var(--stroke)}
+.cmp-table td:first-child{color:var(--muted);font-weight:600}
+.cmp-table tbody tr:last-child td{border-bottom:none}
+
+/* Themenprofil je Standort */
+.th-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.th-col h4{margin:0 0 8px;font-size:13px;font-weight:700;color:var(--acc-ink)}
+
+/* Monatsphasen */
+.mp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.mp-col{background:var(--glass);border:1px solid var(--stroke);border-radius:var(--radius);padding:13px 14px}
+.mp-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--stroke)}
+.mp-head b{font-size:13px;color:var(--ink)}
+.mp-head span{font-size:11px;color:var(--muted-2);font-weight:600}
+.mp-item{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:5px 0}
+.mp-name{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px}
+.mp-pct{font-family:'Hanken Grotesk',sans-serif;font-weight:700;color:var(--acc-ink)}
+.mp-empty{color:var(--muted-2);justify-content:center}
+
+/* Pareto */
+.pareto-head{font-size:13px;color:var(--muted);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--stroke)}
+.pareto-head b{color:var(--acc-ink);font-weight:700}
+
+/* Ausreißer-Tage */
+.ol-list{display:flex;flex-direction:column}
+.ol-item{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:10px 14px;padding:9px 2px;border-bottom:1px solid var(--stroke);font-size:13px}
+.ol-item:last-child{border-bottom:none}
+.ol-date{font-weight:700;color:var(--ink)}
+.ol-val{color:var(--muted);font-weight:600}
+.ol-ref{color:var(--muted-2);font-size:11.5px;font-weight:600;text-align:right}
+
+/* Datenqualität */
+.dq-row{display:flex;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px solid var(--stroke);font-size:13px;color:var(--muted)}
+.dq-row:last-child{border-bottom:none}
+.dq-row b{font-family:'Hanken Grotesk',sans-serif;color:var(--ink);font-weight:700}
+
+@media(max-width:760px){.th-grid,.mp-grid{grid-template-columns:1fr}}
+
 @media(prefers-reduced-motion:reduce){
   *,body::before,body::after{animation:none!important;transition:none!important}
   .reveal{opacity:1;transform:none}

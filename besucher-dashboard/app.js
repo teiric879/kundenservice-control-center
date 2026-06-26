@@ -21,6 +21,10 @@ function svg(p){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 // in innerHTML bzw. SVG-<text> eingesetzt werden. Schutz gegen XSS.
 function esc(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');}
 function stripPfx(s){return String(s||'').replace(/^\d+\s+/,'');}
+// Test-/Junk-Standorte (z.B. "__TESTBOT__") aus Erfassungstests – gehören nie ins Dashboard
+// (würden sonst als Dropdown-/Erfass-Button + Donut-/KPI-Anteil erscheinen). Echte Standorte
+// sind Euskirchen/Kall; "(ohne Angabe)" bleibt erhalten.
+function isTestStandort(s){return /test/i.test(s||'');}
 function raf(fn){requestAnimationFrame(function(){requestAnimationFrame(fn);});}
 
 /* ---------- date helpers (ymd = y*10000+m*100+d) ---------- */
@@ -71,6 +75,60 @@ function currentRange(){
   return [minYmd,maxYmd];
 }
 
+/* ---------- Period-Deskriptor: zentrale, filterabhängige Steuerung ----------
+   Liefert EIN Objekt, das alle Widgets steuert: aktueller Range, vergleichbarer
+   Vorzeitraum (+Label), Verlaufs-Granularität, laufend/abgeschlossen. Ersetzt die
+   verstreute Filter-Logik in renderKPIs/renderForecast etc. */
+function shiftDaysYmd(ymd,n){return dateToYmd(addDays(ymdToDate(ymd),n));}
+function spanDaysOf(a,b){return Math.round((ymdToDate(b)-ymdToDate(a))/864e5);}
+function isoWeek(d){var dt=new Date(d);dt.setHours(0,0,0,0);dt.setDate(dt.getDate()+3-((dt.getDay()+6)%7));var w1=new Date(dt.getFullYear(),0,4);return 1+Math.round(((dt-w1)/864e5-3+((w1.getDay()+6)%7))/7);}
+function businessDays(a,b){var n=0,t=ymdToDate(a),end=ymdToDate(b);for(;t<=end;t=addDays(t,1)){if(((t.getDay()+6)%7)<5)n++;}return n;}
+// Erwartete Besucher im Range = Summe der histor. Ø(Monat×Wochentag) je Tag. Nutzt das
+// memoisierte weekdayMonthAvg (hängt an Rohdaten+Standort, nicht am Filter).
+function expectedForRange(a,b){var wdm=weekdayMonthAvg(),sum=0,t=ymdToDate(a),end=ymdToDate(b);for(;t<=end;t=addDays(t,1)){sum+=wdm[t.getMonth()][(t.getDay()+6)%7];}return sum;}
+function periodInfo(){
+  var r=currentRange(),a=r[0],b=r[1],p=state.period,span=spanDaysOf(a,b);
+  var info={a:a,b:b,spanDays:span,prevA:null,prevB:null,cmpLabel:'',altCmp:'',grain:'day',
+            isClosed:b<nowYmd,isRunning:(a<=nowYmd&&nowYmd<=b),isAll:p==='all',period:p,label:''};
+  if(p==='heute'){info.grain='hour';info.prevA=info.prevB=shiftDaysYmd(a,-1);info.cmpLabel='vs. gestern';info.label='Heute';}
+  else if(p==='gestern'){info.grain='hour';info.prevA=info.prevB=shiftDaysYmd(a,-1);info.cmpLabel='vs. vorgestern';info.label='Gestern';}
+  else if(p==='woche'){info.grain='day';info.prevA=shiftDaysYmd(a,-7);info.prevB=shiftDaysYmd(b,-7);info.cmpLabel='vs. Vorwoche';info.label='Diese Woche';}
+  else if(p==='month'){info.grain='day';
+    var ad=ymdToDate(a),pmEnd=addDays(new Date(ad.getFullYear(),ad.getMonth(),1),-1),pmStart=new Date(pmEnd.getFullYear(),pmEnd.getMonth(),1);
+    var dayCount=ymdToDate(b).getDate(),pmLast=new Date(pmEnd.getFullYear(),pmEnd.getMonth()+1,0).getDate(),pmDay=Math.min(dayCount,pmLast);
+    info.prevA=dateToYmd(pmStart);info.prevB=dateToYmd(new Date(pmEnd.getFullYear(),pmEnd.getMonth(),pmDay));info.cmpLabel='vs. Vormonat';info.label='Dieser Monat';}
+  else if(p==='ytd'){info.grain='month';
+    var ya=ymdToDate(a),yb=ymdToDate(b);
+    info.prevA=dateToYmd(new Date(ya.getFullYear()-1,ya.getMonth(),ya.getDate()));
+    info.prevB=dateToYmd(new Date(yb.getFullYear()-1,yb.getMonth(),yb.getDate()));info.cmpLabel='vs. Vorjahr';info.label='Dieses Jahr';}
+  else if(p==='custom'){
+    info.grain=span<=1?'hour':span<=14?'day':span<=90?'week':span<=730?'month':'year';
+    var len=span+1;info.prevB=shiftDaysYmd(a,-1);info.prevA=shiftDaysYmd(info.prevB,-(len-1));info.cmpLabel='vs. vorheriger Zeitraum';info.label='Zeitraum';}
+  else{info.grain=span>730?'year':'month';info.cmpLabel='';info.label='Gesamt';}
+  return info;
+}
+
+/* ---------- Empty-State: schlanke Hinweis-Karte statt leerer Riesen-Diagramme ---------- */
+function emptyCard(boxId,text){var box=document.getElementById(boxId);if(box)box.innerHTML='<p class="sub" style="text-align:center;padding:32px 0">'+esc(text)+'</p>';}
+
+/* ---------- gemeinsame Aggregat-Helfer (Top-Anliegen, Spitzentag/-stunde/-monat/-jahr) ---------- */
+function topKatOf(rows,n){
+  var c={};rows.forEach(function(r){if(!r.kategorie)return;var k=stripPfx(r.kategorie);c[k]=(c[k]||0)+1;});
+  var total=rows.length||1;
+  return Object.keys(c).map(function(k){return {label:k,v:c[k],pct:Math.round(c[k]/total*100)};})
+    .sort(function(a,b){return b.v-a.v;}).slice(0,n||1);
+}
+function peakDayOf(rows){var c={},best=null;rows.forEach(function(r){c[r.ymd]=(c[r.ymd]||0)+1;});
+  Object.keys(c).forEach(function(k){if(!best||c[k]>best.v)best={ymd:+k,v:c[k]};});return best;}
+function peakHourOf(rows){var c={},best=null;rows.forEach(function(r){if(r.stunde>0&&r.stunde<=23)c[r.stunde]=(c[r.stunde]||0)+1;});
+  Object.keys(c).forEach(function(h){if(!best||c[h]>best.v)best={h:+h,v:c[h]};});return best;}
+function peakMonthOf(rows){var c={},best=null;rows.forEach(function(r){var k=Math.floor(r.ymd/100);c[k]=(c[k]||0)+1;});
+  Object.keys(c).forEach(function(k){if(!best||c[k]>best.v)best={ym:+k,v:c[k]};});return best;}
+function peakYearOf(rows){var c={},best=null;rows.forEach(function(r){var y=Math.floor(r.ymd/10000);c[y]=(c[y]||0)+1;});
+  Object.keys(c).forEach(function(y){if(!best||c[y]>best.v)best={y:+y,v:c[y]};});return best;}
+function ymdShort(ymd){return WD[(ymdToDate(ymd).getDay()+6)%7]+' '+fmtDE(ymd).slice(0,5);}
+function ymLabel(ym){return MON[(ym%100)-1]+' '+(''+Math.floor(ym/100)).slice(2);}
+
 /* ---------- tooltip ---------- */
 function showTip(e,h){tip.innerHTML=h;tip.style.opacity=1;moveTip(e);}
 function moveTip(e){tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-12)+'px';}
@@ -88,11 +146,14 @@ function countUp(el,to,anim){
 function renderTrend(rows,a,b,anim){
   var box=document.getElementById('chartTrend');
   var W=Math.max(360,Math.round(box.clientWidth)||760),H=248,pad={l:44,r:14,t:16,b:30};
+  if(!rows.length){document.getElementById('trendSub').textContent='keine Besuche im Zeitraum';emptyCard('chartTrend','Für den gewählten Zeitraum liegen keine Besuche vor.');return;}
   var da=ymdToDate(a),db=ymdToDate(b),spanDays=Math.round((db-da)/864e5);
-  // Bei „Heute"/„Gestern" zeigt der Verlauf den Tag stündlich statt als einzelnen Punkt.
-  var byHour=(state.period==='heute'||state.period==='gestern');
-  var mode=byHour?'hour':(spanDays<=62?'day':(spanDays<=1100?'month':'year')),buckets=[],idx={};
-  function keyOf(ymd){var Y=Math.floor(ymd/10000),m=Math.floor(ymd/100)%100;return mode==='day'?ymd:mode==='month'?Y*100+m:Y;}
+  // Granularität zentral aus periodInfo (Heute/Gestern=Stunde, Woche/Monat=Tag, Jahr=Monat,
+  // Zeitraum dynamisch inkl. KW-Stufe, Gesamt=Jahr/Monat).
+  var mode=periodInfo().grain,buckets=[],idx={};
+  function mondayYmd(ymd){var d=ymdToDate(ymd);return dateToYmd(addDays(d,-((d.getDay()+6)%7)));}
+  function keyOf(ymd){var Y=Math.floor(ymd/10000),m=Math.floor(ymd/100)%100;
+    return mode==='day'?ymd:mode==='week'?mondayYmd(ymd):mode==='month'?Y*100+m:Y;}
   if(mode==='hour'){
     // Stundenfenster dynamisch aus den Daten (Rand ±1 h), Fallback Öffnungszeiten 7–18.
     var hrs=[];for(var hi=0;hi<rows.length;hi++){var sh=rows[hi].stunde;if(sh>0&&sh<=23)hrs.push(sh);}
@@ -101,11 +162,13 @@ function renderTrend(rows,a,b,anim){
     for(var hh=hmn;hh<=hmx;hh++){idx[hh]=buckets.length;buckets.push({label:(''+hh).padStart(2,'0'),tip:(''+hh).padStart(2,'0')+':00 Uhr',v:0});}
   }
   else if(mode==='day'){for(var t=new Date(da);t<=db;t=addDays(t,1)){var k=dateToYmd(t);idx[k]=buckets.length;buckets.push({label:fmtDE(k).slice(0,5),v:0});}}
+  else if(mode==='week'){var mon0=addDays(da,-((da.getDay()+6)%7));for(var tw=new Date(mon0);tw<=db;tw=addDays(tw,7)){var km=dateToYmd(tw);idx[km]=buckets.length;buckets.push({label:'KW'+isoWeek(tw),tip:'KW '+isoWeek(tw)+' (ab '+fmtDE(km).slice(0,5)+')',v:0});}}
   else if(mode==='month'){for(var t2=new Date(da.getFullYear(),da.getMonth(),1);t2<=db;t2=addMonths(t2,1)){var k2=t2.getFullYear()*100+(t2.getMonth()+1);idx[k2]=buckets.length;buckets.push({label:MON[t2.getMonth()]+' '+(''+t2.getFullYear()).slice(2),v:0});}}
   else{for(var y=da.getFullYear();y<=db.getFullYear();y++){idx[y]=buckets.length;buckets.push({label:''+y,v:0});}}
   if(mode==='hour'){for(var i=0;i<rows.length;i++){var st=rows[i].stunde,jh=(st>0?idx[st]:null);if(jh!=null)buckets[jh].v++;}}
   else{for(var i=0;i<rows.length;i++){var j=idx[keyOf(rows[i].ymd)];if(j!=null)buckets[j].v++;}}
-  document.getElementById('trendSub').textContent=(mode==='hour'?'stündlich':mode==='day'?'täglich':mode==='month'?'monatlich':'jährlich')+' · '+nf(rows.length)+' Besuche';
+  var grainLbl={hour:'stündlich',day:'täglich',week:'wöchentlich (KW)',month:'monatlich',year:'jährlich'}[mode];
+  document.getElementById('trendSub').textContent=grainLbl+' · '+nf(rows.length)+' Besuche';
   var max=Math.max(1,Math.max.apply(null,buckets.map(function(x){return x.v;})));
   var n=buckets.length,iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
   function X(i){return pad.l+(n<=1?iw/2:iw*i/(n-1));}
@@ -314,8 +377,9 @@ function vbars(boxId,labels,values,full,anim){
   if(anim&&!RM)raf(function(){box.querySelectorAll('.bar').forEach(function(el,i){el.style.transition='transform .4s cubic-bezier(.22,.61,.36,1) '+(i*.02)+'s';el.style.transform='scaleY(1)';});});
   box.querySelectorAll('.bar').forEach(function(rc){rc.addEventListener('mousemove',function(e){showTip(e,(full?esc(full[+rc.dataset.i]):esc(labels[+rc.dataset.i]))+': <b>'+nf(values[+rc.dataset.i])+'</b>');});rc.addEventListener('mouseleave',hideTip);});
 }
-function renderWday(rows,anim){var c=[0,0,0,0,0,0,0];rows.forEach(function(r){if(r.dow>=0&&r.dow<=6)c[r.dow]++;});vbars('chartWday',WD,c,WDF,anim);}
+function renderWday(rows,anim){if(!rows.length){emptyCard('chartWday','Keine Besuche im Zeitraum.');return;}var c=[0,0,0,0,0,0,0];rows.forEach(function(r){if(r.dow>=0&&r.dow<=6)c[r.dow]++;});vbars('chartWday',WD,c,WDF,anim);}
 function renderHour(rows,anim){
+  if(!rows.length){emptyCard('chartHour','Keine Besuche im Zeitraum.');return;}
   var c={},mn=23,mx=0;
   rows.forEach(function(r){if(r.stunde<0||r.stunde==null)return;c[r.stunde]=(c[r.stunde]||0)+1;if(r.stunde<mn)mn=r.stunde;if(r.stunde>mx)mx=r.stunde;});
   if(mx<mn){mn=8;mx=18;}
@@ -331,25 +395,32 @@ function spark(weeks){var W=120,H=36,max=Math.max(1,Math.max.apply(null,weeks)),
     '<path d="'+d+'L'+W+' '+H+' L0 '+H+' Z" fill="url(#sp)"/><path d="'+d+'" fill="none" stroke="'+ACC+'" stroke-width="2"/></svg>';}
 function delta(c,p){if(p===0)return c>0?{t:'+'+c,c:'up',a:'▲'}:{t:'±0',c:'flat',a:'•'};var x=Math.round((c-p)/p*100);return {t:(x>0?'+':'')+x+'%',c:x>0?'up':x<0?'down':'flat',a:x>0?'▲':x<0?'▼':'•'};}
 function last12w(){var a=[];for(var i=11;i>=0;i--){var e=addDays(nowDate,-7*i),s=addDays(e,-6);a.push(countRange(dateToYmd(s),dateToYmd(e)));}return a;}
+// Adaptive KPI-Karten: Hauptzahl = gewählter Zeitraum, Vergleich + Treiber passend zum Filter.
 function renderKPIs(anim){
-  var y=nowDate.getFullYear(),m=nowDate.getMonth();
-  var today=countRange(nowYmd,nowYmd),yest=countRange(dateToYmd(addDays(nowDate,-1)),dateToYmd(addDays(nowDate,-1)));
-  var dow=(nowDate.getDay()+6)%7,mon=addDays(nowDate,-dow);
-  var week=countRange(dateToYmd(mon),nowYmd),pw=countRange(dateToYmd(addDays(mon,-7)),dateToYmd(addDays(mon,-1)));
-  var mStart=new Date(y,m,1),month=countRange(dateToYmd(mStart),nowYmd);
-  var pmEnd=addDays(mStart,-1),pmStart=new Date(pmEnd.getFullYear(),pmEnd.getMonth(),1);
-  var pmDay=Math.min(nowDate.getDate(),new Date(pmEnd.getFullYear(),pmEnd.getMonth()+1,0).getDate());
-  var pmonth=countRange(dateToYmd(pmStart),pmEnd.getFullYear()*10000+(pmEnd.getMonth()+1)*100+pmDay);
-  var ytd=countRange(y*10000+101,nowYmd),pytd=countRange((y-1)*10000+101,(y-1)*10000+(m+1)*100+nowDate.getDate());
-  var sp=spark(last12w());
-  var cards=[{l:'Heute',i:'sun',v:today,d:delta(today,yest),s:'vs. gestern'},
-    {l:'Diese Woche',i:'week',v:week,d:delta(week,pw),s:'vs. Vorwoche'},
-    {l:'Dieser Monat',i:'month',v:month,d:delta(month,pmonth),s:'vs. Vormonat'},
-    {l:'Dieses Jahr',i:'year',v:ytd,d:delta(ytd,pytd),s:'vs. Vorjahr'}];
+  var info=periodInfo(),rows=rowsIn(info.a,info.b),cur=rows.length,sp=spark(last12w());
+  var cards=[];
+  // 1) Besucher im Zeitraum (+ Vergleich zur passenden Vorperiode)
+  var prev=info.prevA!=null?countRange(info.prevA,info.prevB):null;
+  cards.push({l:'Besucher',i:'week',v:cur,d:prev==null?null:delta(cur,prev),s:prev==null?'Gesamtzeitraum':info.cmpLabel});
+  // 2) Nachfrage-Index (Ist vs. statistische Erwartung) – bei Gesamt: stärkstes Jahr
+  if(info.isAll){var py=peakYearOf(rows);cards.push({l:'Stärkstes Jahr',i:'year',v:py?py.v:0,d:null,s:py?(''+py.y):'—'});}
+  else{
+    var expEnd=Math.min(info.b,nowYmd);if(expEnd<info.a)expEnd=info.b;
+    var exp=expectedForRange(info.a,expEnd),idx=exp>0?Math.round(cur/exp*100):100,diff=idx-100;
+    cards.push({l:'Nachfrage-Index',i:'year',v:idx,
+      d:{t:(diff>0?'+':'')+diff+'%',c:diff>0?'up':diff<0?'down':'flat',a:diff>0?'▲':diff<0?'▼':'•'},
+      s:'Ø-Niveau = 100 · erwartet '+nf(Math.round(exp))});
+  }
+  // 3) Spitzenwert: Stunde (Tagesfilter) / Monat (Gesamt) / Tag
+  if(info.grain==='hour'){var ph=peakHourOf(rows);cards.push({l:'Stärkste Abschlusszeit',i:'sun',v:ph?ph.v:0,d:null,s:ph?(ph.h+'–'+(ph.h+1)+' Uhr'):'—'});}
+  else if(info.isAll){var pm=peakMonthOf(rows);cards.push({l:'Stärkster Monat',i:'sun',v:pm?pm.v:0,d:null,s:pm?ymLabel(pm.ym):'—'});}
+  else{var pd=peakDayOf(rows);cards.push({l:'Stärkster Tag',i:'sun',v:pd?pd.v:0,d:null,s:pd?ymdShort(pd.ymd):'—'});}
+  // 4) Top-Anliegen im Zeitraum
+  var tk=topKatOf(rows,1);cards.push({l:'Top-Anliegen',i:'month',v:tk.length?tk[0].v:0,d:null,s:tk.length?(esc(tk[0].label)+' · '+tk[0].pct+'%'):'—'});
   var h='';cards.forEach(function(c,idx){h+=
-    '<div class="card kpi reveal" style="animation-delay:'+(idx*.03)+'s"><div class="k-top">'+c.l+'<span class="chip">'+svg(ICON[c.i])+'</span></div>'+
+    '<div class="card kpi reveal" style="animation-delay:'+(idx*.03)+'s"><div class="k-top">'+esc(c.l)+'<span class="chip">'+svg(ICON[c.i])+'</span></div>'+
     '<div class="num" data-v="'+c.v+'">0</div>'+
-    '<div><span class="k-delta '+c.d.c+'">'+c.d.a+' '+c.d.t+'</span><span class="k-sub">'+c.s+'</span></div>'+
+    '<div>'+(c.d?'<span class="k-delta '+c.d.c+'">'+c.d.a+' '+c.d.t+'</span>':'')+'<span class="k-sub">'+c.s+'</span></div>'+
     '<div class="k-spark">'+sp+'</div></div>';});
   var box=document.getElementById('kpis');box.innerHTML=h;
   box.querySelectorAll('.num').forEach(function(el){countUp(el,+el.dataset.v,anim);});
@@ -373,7 +444,13 @@ function renderLocKPIs(anim){
 
 /* ---------- Besucherprognose ---------- */
 var weekdayMonthAvg=memo(function(){
-  var endDate=ymdToDate(dataMaxYmd),startDate=ymdToDate(minYmd);
+  // Bezugsgröße „üblich" = gleitendes 2-Jahres-Fenster bis zum letzten Datentag. Die Historie
+  // ist stark instationär (frühe Jahre dünn, zuletzt ~10× so viel) – ein Voll-Historie-Schnitt
+  // würde Erwartung/Index/Prognose massiv verzerren. 2 Jahre liefern 2 Stichproben je
+  // (Monat × Wochentag) und bilden das aktuelle Aufkommen realistisch ab.
+  var endDate=ymdToDate(dataMaxYmd);
+  var winStartYmd=Math.max(minYmd,dateToYmd(addDays(endDate,-730)));
+  var startDate=ymdToDate(winStartYmd);
   var perDay={};
   for(var i=0;i<V.length;i++){
     var r=V[i];if(r.ymd>dataMaxYmd)break;
@@ -396,87 +473,127 @@ var hourlyCum=memo(function(wd){
   var cum=[],acc=0;for(var h=0;h<24;h++){acc+=byHour[h];cum[h]=total?acc/total:0;}
   return cum;
 }, function(wd){return _dataVer+'|'+state.standort+'|'+wd;});
+// Prognose-Karte adaptiv: laufender Zeitraum → Hochrechnung; abgeschlossen → Soll/Ist
+// (tatsächlich vs. statistische Erwartung); Gesamt → Langzeit-Überblick.
 function renderForecast(anim){
   var box=document.getElementById('fcGrid');if(!box)return;
-  var wdm=weekdayMonthAvg(),y=nowDate.getFullYear(),m=nowDate.getMonth(),todayWd=(nowDate.getDay()+6)%7;
-  var avgToday=wdm[m][todayWd];
-  var actualToday=countRange(nowYmd,nowYmd);
-  var cum=hourlyCum(todayWd),curHour=new Date().getHours(),frac=cum[Math.min(23,Math.max(0,curHour))]||0;
-  var projToday=(frac>=0.15&&actualToday>0)?Math.round(actualToday/frac):Math.round(avgToday);
-  projToday=Math.max(projToday,actualToday);
-  var expToday=Math.round(avgToday);
-  var restTodayAvg=Math.max(0,avgToday-actualToday);
-  var mStart=new Date(y,m,1),mEnd=new Date(y,m+1,0),actualMonth=countRange(dateToYmd(mStart),nowYmd),remMonth=0;
-  for(var t=addDays(nowDate,1);t<=mEnd;t=addDays(t,1))remMonth+=wdm[t.getMonth()][(t.getDay()+6)%7];
-  var projMonth=Math.round(actualMonth+restTodayAvg+remMonth);
-  var next7=restTodayAvg;for(var t2=addDays(nowDate,1);t2<=addDays(nowDate,7);t2=addDays(t2,1))next7+=wdm[t2.getMonth()][(t2.getDay()+6)%7];
-  next7=Math.round(next7);
-  var cells=[
-    {l:'Prognose heute',v:projToday,s:'aktuell '+nf(actualToday)+' · &#216; '+WD[todayWd]+'. '+nf(expToday)},
-    {l:'Prognose '+MON[m]+'.',v:projMonth,s:'bislang '+nf(actualMonth)+' Besuche'},
-    {l:'N&auml;chste 7 Tage',v:next7,s:'voraussichtlich'}
-  ];
-  var wdAvgMoFr=wdm[m].slice(0,5);
-  var mx=Math.max.apply(null,wdAvgMoFr)||1;
-  var bars=wdAvgMoFr.map(function(a,i){var hh=Math.round(a/mx*100);
-    return '<div class="fc-wd'+(i===todayWd?' is-today':'')+'"><div class="fc-wd-track"><i data-h="'+hh+'" style="height:'+(anim&&!RM?0:hh)+'%"></i></div><span>'+WD[i]+'</span><b>'+nf(Math.round(a))+'</b></div>';
-  }).join('');
+  var info=periodInfo(),wdm=weekdayMonthAvg();
+  var y=nowDate.getFullYear(),m=nowDate.getMonth(),todayWd=(nowDate.getDay()+6)%7;
+  var rows=rowsIn(info.a,info.b),cur=rows.length;
+  var subEl=document.querySelector('#forecastCard .sub');
+  function wdBars(){var w=wdm[m].slice(0,5),mx=Math.max.apply(null,w)||1;
+    return w.map(function(a,i){var hh=Math.round(a/mx*100);
+      return '<div class="fc-wd'+(i===todayWd?' is-today':'')+'"><div class="fc-wd-track"><i data-h="'+hh+'" style="height:'+(anim&&!RM?0:hh)+'%"></i></div><span>'+WD[i]+'</span><b>'+nf(Math.round(a))+'</b></div>';}).join('');}
+  var cells,bars='',sub='';
+  if(info.isClosed){
+    var exp=expectedForRange(info.a,info.b),diff=exp>0?Math.round((cur-exp)/exp*100):0,col=diff>0?'#1d9e75':diff<0?'#c0492a':'#5d7d77';
+    cells=[{l:'Tatsächlich',v:cur,s:info.label},
+           {l:'Erwartet',v:Math.round(exp),s:'statistischer Ø'},
+           {l:'Abweichung',raw:'<span style="color:'+col+'">'+(diff>0?'+':'')+diff+'%</span>',s:diff>0?'über Erwartung':diff<0?'unter Erwartung':'wie erwartet'}];
+    sub='Tatsächlich vs. statistische Erwartung (Ø Wochentag × Monat)';
+  } else if(info.isAll){
+    var py=peakYearOf(rows),yrs={};rows.forEach(function(r){yrs[Math.floor(r.ymd/10000)]=true;});var nY=Object.keys(yrs).length||1;
+    cells=[{l:'Besucher gesamt',v:cur,s:fmtDE(info.a).slice(6)+'–'+fmtDE(info.b).slice(6)},
+           {l:'Stärkstes Jahr',v:py?py.v:0,s:py?(''+py.y):'—'},
+           {l:'Ø pro Jahr',v:Math.round(cur/nY),s:nf(nY)+' Jahre'}];
+    sub='Langzeit-Überblick';
+  } else {
+    var avgToday=wdm[m][todayWd],actualToday=countRange(nowYmd,nowYmd);
+    var cum=hourlyCum(todayWd),curHour=new Date().getHours(),frac=cum[Math.min(23,Math.max(0,curHour))]||0;
+    var projToday=(frac>=0.15&&actualToday>0)?Math.round(actualToday/frac):Math.round(avgToday);projToday=Math.max(projToday,actualToday);
+    var restToday=Math.max(0,avgToday-actualToday);
+    if(info.period==='woche'){
+      var remWeek=0;for(var tw=addDays(nowDate,1);tw<=ymdToDate(info.b);tw=addDays(tw,1))remWeek+=wdm[tw.getMonth()][(tw.getDay()+6)%7];
+      var projWeek=Math.round(cur+restToday+remWeek),avgWeek=wdm[m].slice(0,5).reduce(function(s,v){return s+v;},0);
+      cells=[{l:'Prognose Woche',v:projWeek,s:'bislang '+nf(cur)},{l:'Heute',v:projToday,s:'aktuell '+nf(actualToday)},{l:'Ø Woche',v:Math.round(avgWeek),s:'Mo–Fr Schnitt'}];
+      bars=wdBars();sub='Wochen-Hochrechnung aus Ø Wochentag × Monat & laufendem Tag';
+    } else if(info.period==='ytd'){
+      var yEnd=new Date(y,11,31),remYear=0;for(var ty=addDays(nowDate,1);ty<=yEnd;ty=addDays(ty,1))remYear+=wdm[ty.getMonth()][(ty.getDay()+6)%7];
+      var projYear=Math.round(cur+restToday+remYear),pvYear=countRange((y-1)*10000+101,(y-1)*10000+1231);
+      var yd=pvYear>0?Math.round((projYear-pvYear)/pvYear*100):0,ycol=yd>0?'#1d9e75':yd<0?'#c0492a':'#5d7d77';
+      cells=[{l:'Prognose '+y,v:projYear,s:'bislang '+nf(cur)},{l:'Vorjahr gesamt',v:pvYear,s:''+(y-1)},{l:'ggü. Vorjahr',raw:'<span style="color:'+ycol+'">'+(yd>0?'+':'')+yd+'%</span>',s:'erwartet'}];
+      sub='Jahres-Hochrechnung aus historischem Ø';
+    } else if(info.period==='custom'){
+      var remC=0;for(var tc=addDays(nowDate,1);tc<=ymdToDate(info.b);tc=addDays(tc,1))remC+=wdm[tc.getMonth()][(tc.getDay()+6)%7];
+      var projC=Math.round(cur+restToday+remC),expC=expectedForRange(info.a,info.b);
+      cells=[{l:'Prognose Zeitraum',v:projC,s:'bislang '+nf(cur)},{l:'Heute',v:projToday,s:'aktuell '+nf(actualToday)},{l:'Erwartet gesamt',v:Math.round(expC),s:'statistisch'}];
+      sub='Hochrechnung bis Zeitraumende';
+    } else {
+      var mEnd=new Date(y,m+1,0),actualMonth=countRange(dateToYmd(new Date(y,m,1)),nowYmd),remMonth=0;
+      for(var t=addDays(nowDate,1);t<=mEnd;t=addDays(t,1))remMonth+=wdm[t.getMonth()][(t.getDay()+6)%7];
+      var projMonth=Math.round(actualMonth+restToday+remMonth);
+      var next7=restToday;for(var t2=addDays(nowDate,1);t2<=addDays(nowDate,7);t2=addDays(t2,1))next7+=wdm[t2.getMonth()][(t2.getDay()+6)%7];next7=Math.round(next7);
+      cells=[{l:'Prognose heute',v:projToday,s:'aktuell '+nf(actualToday)+' · Ø '+WD[todayWd]+' '+nf(Math.round(avgToday))},
+             {l:'Prognose '+MON[m]+'.',v:projMonth,s:'bislang '+nf(actualMonth)},
+             {l:'Nächste 7 Tage',v:next7,s:'voraussichtlich'}];
+      bars=wdBars();sub='Hochrechnung aus historischem Ø Wochentag × Monat (12 Monate) & laufendem Tag';
+    }
+  }
+  if(subEl&&sub)subEl.innerHTML=sub;
   box.innerHTML='<div class="fc-stats">'+cells.map(function(c){
-    return '<div class="fc-cell"><div class="fc-l">'+c.l+'</div><div class="num fc-num" data-v="'+c.v+'">0</div><div class="fc-s">'+c.s+'</div></div>';
-  }).join('')+'</div><div class="fc-wdbars">'+bars+'</div>';
-  box.querySelectorAll('.fc-num').forEach(function(el){countUp(el,+el.dataset.v,anim);});
-  if(anim&&!RM)raf(function(){box.querySelectorAll('.fc-wd-track i').forEach(function(el){el.style.transition='height .45s var(--ease)';el.style.height=el.dataset.h+'%';});});
+    return '<div class="fc-cell"><div class="fc-l">'+c.l+'</div><div class="num fc-num"'+(c.raw!=null?'':' data-v="'+c.v+'"')+'>'+(c.raw!=null?c.raw:'0')+'</div><div class="fc-s">'+c.s+'</div></div>';
+  }).join('')+'</div>'+(bars?'<div class="fc-wdbars">'+bars+'</div>':'');
+  box.querySelectorAll('.fc-num[data-v]').forEach(function(el){countUp(el,+el.dataset.v,anim);});
+  if(bars&&anim&&!RM)raf(function(){box.querySelectorAll('.fc-wd-track i').forEach(function(el){el.style.transition='height .45s var(--ease)';el.style.height=el.dataset.h+'%';});});
 }
 
 /* ---------- Tab 2: Standorte ---------- */
+// Zählt Besuche eines Standorts in einem Range direkt aus V (unabhängig vom Standort-Dropdown),
+// damit der Standort-Tab IMMER beide Standorte vergleicht.
+function cntStand(name,a,b){var n=0;for(var i=0;i<V.length;i++){var r=V[i];if(r.ymd>=a&&r.ymd<=b&&r.standort===name)n++;}return n;}
+function scorecardFor(name,dateRows,info){
+  var sRows=dateRows.filter(function(r){return r.standort===name;});
+  var count=sRows.length,total=dateRows.length||1;
+  var bd=Math.max(1,businessDays(info.a,info.b));
+  var katItems=topKatOf(sRows,1),topKat=katItems.length?katItems[0].label:'–';
+  var wd=[0,0,0,0,0,0,0];sRows.forEach(function(r){if(r.dow>=0&&r.dow<=6)wd[r.dow]++;});
+  var topWday=count?WDF[wd.indexOf(Math.max.apply(null,wd))]:'–';
+  var ph=peakHourOf(sRows),spitzenzeit=ph?(ph.h+':00–'+(ph.h+1)+':00 Uhr'):'–';
+  var prev=info.prevA!=null?cntStand(name,info.prevA,info.prevB):null;
+  return {name:name,count:count,avgPerDay:(count/bd).toFixed(1),anteil:Math.round(count/total*100),
+          topKat:topKat,topWdayName:topWday,spitzenzeit:spitzenzeit,prev:prev,
+          dlt:(prev==null||prev===0)?null:delta(count,prev),sRows:sRows};
+}
 function renderStandortTab(rows,anim){
-  renderDonut(rows,anim);
-  var total=rows.length||1;
+  var info=periodInfo();
+  var dateRows=[];for(var i=0;i<V.length;i++){var r=V[i];if(r.ymd>=info.a&&r.ymd<=info.b)dateRows.push(r);}
+  renderDonut(dateRows,anim);
   var standorte=['Euskirchen','Kall'];
-  var cards=standorte.map(function(name){
-    var sRows=rows.filter(function(r){return r.standort===name;});
-    var count=sRows.length;
-    var daySet={};sRows.forEach(function(r){daySet[r.ymd]=true;});
-    var uniqueDays=Object.keys(daySet).length||1;
-    var avgPerDay=count?(count/uniqueDays).toFixed(1):'0';
-    var anteil=Math.round(count/total*100);
-    var katCounts={};sRows.forEach(function(r){if(r.kategorie){var k=stripPfx(r.kategorie);katCounts[k]=(katCounts[k]||0)+1;}});
-    var katItems=Object.keys(katCounts).map(function(k){return {k:k,v:katCounts[k]};}).sort(function(a,b){return b.v-a.v;});
-    var topKat=katItems.length?katItems[0].k:'–';
-    var wdayCounts=[0,0,0,0,0,0,0];sRows.forEach(function(r){if(r.dow>=0&&r.dow<=6)wdayCounts[r.dow]++;});
-    var topWday=wdayCounts.indexOf(Math.max.apply(null,wdayCounts));
-    var topWdayName=WDF[topWday]||'–';
-    var hourCounts={};sRows.forEach(function(r){if(r.stunde>0&&r.stunde<=23)hourCounts[r.stunde]=(hourCounts[r.stunde]||0)+1;});
-    var hourItems=Object.keys(hourCounts).map(function(h){return {h:+h,v:hourCounts[h]};}).sort(function(a,b){return b.v-a.v;});
-    var topHour=hourItems.length?hourItems[0].h:null;
-    var spitzenzeit=topHour!==null?(topHour+':00–'+(topHour+1)+':00 Uhr'):'–';
-    return {name:name,count:count,avgPerDay:avgPerDay,anteil:anteil,topKat:topKat,topWdayName:topWdayName,spitzenzeit:spitzenzeit};
-  });
+  var cards=standorte.map(function(name){return scorecardFor(name,dateRows,info);});
   var cBox=document.getElementById('standortCards');if(!cBox)return;
+  if(!dateRows.length){cBox.innerHTML='<p class="sub" style="text-align:center;padding:32px 0;grid-column:1/-1">Keine Besuche im gewählten Zeitraum.</p>';
+    var t0=document.getElementById('standortInsightText');if(t0)t0.innerHTML='';
+    var r0=document.getElementById('standortInsightRight');if(r0)r0.innerHTML='';return;}
   cBox.innerHTML=cards.map(function(c){
+    var auff=c.dlt?'<span class="k-delta '+c.dlt.c+'">'+c.dlt.a+' '+c.dlt.t+'</span>':'<span class="si-val">–</span>';
     return '<div class="si-card reveal">'+
-      '<div class="si-title"><h3>'+c.name+'</h3><span class="si-badge">'+c.anteil+'% aller Besuche</span></div>'+
+      '<div class="si-title"><h3>'+c.name+'</h3><span class="si-badge">'+c.anteil+'% im Zeitraum</span></div>'+
       '<div class="si-rows">'+
         '<div class="si-row"><span class="si-label">Besucher gesamt</span><span class="si-val accent">'+nf(c.count)+'</span></div>'+
-        '<div class="si-row"><span class="si-label">&#216; pro Öffnungstag</span><span class="si-val">'+c.avgPerDay+'</span></div>'+
-        '<div class="si-row"><span class="si-label">Häufigstes Anliegen</span><span class="si-val">'+c.topKat+'</span></div>'+
+        '<div class="si-row"><span class="si-label">&#216; pro Öffnungstag (Mo–Fr)</span><span class="si-val">'+c.avgPerDay+'</span></div>'+
+        '<div class="si-row"><span class="si-label">Häufigstes Anliegen</span><span class="si-val">'+esc(c.topKat)+'</span></div>'+
         '<div class="si-row"><span class="si-label">Stärkster Wochentag</span><span class="si-val">'+c.topWdayName+'</span></div>'+
-        '<div class="si-row"><span class="si-label">Spitzenzeit</span><span class="si-val">'+c.spitzenzeit+'</span></div>'+
+        '<div class="si-row"><span class="si-label">Stärkste Abschlusszeit</span><span class="si-val">'+c.spitzenzeit+'</span></div>'+
+        '<div class="si-row"><span class="si-label">'+(info.cmpLabel||'ggü. Vorperiode')+'</span>'+auff+'</div>'+
       '</div>'+
       '<div class="si-pct-bar"><i data-w="'+c.anteil+'" style="width:'+(anim&&!RM?'0':c.anteil)+'%"></i></div>'+
     '</div>';
   }).join('');
   if(anim&&!RM)raf(function(){cBox.querySelectorAll('.si-pct-bar i').forEach(function(el){el.style.width=el.dataset.w+'%';});});
   var tBox=document.getElementById('standortInsightText');
-  if(tBox&&cards.length>=2){
+  if(tBox&&cards.length>=2&&cards[0].count&&cards[1].count){
     var e=cards[0],k=cards[1];
-    tBox.innerHTML='<h3 style="margin:0 0 14px;font-size:17px;font-weight:600">Automatische Insights</h3>'+
-      '<div class="si-text-box">'+
-        '<div class="si-text-item"><div class="si-text-dot" style="background:'+PAL[0]+'"></div>'+
-          '<p><b>'+e.name+'</b> generiert '+e.anteil+'% aller Besucher. Spitzenzeit ist '+e.spitzenzeit+'. Häufigstes Anliegen ist <b>'+e.topKat+'</b>.</p></div>'+
-        '<div class="si-text-item"><div class="si-text-dot" style="background:'+PAL[3]+'"></div>'+
-          '<p><b>'+k.name+'</b> generiert '+k.anteil+'% aller Besucher. Spitzenzeit ist '+k.spitzenzeit+'. Häufigstes Anliegen ist <b>'+k.topKat+'</b>.</p></div>'+
-      '</div>';
+    var lines=[
+      '<b>'+e.name+'</b> generiert '+e.anteil+'% der Besuche · Peak '+e.spitzenzeit+' · Top: <b>'+esc(e.topKat)+'</b>.',
+      '<b>'+k.name+'</b> generiert '+k.anteil+'% der Besuche · Peak '+k.spitzenzeit+' · Top: <b>'+esc(k.topKat)+'</b>.'];
+    function katShare(sR){var mm={},t=0;sR.forEach(function(r){if(r.kategorie){var kk=stripPfx(r.kategorie);mm[kk]=(mm[kk]||0)+1;t++;}});var o={};Object.keys(mm).forEach(function(kk){o[kk]=mm[kk]/(t||1);});return o;}
+    var eS=katShare(e.sRows),kS=katShare(k.sRows),allK={};Object.keys(eS).concat(Object.keys(kS)).forEach(function(kk){allK[kk]=1;});
+    var bestK=null;Object.keys(allK).forEach(function(kk){var g=(kS[kk]||0)-(eS[kk]||0);if(!bestK||Math.abs(g)>Math.abs(bestK.g))bestK={k:kk,g:g};});
+    if(bestK&&Math.abs(bestK.g)>=0.05)lines.push('<b>'+(bestK.g>0?k.name:e.name)+'</b> hat einen überdurchschnittlich hohen Anteil an <b>'+esc(bestK.k)+'</b> (+'+Math.round(Math.abs(bestK.g)*100)+' %-Punkte).');
+    var ePk=peakHourOf(e.sRows),kPk=peakHourOf(k.sRows);
+    if(ePk&&kPk&&ePk.h!==kPk.h)lines.push('<b>'+(kPk.h>ePk.h?k.name:e.name)+'</b> erreicht seine Abschluss-Spitze später am Tag.');
+    tBox.innerHTML='<h3 style="margin:0 0 14px;font-size:17px;font-weight:600">Automatische Insights</h3><div class="si-text-box">'+
+      lines.slice(0,5).map(function(t,i){return '<div class="si-text-item"><div class="si-text-dot" style="background:'+PAL[i%PAL.length]+'"></div><p>'+t+'</p></div>';}).join('')+'</div>';
   }
   var rBox=document.getElementById('standortInsightRight');
   if(rBox){
@@ -488,6 +605,23 @@ function renderStandortTab(rows,anim){
       '</div>';
     }).join('');
   }
+  // Vergleichstabelle
+  var cmpBox=document.getElementById('standortCompare');
+  if(cmpBox&&cards.length>=2){var e2=cards[0],k2=cards[1];
+    function crow(l,a,b){return '<tr><td>'+l+'</td><td>'+a+'</td><td>'+b+'</td></tr>';}
+    cmpBox.innerHTML='<table class="cmp-table"><thead><tr><th>Kennzahl</th><th>'+e2.name+'</th><th>'+k2.name+'</th></tr></thead><tbody>'+
+      crow('Besucher',nf(e2.count),nf(k2.count))+crow('Anteil',e2.anteil+'%',k2.anteil+'%')+
+      crow('Ø pro Öffnungstag',e2.avgPerDay,k2.avgPerDay)+crow('Stärkster Tag',e2.topWdayName,k2.topWdayName)+
+      crow('Abschluss-Peak',e2.spitzenzeit,k2.spitzenzeit)+crow('Top-Anliegen',esc(e2.topKat),esc(k2.topKat))+'</tbody></table>';
+  }
+  // Themenprofil je Standort (relative Anteile)
+  var thBox=document.getElementById('standortThemen');
+  if(thBox){thBox.innerHTML=cards.map(function(c,ci){
+    var tk=topKatOf(c.sRows,6),max=tk.length?tk[0].v:1;
+    var bars=tk.length?tk.map(function(it,i){var col=PAL[(ci===0?0:3)+(i%3)];
+      return '<div class="hbar"><div class="row"><b>'+esc(it.label)+'</b><span>'+it.pct+'%</span></div><div class="track"><i style="width:'+(it.v/max*100)+'%;background:linear-gradient(90deg,'+col+',#ffffff22)"></i></div></div>';}).join(''):'<p class="sub">Keine Daten</p>';
+    return '<div class="th-col"><h4>'+esc(c.name)+'</h4>'+bars+'</div>';
+  }).join('');}
 }
 
 /* ---------- Tab 3: Heatmap ---------- */
@@ -570,38 +704,19 @@ function renderMonthlyComparison(anim){
 }
 
 /* ---------- Tab 3: Forecast-Analyse ---------- */
+// Vorperiodenvergleich: aktueller Zeitraum vs. vergleichbarer Vorzeitraum (absolut + %).
 function renderForecastAnalysis(anim){
   var box=document.getElementById('fcAnalysis');if(!box)return;
-  var wdm=weekdayMonthAvg(),y=nowDate.getFullYear(),m=nowDate.getMonth(),todayWd=(nowDate.getDay()+6)%7;
-  var avgToday=wdm[m][todayWd],actualToday=countRange(nowYmd,nowYmd);
-  var cum=hourlyCum(todayWd),curHour=new Date().getHours(),frac=cum[Math.min(23,Math.max(0,curHour))]||0;
-  var projToday=(frac>=0.15&&actualToday>0)?Math.round(actualToday/frac):Math.round(avgToday);
-  projToday=Math.max(projToday,actualToday);
-  var restTodayAvg=Math.max(0,avgToday-actualToday);
-  var mStart=new Date(y,m,1),mEnd=new Date(y,m+1,0);
-  var actualMonth=countRange(dateToYmd(mStart),nowYmd);
-  var remMonth=0;for(var t=addDays(nowDate,1);t<=mEnd;t=addDays(t,1))remMonth+=wdm[t.getMonth()][(t.getDay()+6)%7];
-  var projMonth=Math.round(actualMonth+restTodayAvg+remMonth);
-  var pmEnd=addDays(mStart,-1),pmStart=new Date(pmEnd.getFullYear(),pmEnd.getMonth(),1);
-  var prevMonth=countRange(dateToYmd(pmStart),dateToYmd(pmEnd));
-  var next7=restTodayAvg;for(var t2=addDays(nowDate,1);t2<=addDays(nowDate,7);t2=addDays(t2,1))next7+=wdm[t2.getMonth()][(t2.getDay()+6)%7];
-  next7=Math.round(next7);
-  var md=prevMonth>0?Math.round((projMonth-prevMonth)/prevMonth*100):0;
-  var dc=md>0?'up':md<0?'down':'flat',ds=md>0?'+':'';
+  var info=periodInfo(),cur=countRange(info.a,info.b);
+  if(info.prevA==null){
+    box.innerHTML='<div class="fca-grid"><div class="fca-row"><div style="flex:1"><div class="fca-label">Gesamtzeitraum</div><div class="fca-sub">'+fmtDE(info.a)+' – '+fmtDE(info.b)+'</div></div><div class="fca-val">'+nf(cur)+'</div></div></div>';return;}
+  var prev=countRange(info.prevA,info.prevB);
+  var d=prev>0?Math.round((cur-prev)/prev*100):0,dc=d>0?'up':d<0?'down':'flat',ds=d>0?'+':'';
+  var diff=cur-prev;
   box.innerHTML='<div class="fca-grid">'+
-    '<div class="fca-row">'+
-      '<div style="flex:1"><div class="fca-label">Prognose heute</div><div class="fca-sub">aktuell '+nf(actualToday)+' · Ø '+WD[todayWd]+' '+nf(Math.round(avgToday))+'</div></div>'+
-      '<div class="fca-val">'+nf(projToday)+'</div>'+
-    '</div>'+
-    '<div class="fca-row">'+
-      '<div style="flex:1"><div class="fca-label">Prognose '+MON[m]+'. gesamt</div><div class="fca-sub">bislang '+nf(actualMonth)+' · Vormonat '+nf(prevMonth)+'</div></div>'+
-      '<div class="fca-val">'+nf(projMonth)+'</div>'+
-      '<span class="fca-delta '+dc+'">'+ds+md+'%</span>'+
-    '</div>'+
-    '<div class="fca-row">'+
-      '<div style="flex:1"><div class="fca-label">Nächste 7 Tage</div><div class="fca-sub">voraussichtlich</div></div>'+
-      '<div class="fca-val">'+nf(next7)+'</div>'+
-    '</div>'+
+    '<div class="fca-row"><div style="flex:1"><div class="fca-label">Aktueller Zeitraum</div><div class="fca-sub">'+fmtDE(info.a)+' – '+fmtDE(info.b)+'</div></div><div class="fca-val">'+nf(cur)+'</div></div>'+
+    '<div class="fca-row"><div style="flex:1"><div class="fca-label">Vorzeitraum</div><div class="fca-sub">'+fmtDE(info.prevA)+' – '+fmtDE(info.prevB)+'</div></div><div class="fca-val">'+nf(prev)+'</div><span class="fca-delta '+dc+'">'+ds+d+'%</span></div>'+
+    '<div class="fca-row"><div style="flex:1"><div class="fca-label">Differenz</div><div class="fca-sub">'+info.cmpLabel+'</div></div><div class="fca-val">'+(diff>=0?'+':'')+nf(diff)+'</div></div>'+
   '</div>';
 }
 
@@ -663,6 +778,148 @@ function renderKatTrend(anim){
   box.querySelectorAll('circle[data-v]').forEach(function(c){c.addEventListener('mousemove',function(e){var si=+c.dataset.si,i=+c.dataset.i;showTip(e,series[si].label+' · '+months[i].label+': <b>'+nf(+c.dataset.v)+'</b>');});c.addEventListener('mouseleave',hideTip);});
 }
 
+/* ══════════════════════════════════════════════════════
+   Phase 3/4: neue Analyse-Widgets + automatische Insights
+   ══════════════════════════════════════════════════════ */
+
+/* Generische zeilen-normalisierte Heatmap (Anliegen × Spalte). Zelltext = Zeilenanteil %. */
+function matrixHeat(boxId,rowLabels,colLabels,grid,fmtCol,anim){
+  var box=document.getElementById(boxId);if(!box)return;
+  if(!rowLabels.length){emptyCard(boxId,'Keine Daten im Zeitraum.');return;}
+  var cw=Math.max(30,Math.min(56,Math.round(((box.clientWidth||640)-160)/Math.max(1,colLabels.length)))),ch=30,padL=150,padT=24,padB=8;
+  var W=padL+colLabels.length*cw+8,H=padT+rowLabels.length*ch+padB;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="height:'+H+'px">';
+  colLabels.forEach(function(c,ci){var x=padL+ci*cw+cw/2;s+='<text class="axis" x="'+x.toFixed(1)+'" y="16" text-anchor="middle">'+esc(fmtCol(c))+'</text>';});
+  rowLabels.forEach(function(rl,ri){
+    var y=padT+ri*ch,rowMax=Math.max.apply(null,grid[ri])||1,rowSum=grid[ri].reduce(function(a,b){return a+b;},0)||1;
+    s+='<text class="axis" x="'+(padL-8)+'" y="'+(y+ch/2+4)+'" text-anchor="end">'+esc(rl.length>21?rl.slice(0,20)+'…':rl)+'</text>';
+    colLabels.forEach(function(c,ci){
+      var v=grid[ri][ci],ratio=v/rowMax;
+      var r2=Math.round(200-200*ratio),g2=Math.round(230-162*ratio),b2=Math.round(225-159*ratio);
+      var fill=v===0?'rgba(6,59,55,.05)':'rgb('+r2+','+g2+','+b2+')',x=padL+ci*cw;
+      s+='<rect x="'+(x+2)+'" y="'+(y+2)+'" width="'+(cw-4)+'" height="'+(ch-4)+'" rx="5" fill="'+fill+'" data-r="'+ri+'" data-c="'+ci+'" data-v="'+v+'"/>';
+      if(v>0&&ratio>0.16){var tf=ratio>0.5?'#EAF6F2':'var(--ink)';s+='<text x="'+(x+cw/2)+'" y="'+(y+ch/2+4)+'" text-anchor="middle" font-size="10" font-weight="600" fill="'+tf+'">'+Math.round(v/rowSum*100)+'%</text>';}
+    });
+  });
+  s+='</svg>';box.innerHTML=s;
+  box.querySelectorAll('rect[data-v]').forEach(function(rc){rc.addEventListener('mousemove',function(e){var ri=+rc.dataset.r,ci=+rc.dataset.c;showTip(e,esc(rowLabels[ri])+' · '+esc(fmtCol(colLabels[ci]))+': <b>'+nf(+rc.dataset.v)+'</b>');});rc.addEventListener('mouseleave',hideTip);});
+}
+
+/* Anliegen × Abschlusszeit – welche Themen treten zu welchen Uhrzeiten gehäuft auf? */
+function renderAnliegenHour(rows,anim){
+  var box=document.getElementById('chartAnliegenHour');if(!box)return;
+  var timed=rows.filter(function(r){return r.stunde>0&&r.stunde<=23&&r.kategorie;});
+  if(!timed.length){emptyCard('chartAnliegenHour','Keine zeitgestempelten Anliegen im Zeitraum.');return;}
+  var top=topKatOf(timed,6).map(function(x){return x.label;});
+  var mn=23,mx=0;timed.forEach(function(r){if(r.stunde<mn)mn=r.stunde;if(r.stunde>mx)mx=r.stunde;});
+  var hours=[];for(var h=mn;h<=mx;h++)hours.push(h);
+  var ri={};top.forEach(function(k,i){ri[k]=i;});var ci={};hours.forEach(function(h,i){ci[h]=i;});
+  var grid=top.map(function(){return hours.map(function(){return 0;});});
+  timed.forEach(function(r){var k=stripPfx(r.kategorie);if(ri[k]==null||ci[r.stunde]==null)return;grid[ri[k]][ci[r.stunde]]++;});
+  matrixHeat('chartAnliegenHour',top,hours,grid,function(h){return h+'h';},anim);
+}
+
+/* Anliegen × Wochentag – welche Themen kommen an welchen Tagen gehäuft vor? */
+function renderAnliegenWday(rows,anim){
+  var box=document.getElementById('chartAnliegenWday');if(!box)return;
+  var withK=rows.filter(function(r){return r.kategorie&&r.dow>=0&&r.dow<=4;});
+  if(!withK.length){emptyCard('chartAnliegenWday','Keine Anliegen-Daten im Zeitraum.');return;}
+  var top=topKatOf(withK,6).map(function(x){return x.label;});
+  var days=[0,1,2,3,4],ri={};top.forEach(function(k,i){ri[k]=i;});
+  var grid=top.map(function(){return days.map(function(){return 0;});});
+  withK.forEach(function(r){var k=stripPfx(r.kategorie);if(ri[k]==null)return;grid[ri[k]][r.dow]++;});
+  matrixHeat('chartAnliegenWday',top,days,grid,function(d){return WD[d];},anim);
+}
+
+/* Monatsphasen – Top-Anliegen je Anfang/Mitte/Ende (energieversorger-typische Häufungen). */
+function renderMonthPhases(rows,anim){
+  var box=document.getElementById('chartMonthPhases');if(!box)return;
+  var withK=rows.filter(function(r){return r.kategorie;});
+  if(!withK.length){emptyCard('chartMonthPhases','Keine Anliegen-Daten im Zeitraum.');return;}
+  var phases=[{l:'Monatsanfang',sub:'1.–10.',rows:[]},{l:'Monatsmitte',sub:'11.–20.',rows:[]},{l:'Monatsende',sub:'21.–31.',rows:[]}];
+  withK.forEach(function(r){var d=r.ymd%100,pi=d<=10?0:d<=20?1:2;phases[pi].rows.push(r);});
+  box.innerHTML='<div class="mp-grid">'+phases.map(function(p){
+    var tk=topKatOf(p.rows,3),tot=p.rows.length;
+    var items=tk.length?tk.map(function(it){return '<div class="mp-item"><span class="mp-name">'+esc(it.label)+'</span><span class="mp-pct">'+it.pct+'%</span></div>';}).join(''):'<div class="mp-item mp-empty">–</div>';
+    return '<div class="mp-col"><div class="mp-head"><b>'+p.l+'</b><span>'+p.sub+' · '+nf(tot)+'</span></div>'+items+'</div>';
+  }).join('')+'</div>';
+}
+
+/* Pareto – wenige Anliegen verursachen den Großteil der Besuche (kumulierter Anteil). */
+function renderPareto(rows,anim){
+  var box=document.getElementById('chartPareto');if(!box)return;
+  var items=topKatOf(rows,999),total=rows.filter(function(r){return r.kategorie;}).length;
+  if(!total){emptyCard('chartPareto','Keine Anliegen-Daten im Zeitraum.');return;}
+  var cum=0,data=items.map(function(it){cum+=it.v;return {label:it.label,v:it.v,cumPct:Math.round(cum/total*100)};});
+  var n80=0;for(var i=0;i<data.length;i++){if(data[i].cumPct>=80){n80=i+1;break;}}if(!n80)n80=data.length;
+  var top3=Math.round(items.slice(0,3).reduce(function(s,x){return s+x.v;},0)/total*100);
+  var show=data.slice(0,10),max=show[0].v||1;
+  var h='<div class="pareto-head">Top 3 Anliegen = <b>'+top3+'%</b> aller Besuche · 80% erreicht bei <b>'+n80+'</b> Anliegen</div>';
+  h+=show.map(function(d,i){var col=PAL[i%PAL.length];
+    return '<div class="hbar"><div class="row"><b>'+esc(d.label)+'</b><span>'+nf(d.v)+' · kum. '+d.cumPct+'%</span></div>'+
+           '<div class="track"><i data-w="'+(d.v/max*100)+'" style="background:linear-gradient(90deg,'+col+',#ffffff22);'+(anim&&!RM?'':'width:'+(d.v/max*100)+'%')+'"></i></div></div>';}).join('');
+  box.innerHTML=h;
+  if(anim&&!RM)raf(function(){box.querySelectorAll('.track i').forEach(function(el){el.style.width=el.dataset.w+'%';});});
+}
+
+/* Ausreißer-Tage – Tage, die stark vom Ø des gleichen Wochentags abweichen. */
+function renderOutliers(rows,info,anim){
+  var box=document.getElementById('chartOutliers');if(!box)return;
+  if(info.grain==='hour'){box.innerHTML='<p class="sub" style="padding:18px 0">Für Tagesfilter nicht sinnvoll – bitte Woche/Monat/Jahr/Zeitraum wählen.</p>';return;}
+  var perDay={};rows.forEach(function(r){perDay[r.ymd]=(perDay[r.ymd]||0)+1;});
+  var days=Object.keys(perDay).map(Number);
+  if(days.length<5){box.innerHTML='<p class="sub" style="padding:18px 0">Zu wenige Tage für eine Ausreißer-Analyse.</p>';return;}
+  var wsum=[0,0,0,0,0,0,0],wcnt=[0,0,0,0,0,0,0];
+  days.forEach(function(ymd){var wd=(ymdToDate(ymd).getDay()+6)%7;wsum[wd]+=perDay[ymd];wcnt[wd]++;});
+  var wmean=wsum.map(function(s,i){return wcnt[i]?s/wcnt[i]:0;});
+  var flagged=days.map(function(ymd){var wd=(ymdToDate(ymd).getDay()+6)%7,mean=wmean[wd]||1,v=perDay[ymd],diff=mean>0?Math.round((v-mean)/mean*100):0;return {ymd:ymd,v:v,wd:wd,diff:diff,abs:Math.abs(diff)};})
+    .filter(function(d){return d.abs>=25;}).sort(function(a,b){return b.abs-a.abs;}).slice(0,8);
+  if(!flagged.length){box.innerHTML='<p class="sub" style="padding:18px 0">Keine auffälligen Tage – alles im üblichen Rahmen.</p>';return;}
+  box.innerHTML='<div class="ol-list">'+flagged.map(function(d){var up=d.diff>0;
+    return '<div class="ol-item"><span class="ol-date">'+ymdShort(d.ymd)+'</span><span class="ol-val">'+nf(d.v)+' Besuche</span>'+
+      '<span class="k-delta '+(up?'up':'down')+'">'+(up?'▲ +':'▼ ')+d.diff+'%</span><span class="ol-ref">vs. Ø-'+WDF[d.wd]+'</span></div>';
+  }).join('')+'</div>';
+}
+
+/* Datenqualität (nur Analyse-Tab) – Hinweis auf fehlende Standorte/Anliegen/Uhrzeiten. */
+function renderDataQuality(rows,info){
+  var box=document.getElementById('dqBox');if(!box)return;
+  var total=rows.length;if(!total){box.innerHTML='<p class="sub">Keine Daten im Zeitraum.</p>';return;}
+  var noStd=0,noKat=0,noHour=0;
+  rows.forEach(function(r){if(!r.standort||r.standort==='(ohne Angabe)')noStd++;if(!r.kategorie)noKat++;if(!(r.stunde>0&&r.stunde<=23))noHour++;});
+  function pct(x){return Math.round(x/total*100);}
+  box.innerHTML='<div class="dq-row"><span>Besuche ohne Standort</span><b>'+nf(noStd)+' ('+pct(noStd)+'%)</b></div>'+
+    '<div class="dq-row"><span>Besuche ohne Anliegen</span><b>'+nf(noKat)+' ('+pct(noKat)+'%)</b></div>'+
+    '<div class="dq-row"><span>Besuche ohne Uhrzeit</span><b>'+nf(noHour)+' ('+pct(noHour)+'%)</b></div>';
+}
+
+/* Automatische Erkenntnisse (Übersicht) – 3–5 regelbasierte Sätze aus dem Zeitraum. */
+function renderInsights(rows,info,anim){
+  var box=document.getElementById('insightsBox');if(!box)return;
+  if(!rows.length){box.innerHTML='<p class="sub" style="padding:8px 0">Für den gewählten Zeitraum liegen keine Besuche vor.</p>';return;}
+  var out=[];
+  // 1) Vergleich zur Vorperiode
+  if(info.prevA!=null){var prev=countRange(info.prevA,info.prevB);if(prev>0){var d=Math.round((rows.length-prev)/prev*100);
+    out.push('Der Zeitraum liegt <b>'+(d>0?'+':'')+d+'%</b> '+(d>=0?'über':'unter')+' dem vergleichbaren Vorzeitraum ('+nf(rows.length)+' vs. '+nf(prev)+').');}}
+  // 2) Stärkste Abschlusszeit
+  var ph=peakHourOf(rows);if(ph)out.push('Die stärkste Abschlusszeit war <b>'+ph.h+':00–'+(ph.h+1)+':00 Uhr</b> ('+nf(ph.v)+' Abschlüsse).');
+  // 3) Top-Anliegen
+  var tk=topKatOf(rows,1);if(tk.length)out.push('<b>'+esc(tk[0].label)+'</b> macht <b>'+tk[0].pct+'%</b> aller Besuche aus.');
+  // 4) Standortvergleich Ø/Öffnungstag
+  var bd=Math.max(1,businessDays(info.a,info.b));
+  var eC=cntStand('Euskirchen',info.a,info.b),kC=cntStand('Kall',info.a,info.b);
+  if(eC>0&&kC>0){var eAvg=eC/bd,kAvg=kC/bd;var hi=eAvg>=kAvg?'Euskirchen':'Kall',lo=eAvg>=kAvg?'Kall':'Euskirchen';
+    var ph2=Math.round(Math.abs(eAvg-kAvg)/Math.min(eAvg,kAvg)*100);
+    if(ph2>=5)out.push('<b>'+hi+'</b> hatte '+ph2+'% mehr Besucher pro Öffnungstag als '+lo+'.');}
+  // 5) Stärkster Wochentag (nicht bei Tagesfilter)
+  if(info.grain!=='hour'){var wd=[0,0,0,0,0,0,0];rows.forEach(function(r){if(r.dow>=0&&r.dow<=4)wd[r.dow]++;});
+    var mx=Math.max.apply(null,wd);if(mx>0)out.push('Stärkster Wochentag im Zeitraum: <b>'+WDF[wd.indexOf(mx)]+'</b>.');}
+  out=out.slice(0,5);
+  box.innerHTML='<div class="si-text-box">'+out.map(function(t,i){
+    return '<div class="si-text-item"><div class="si-text-dot" style="background:'+PAL[i%PAL.length]+'"></div><p>'+t+'</p></div>';
+  }).join('')+'</div>';
+}
+
 /* ---------- Tab switching ---------- */
 function initDashTabs(){
   var tabs=document.getElementById('dashTabs');if(!tabs)return;
@@ -676,13 +933,23 @@ function initDashTabs(){
   });
 }
 
-/* ---------- render ---------- */
+/* ---------- render (tab-bewusst: nur der aktive Tab wird gezeichnet → korrekte Chart-Breiten
+   auf zuvor versteckten Panels + weniger Recompute) ---------- */
+function activeTab(){var el=document.querySelector('.dash-tab.active');return el?el.dataset.tab:'uebersicht';}
 function render(anim){
-  var r=currentRange(),rows=rowsIn(r[0],r[1]);
-  document.getElementById('rangeInfo').textContent=fmtDE(r[0])+' – '+fmtDE(r[1])+' · '+nf(rows.length)+' Besuche'+(state.standort!=='all'?' · '+state.standort:'');
-  renderKPIs(anim);renderLocKPIs(anim);renderForecast(anim);renderTrend(rows,r[0],r[1],anim);renderKat(rows,anim);renderWday(rows,anim);renderHour(rows,anim);renderKatDonut(rows,anim);renderThemeResults(anim);
-  renderStandortTab(rows,anim);
-  renderHeatmap(rows,anim);renderMonthlyComparison(anim);renderForecastAnalysis(anim);renderKatTrend(anim);
+  var info=periodInfo(),rows=rowsIn(info.a,info.b),tab=activeTab();
+  document.getElementById('rangeInfo').textContent=fmtDE(info.a)+' – '+fmtDE(info.b)+' · '+nf(rows.length)+' Besuche'+(state.standort!=='all'?' · '+state.standort:'');
+  if(tab==='uebersicht'){
+    renderKPIs(anim);renderForecast(anim);renderTrend(rows,info.a,info.b,anim);
+    renderKat(rows,anim);renderWday(rows,anim);renderHour(rows,anim);renderKatDonut(rows,anim);renderThemeResults(anim);
+    renderInsights(rows,info,anim);
+  } else if(tab==='standorte'){
+    renderLocKPIs(anim);renderStandortTab(rows,anim);
+  } else {
+    renderHeatmap(rows,anim);renderMonthlyComparison(anim);renderForecastAnalysis(anim);renderKatTrend(anim);
+    renderAnliegenHour(rows,anim);renderAnliegenWday(rows,anim);renderMonthPhases(rows,anim);
+    renderPareto(rows,anim);renderOutliers(rows,info,anim);renderDataQuality(rows,info);
+  }
 }
 
 /* ---------- controls ---------- */
@@ -799,7 +1066,7 @@ function bootLoad(){
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(rows){
       nowYmd=dateToYmd(new Date());nowDate=ymdToDate(nowYmd);
-      V.length=0;rows.forEach(function(r){V.push(parseApiRow(r));});
+      V.length=0;rows.forEach(function(r){if(isTestStandort(r.standort))return;V.push(parseApiRow(r));});
       _applyMaxima();
       bumpData();
       _booted=true;
@@ -827,7 +1094,7 @@ function refreshToday(){
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(rows){
       for(var i=V.length-1;i>=0;i--){if(V[i].ymd>=nowYmd)V.splice(i,1);} // alten Heute-Teil entfernen
-      rows.forEach(function(r){V.push(parseApiRow(r));});               // frischen Heute-Teil anhängen (bleibt sortiert)
+      rows.forEach(function(r){if(isTestStandort(r.standort))return;V.push(parseApiRow(r));});  // frischen Heute-Teil anhängen (bleibt sortiert)
       dataMaxYmd=V.length?V[V.length-1].ymd:nowYmd;maxYmd=Math.max(dataMaxYmd,nowYmd);
       bumpData();
       render(false);
