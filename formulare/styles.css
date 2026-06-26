@@ -219,6 +219,16 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
 .doc-contact{flex:0 0 60mm;text-align:left;font-size:10pt;line-height:1.55;color:#222}
 .doc-contact .dc-strong{font-weight:700;font-style:italic;color:#111;margin-bottom:3px}
 .doc-contact .dc-line{line-height:1.5}
+.doc-contact .dc-kdnr{font-weight:700}
+
+/* Freitextbrief-Kopf: Datum (links) und Kundennummer (rechts) auf gleicher Höhe
+   unten ausrichten – beide Spalten gleich hoch (stretch), Inhalt oben, Datum/Kdnr
+   per margin-top:auto an den unteren Rand. min-height sichert einen sauberen Abstand. */
+.doc-info-row.letter{align-items:stretch;min-height:40mm;margin-bottom:9mm}
+.doc-info-row.letter .doc-top-left{display:flex;flex-direction:column}
+.doc-info-row.letter .doc-contact{display:flex;flex-direction:column}
+.doc-info-row.letter .doc-date-left{margin-top:auto;text-align:left;font-size:11pt}
+.doc-info-row.letter .dc-kdnr{margin-top:auto}
 
 .doc-sender-line{font-size:7pt;color:#555;border-bottom:.5px solid #999;padding-bottom:2px;margin-bottom:4mm;max-width:82mm}
 .doc-address{font-size:11pt;line-height:1.5}
@@ -248,6 +258,12 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
 .doc-calc tr.dcc-total td{border-top:1.4px solid #222;padding-top:5px;font-weight:700}
 
 .doc-greeting{font-size:11pt;line-height:1.6;margin-bottom:10mm}
+
+/* Freitextbrief: Anrede + frei formulierter Brieftext */
+.doc-anrede{font-size:11pt;margin-bottom:5mm}
+.doc-body{font-size:11pt;line-height:1.5;margin-bottom:9mm}
+.doc-body p{margin:0 0 3mm}
+.doc-body p:last-child{margin-bottom:0}
 
 .doc-footer{
   margin-top:auto;padding-top:3mm;border-top:.5px solid #bbb;

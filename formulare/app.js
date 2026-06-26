@@ -53,6 +53,20 @@ var FOOTER_HTML =
   '<div class="df-col"><strong>Pers. haftende Gesellschafterin</strong>e-regio Verwaltungs- und Beteiligungsgesellschaft mbH<br>Amtsgericht Bonn HRB 12691<br><br>Kreissparkasse Euskirchen<br>BIC WELADED1EUS<br>IBAN DE95 3825 0110 0001 0008 01</div>' +
   '<div class="df-col"><strong>Bankverbindungen</strong>Sparkasse Köln/Bonn<br>BIC COLSDE33 · IBAN DE26 3705 0198 0033 3000 47<br>Deutsche Bank AG<br>BIC DEUTDEDK · IBAN DE11 3707 0060 0770 3606 00<br>Postbank Köln<br>BIC PBNKDEFF370 · IBAN DE89 3701 0050 0008 0435 03</div>';
 
+/* ── Briefkopf-Fuß (WES – Wasserversorgungsverband, aus Vorlage) ──────────── */
+var WES_FOOTER_HTML =
+  '<div class="df-col"><strong>WES</strong>Körperschaft des öffentlichen Rechts<br>Rheinbacher Weg 10<br>53881 Euskirchen</div>' +
+  '<div class="df-col"><strong>Kontakt</strong>Telefon 0 22 51 / 708-0<br>Telefax 0 22 51 / 708-163<br>info@wasser-eu-sw.de<br>www.wasser-eu-sw.de</div>' +
+  '<div class="df-col"><strong>Verbandsvorsteher</strong>Bürgermeister Sacha Reichelt</div>' +
+  '<div class="df-col"><strong>Bankverbindungen</strong>Kreissparkasse Euskirchen<br>BIC WELADED1EUS · IBAN DE27 3825 0110 0001 0357 81<br>Postbank Köln<br>BIC PBNKDEFF · IBAN DE86 3701 0050 0059 3745 02</div>';
+
+/* Freitext → HTML: Leerzeile trennt Absätze, einfacher Umbruch wird zu <br>. */
+function paraHtml(s){
+  return String(s == null ? '' : s).split(/\n{2,}/).map(function(p){
+    return '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>';
+  }).join('');
+}
+
 /* ── Formular-Registry ────────────────────────────────────────────────────── */
 var FORMULARE = {
   'kostenaufstellung-trocknung': {
@@ -110,7 +124,7 @@ var FORMULARE = {
       '<div class="doc-logo-row"><img class="doc-logo" src="../shared/eregio-logo-gruen.png" alt="e-regio"></div>' +
       '<div class="doc-info-row">' +
         '<div class="doc-top-left">' +
-          '<div class="doc-sender-line">Rheinbacher Weg 10, 53881 Euskirchen</div>' +
+          '<div class="doc-sender-line">e-regio GmbH &amp; Co. KG · Rheinbacher Weg 10 · 53881 Euskirchen</div>' +
           '<div class="doc-address">' + (adrLines || '&nbsp;') + '</div>' +
         '</div>' +
         '<div class="doc-contact">' +
@@ -143,6 +157,147 @@ var FORMULARE = {
       '</table>' +
       '<div class="doc-greeting">Freundliche Grüße<br>Ihr Kundenservice</div>' +
       '<div class="doc-footer">' + FOOTER_HTML + '</div>';
+    }
+  },
+
+  /* ── Freitextbrief e-regio (CA-Briefvorlage) ──────────────────────────────── */
+  'brief-eregio': {
+    name: 'Freitextbrief (e-regio)',
+    kategorie: 'Brief',
+    beschreibung: 'Allgemeiner Geschäftsbrief im e-regio-Layout – Empfänger, Betreff und frei formulierbarer Brieftext.',
+    updated: '2026-06-27',
+    builtin: true,
+    icon: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+
+    sample: {
+      firma:'Musterfirma GmbH', name:'Max Mustermann', strasse:'Musterstraße 1', plz:'00000', ort:'Musterstadt',
+      abteilung:'Kundenservice', sbname:'Max Mustermann', telefon:'02251 708-708', email:'kundenservice@e-regio.de', kundennummer:'123.456.789',
+      datum:'2026-06-27', betreff:'Ihr Anliegen',
+      anrede:'Guten Tag Herr Mustermann,',
+      text:'vielen Dank für Ihre Nachricht.\n\nGerne bestätigen wir Ihnen den Eingang Ihres Anliegens. Wir kümmern uns umgehend darum und melden uns bei Ihnen, sobald uns weitere Informationen vorliegen.\n\nBei Rückfragen erreichen Sie uns jederzeit unter den oben genannten Kontaktdaten.',
+      grussformel:'Mit freundlichen Grüßen', unterschrift:'Ihr Kundenservice\ne-regio GmbH & Co. KG'
+    },
+
+    felder: [
+      { g:'Empfänger', key:'firma',   label:'Firma',                type:'text', ph:'optional' },
+      { g:'Empfänger', key:'name',    label:'Vor- und Nachname',    type:'text', ph:'z. B. Max Mustermann' },
+      { g:'Empfänger', key:'strasse', label:'Straße und Hausnummer',type:'text', ph:'Musterstraße 1' },
+      { g:'Empfänger', key:'plz',     label:'PLZ', type:'text', ph:'00000', half:'l' },
+      { g:'Empfänger', key:'ort',     label:'Ort', type:'text', ph:'Musterstadt', half:'r' },
+
+      { g:'Sachbearbeiter', key:'abteilung',    label:'Abteilung',    type:'text', ph:'z. B. Kundenservice' },
+      { g:'Sachbearbeiter', key:'sbname',       label:'Name Sachbearbeiter/in', type:'text' },
+      { g:'Sachbearbeiter', key:'telefon',      label:'Telefon',      type:'text', ph:'02251 708-…', half:'l' },
+      { g:'Sachbearbeiter', key:'email',        label:'E-Mail',       type:'text', ph:'…@e-regio.de', half:'r' },
+      { g:'Sachbearbeiter', key:'kundennummer', label:'Kundennummer', type:'text', ph:'z. B. 123.456.789' },
+
+      { g:'Brief', key:'datum',       label:'Briefdatum',  type:'date' },
+      { g:'Brief', key:'betreff',     label:'Betreff',     type:'text', ph:'Betreffzeile' },
+      { g:'Brief', key:'anrede',      label:'Anrede',      type:'text', ph:'Guten Tag …,' },
+      { g:'Brief', key:'text',        label:'Brieftext',   type:'textarea', rows:11, ph:'Freier Brieftext – Leerzeile trennt Absätze.' },
+      { g:'Brief', key:'grussformel', label:'Grußformel',  type:'text', ph:'Mit freundlichen Grüßen', def:'Mit freundlichen Grüßen' },
+      { g:'Brief', key:'unterschrift',label:'Unterschrift / Absender', type:'textarea', rows:2, ph:'Name, Abteilung' }
+    ],
+
+    summary: function(d){ return 'Brief · ' + (esc(d.betreff) || '<em>ohne Betreff</em>'); },
+
+    renderDoc: function(d){
+      var adrLines = [d.firma, d.name, d.strasse, ((d.plz||'') + ' ' + (d.ort||'')).trim()]
+        .filter(function(x){ return x && String(x).trim(); }).map(esc).join('<br>');
+
+      return '' +
+      '<div class="doc-logo-row"><img class="doc-logo" src="../shared/eregio-logo-gruen.png" alt="e-regio"></div>' +
+      '<div class="doc-info-row letter">' +
+        '<div class="doc-top-left">' +
+          '<div class="doc-sender-line">e-regio GmbH &amp; Co. KG · Rheinbacher Weg 10 · 53881 Euskirchen</div>' +
+          '<div class="doc-address">' + (adrLines || '&nbsp;') + '</div>' +
+          '<div class="doc-date-left">' + esc(dateShort(d.datum)) + '</div>' +
+        '</div>' +
+        '<div class="doc-contact">' +
+          (d.abteilung ? '<div class="dc-strong">' + esc(d.abteilung) + '</div>' : '') +
+          (d.sbname ? '<div class="dc-line">' + esc(d.sbname) + '</div>' : '') +
+          (d.telefon ? '<div class="dc-line">Tel. ' + esc(d.telefon) + '</div>' : '') +
+          (d.email ? '<div class="dc-line">' + esc(d.email) + '</div>' : '') +
+          (d.kundennummer ? '<div class="dc-line dc-kdnr">' + esc(d.kundennummer) + '</div>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="doc-subject">' + esc(d.betreff) + '</div>' +
+      '<div class="doc-anrede">' + esc(d.anrede) + '</div>' +
+      '<div class="doc-body">' + paraHtml(d.text) + '</div>' +
+      '<div class="doc-greeting">' + esc(d.grussformel) + '<br><br>' + esc(d.unterschrift).replace(/\n/g, '<br>') + '</div>' +
+      '<div class="doc-footer">' + FOOTER_HTML + '</div>';
+    }
+  },
+
+  /* ── Freitextbrief WES (Wasserversorgungsverband) ─────────────────────────── */
+  'brief-wes': {
+    name: 'Freitextbrief (WES)',
+    kategorie: 'Wasser',
+    beschreibung: 'Geschäftsbrief des Wasserversorgungsverbands Euskirchen-Swisttal – Empfänger, Betreff und frei formulierbarer Brieftext.',
+    updated: '2026-06-27',
+    builtin: true,
+    icon: '<path d="M12 2.5C12 2.5 5 10 5 14.5a7 7 0 0 0 14 0C19 10 12 2.5 12 2.5Z"/>',
+
+    sample: {
+      firma:'Musterfirma GmbH', anrede:'Herr', name:'Max Mustermann', strasse:'Musterstraße 1', plz:'00000', ort:'Musterstadt',
+      abteilung:'Abteilung', sbname:'Sachbearbeiter/in', telefon:'0 22 51 / 708-xxx', telefax:'0 22 51 / 708-xxx', email:'Vorname.Name@e-regio.de', kundennummer:'123.456.789',
+      datum:'2026-06-27', betreff:'Ihr Anliegen',
+      briefanrede:'Sehr geehrter Herr Mustermann,',
+      text:'vielen Dank für Ihr Schreiben.\n\nGerne bestätigen wir Ihnen den Eingang Ihres Anliegens. Wir prüfen den Vorgang und melden uns zeitnah bei Ihnen.\n\nFür Rückfragen stehen wir Ihnen unter den oben genannten Kontaktdaten gerne zur Verfügung.',
+      grussformel:'Freundliche Grüße', unterschrift:'WES Wasserversorgungsverband\nEuskirchen-Swisttal'
+    },
+
+    felder: [
+      { g:'Empfänger', key:'firma',   label:'Firma',                type:'text', ph:'optional' },
+      { g:'Empfänger', key:'anrede',  label:'Anrede',               type:'select', options:['Herr','Frau','Familie','Firma',''], def:'Herr' },
+      { g:'Empfänger', key:'name',    label:'Vor- und Nachname',    type:'text', ph:'z. B. Max Mustermann' },
+      { g:'Empfänger', key:'strasse', label:'Straße und Hausnummer',type:'text', ph:'Musterstraße 1' },
+      { g:'Empfänger', key:'plz',     label:'PLZ', type:'text', ph:'00000', half:'l' },
+      { g:'Empfänger', key:'ort',     label:'Ort', type:'text', ph:'Musterstadt', half:'r' },
+
+      { g:'Sachbearbeiter', key:'abteilung', label:'Abteilung',        type:'text', ph:'z. B. Abrechnung' },
+      { g:'Sachbearbeiter', key:'sbname',    label:'Name Sachbearbeiter/in', type:'text' },
+      { g:'Sachbearbeiter', key:'telefon',   label:'Telefon',          type:'text', ph:'0 22 51 / 708-…', half:'l' },
+      { g:'Sachbearbeiter', key:'telefax',   label:'Telefax',          type:'text', ph:'0 22 51 / 708-…', half:'r' },
+      { g:'Sachbearbeiter', key:'email',     label:'E-Mail',           type:'text', ph:'…@e-regio.de' },
+      { g:'Sachbearbeiter', key:'kundennummer', label:'Kundennummer',  type:'text', ph:'z. B. 123.456.789' },
+
+      { g:'Brief', key:'datum',       label:'Briefdatum',  type:'date' },
+      { g:'Brief', key:'betreff',     label:'Betreff',     type:'text', ph:'Betreffzeile' },
+      { g:'Brief', key:'briefanrede', label:'Anrede',      type:'text', ph:'Sehr geehrte/r …,' },
+      { g:'Brief', key:'text',        label:'Brieftext',   type:'textarea', rows:11, ph:'Freier Brieftext – Leerzeile trennt Absätze.' },
+      { g:'Brief', key:'grussformel', label:'Grußformel',  type:'text', ph:'Freundliche Grüße', def:'Freundliche Grüße' },
+      { g:'Brief', key:'unterschrift',label:'Unterschrift / Absender', type:'textarea', rows:2, ph:'Name, Abteilung' }
+    ],
+
+    summary: function(d){ return 'Brief · ' + (esc(d.betreff) || '<em>ohne Betreff</em>'); },
+
+    renderDoc: function(d){
+      var adrLines = [d.firma, d.anrede, d.name, d.strasse, ((d.plz||'') + ' ' + (d.ort||'')).trim()]
+        .filter(function(x){ return x && String(x).trim(); }).map(esc).join('<br>');
+
+      return '' +
+      '<div class="doc-logo-row"><img class="doc-logo" src="../shared/wes-logo.png" alt="WES" style="width:40mm"></div>' +
+      '<div class="doc-info-row letter">' +
+        '<div class="doc-top-left">' +
+          '<div class="doc-sender-line">Wasserversorgungsverband Euskirchen-Swisttal · Rheinbacher Weg 10 · 53881 Euskirchen</div>' +
+          '<div class="doc-address">' + (adrLines || '&nbsp;') + '</div>' +
+          '<div class="doc-date-left">' + esc(dateLong(d.datum)) + '</div>' +
+        '</div>' +
+        '<div class="doc-contact">' +
+          (d.abteilung ? '<div class="dc-strong">' + esc(d.abteilung) + '</div>' : '') +
+          (d.sbname ? '<div class="dc-line">' + esc(d.sbname) + '</div>' : '') +
+          (d.telefon ? '<div class="dc-line">Telefon ' + esc(d.telefon) + '</div>' : '') +
+          (d.telefax ? '<div class="dc-line">Telefax ' + esc(d.telefax) + '</div>' : '') +
+          (d.email ? '<div class="dc-line">' + esc(d.email) + '</div>' : '') +
+          (d.kundennummer ? '<div class="dc-line dc-kdnr">' + esc(d.kundennummer) + '</div>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="doc-subject">' + esc(d.betreff) + '</div>' +
+      '<div class="doc-anrede">' + esc(d.briefanrede) + '</div>' +
+      '<div class="doc-body">' + paraHtml(d.text) + '</div>' +
+      '<div class="doc-greeting">' + esc(d.grussformel) + '<br><br>' + esc(d.unterschrift).replace(/\n/g, '<br>') + '</div>' +
+      '<div class="doc-footer">' + WES_FOOTER_HTML + '</div>';
     }
   }
 };
@@ -398,6 +553,7 @@ function fieldHTML(f, val){
     return f.unit ? '<div class="input-unit">' + inp + '<span class="unit-badge">' + esc(f.unit) + '</span></div>' : inp;
   }
   if (f.type === 'date') return '<input ' + attrs + ' type="date" value="' + esc(v) + '">';
+  if (f.type === 'textarea') return '<textarea ' + attrs + ' rows="' + (f.rows || 9) + '" style="resize:vertical">' + esc(v) + '</textarea>';
   return '<input ' + attrs + ' type="text" value="' + esc(v) + '">';
 }
 
@@ -435,8 +591,15 @@ function renderFields(form, data){
 
 function renderPreview(){
   docSheet.innerHTML = current.form.renderDoc(current.data);
-  var r = current.form.berechne(current.data);
-  editorMeta.innerHTML = 'Bruttobetrag <strong>' + fmtEuro(r.brutto) + ' €</strong>';
+  // Berechnungsformulare zeigen den Bruttobetrag; Briefe eine eigene Zusammenfassung.
+  if (current.form.summary){
+    editorMeta.innerHTML = current.form.summary(current.data);
+  } else if (current.form.berechne){
+    var r = current.form.berechne(current.data);
+    editorMeta.innerHTML = 'Bruttobetrag <strong>' + fmtEuro(r.brutto) + ' €</strong>';
+  } else {
+    editorMeta.innerHTML = '';
+  }
 }
 
 function openEditor(id, printAfter){
