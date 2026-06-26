@@ -49,14 +49,28 @@ function allSlots(loc) {
   return loc.extra ? [...loc.slots, ...loc.extra.slots] : loc.slots;
 }
 
+/* Besetzungsgrad EINES Pflichtplatzes an einem Tag:
+   'empty'   = niemand eingeteilt
+   'partial' = eingeteilt, aber Kernfenster 08–16 nicht lückenlos abgedeckt
+   'full'    = 08–16 lückenlos besetzt */
+function slotCoverage(date, loc, slot, map) {
+  const list = map.get(assignKey(date, loc, slot)) ?? [];
+  if (!list.length) return 'empty';
+  return hasCoreGap(list) ? 'partial' : 'full';
+}
+
 /* Liefert den Besetzungsstatus eines Tages anhand einer Assignment-Map
-   (Wochenplan: S.assignments, Monatsplan: S.monthData). */
+   (Wochenplan: S.assignments, Monatsplan: S.monthData). Trennt fehlende von
+   nur teilweise (mit Lücke) besetzten Pflichtplätzen. */
 function dayStaffing(date, map) {
-  if (isHoliday(date)) return { holiday: true, ok: true, missing: [] };
-  const missing = REQUIRED_SLOTS.filter(
-    r => !(map.get(assignKey(date, r.loc, r.slot))?.length)
-  );
-  return { holiday: false, ok: missing.length === 0, missing };
+  if (isHoliday(date)) return { holiday: true, ok: true, missing: [], partial: [] };
+  const missing = [], partial = [];
+  for (const r of REQUIRED_SLOTS) {
+    const cov = slotCoverage(date, r.loc, r.slot, map);
+    if (cov === 'empty') missing.push(r);
+    else if (cov === 'partial') partial.push(r);
+  }
+  return { holiday: false, ok: missing.length === 0 && partial.length === 0, missing, partial };
 }
 function locLabel(id) { return LOCATIONS.find(l => l.id === id)?.label ?? id; }
 function missingLabel(missing) {
@@ -341,10 +355,14 @@ function renderGrid() {
     ${days.map((d, i) => {
       const h  = dayHolidays[i];
       const st = dayStatus[i];
-      const badge = h ? '' : (st.ok
-        ? `<span class="staff-badge ok" title="Pflichtbesetzung vollständig">besetzt</span>`
-        : `<span class="staff-badge under" title="Unterbesetzt – fehlt: ${esc(missingLabel(st.missing))}">${WARN_ICON} unterbesetzt</span>`);
-      return `<div class="pg-day-hd${h ? ' holiday' : (st.ok ? '' : ' understaffed')}">
+      const badge = h ? '' : (
+        st.missing.length
+          ? `<span class="staff-badge under" title="Unterbesetzt – fehlt: ${esc(missingLabel(st.missing))}">${WARN_ICON} unterbesetzt</span>`
+          : st.partial.length
+          ? `<span class="staff-badge partial" title="Teilbesetzt – Lücke 08–16 Uhr: ${esc(missingLabel(st.partial))}">${WARN_ICON} teilbesetzt</span>`
+          : `<span class="staff-badge ok" title="Pflichtbesetzung vollständig">besetzt</span>`);
+      const hdState = st.missing.length ? ' understaffed' : (st.partial.length ? ' partialstaffed' : '');
+      return `<div class="pg-day-hd${h ? ' holiday' : hdState}">
         <b>${DAYS[i]}</b>
         <span>${fmtDate(d)}</span>
         ${h ? `<span class="hday-name">${h}</span>` : badge}
@@ -365,7 +383,8 @@ function renderGrid() {
       </div>
     </div>`;
     for (const slot of shown) {
-      html += `<div class="pg-row" style="--loc:${lc}">
+      const reqCls = isRequired(loc.id, slot) ? ' req' : '';
+      html += `<div class="pg-row${reqCls}" style="--loc:${lc}">
         <div class="pg-slot-label">${SLOT_LABELS[slot] ?? slot}</div>
         ${days.map((date, i) => {
           if (dayHolidays[i]) return `<div class="pg-cell holiday"><span class="hday-dash">Feiertag</span></div>`;
@@ -746,20 +765,30 @@ function renderMonthGrid(workDays) {
     const wd = ['So','Mo','Di','Mi','Do','Fr','Sa'][new Date(yr, mo-1, dy).getDay()];
     const h = isHoliday(dt);
     const st = dayStaffing(dt, S.monthData);
-    const under = !h && !st.ok;
-    const title = h ? h : (under ? `Unterbesetzt – fehlt: ${missingLabel(st.missing)}` : 'Pflichtbesetzung vollständig');
-    return `<div class="mg-day-hd${h ? ' holiday' : (under ? ' understaffed' : '')}" title="${esc(title)}"><b>${wd}</b><span>${dy}.</span>${h ? '<span class="mg-hday-dot"></span>' : (under ? '<span class="mg-under-dot"></span>' : '')}</div>`;
+    const miss = !h && st.missing.length > 0;
+    const part = !h && !miss && st.partial.length > 0;
+    const hdCls = h ? ' holiday' : (miss ? ' understaffed' : (part ? ' partialstaffed' : ''));
+    const dot   = h ? '<span class="mg-hday-dot"></span>'
+                    : (miss ? '<span class="mg-under-dot"></span>'
+                    : (part ? '<span class="mg-part-dot"></span>' : ''));
+    const title = h ? h
+                : (miss ? `Unterbesetzt – fehlt: ${missingLabel(st.missing)}`
+                : (part ? `Teilbesetzt – Lücke 08–16 Uhr: ${missingLabel(st.partial)}`
+                : 'Pflichtbesetzung vollständig'));
+    return `<div class="mg-day-hd${hdCls}" title="${esc(title)}"><b>${wd}</b><span>${dy}.</span>${dot}</div>`;
   }).join('');
 
   let html = `<div class="mg-wrap${selId ? ' has-sel' : ''}" style="grid-template-columns:${cols}">
     <div class="mg-slot-col"></div>${hds}`;
 
   for (const loc of LOCATIONS) {
+    const lc = LOC_COLORS[loc.id] || 'var(--stroke-hi)';
     // Section label spans all columns
-    html += `<div class="mg-section">${loc.label}</div>`;
+    html += `<div class="mg-section" style="--loc:${lc}"><span class="loc-pip ${loc.id}"></span>${loc.label}</div>`;
     for (const slot of allSlots(loc)) {
       const lbl = SLOT_LABELS[slot] ?? slot;
-      html += `<div class="mg-slot-lbl">${lbl}</div>`;
+      const reqCls = isRequired(loc.id, slot) ? ' req' : '';
+      html += `<div class="mg-slot-lbl${reqCls}" style="--loc:${lc}">${lbl}</div>`;
       for (const date of workDays) {
         const h = isHoliday(date);
         if (h) {
@@ -772,7 +801,7 @@ function renderMonthGrid(workDays) {
         for (const a of list) { if (!seen.has(a.agent_id)) { seen.add(a.agent_id); agents.push(a); } }
         const cls = agents.length === 0
           ? (isRequired(loc.id, slot) ? 'empty req-missing' : 'empty')
-          : 'full';
+          : (hasCoreGap(list) ? 'full partial' : 'full');
         const mine = selId != null && agents.some(a => a.agent_id === selId);
         const inner = agents.length
           ? agents.map(a => `<span class="mg-kz${a.agent_id === selId ? ' mine' : ''}" style="--ac:${safeColor(a.color)}">${esc(a.kuerzel)}</span>`).join('')

@@ -196,6 +196,11 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,te
   transition:height .15s var(--ease),opacity .15s var(--ease)}
 .pg-row:hover .pg-slot-label{color:var(--ci)}
 .pg-row:hover .pg-slot-label::before{opacity:1;height:26px}
+/* Pflichtplätze (Kall B1/B2, Euskirchen Zentrale/B1/B2) farblich hinterlegen –
+   das sind die wichtigsten zu besetzenden Plätze. */
+.pg-row.req .pg-slot-label{font-weight:700;color:var(--ink);
+  background:color-mix(in srgb,var(--loc) 15%,transparent);border-radius:8px}
+.pg-row.req .pg-slot-label::before{opacity:.95;width:4px;height:20px}
 
 .pg-cell{display:flex;flex-direction:column;align-items:stretch;min-height:54px;border-radius:11px;
   border:1px solid var(--stroke);cursor:pointer;transition:all .15s var(--ease);position:relative;overflow:hidden;gap:2px;padding:2px}
@@ -508,18 +513,23 @@ select.form-input,.dash-select{color-scheme:light}
 .mg-day-hd b{font-family:'Hanken Grotesk';font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.2}
 .mg-day-hd span{font-size:12px;font-weight:600;color:var(--muted);line-height:1}
 
-/* Section label — spans all columns */
+/* Section label — spans all columns (Stil wie Wochenplan) */
 .mg-section{
   grid-column:1/-1;
-  display:flex;align-items:center;gap:8px;margin-top:6px;padding:5px 4px 3px;
-  font-family:'Hanken Grotesk';font-size:13.5px;font-weight:700;letter-spacing:.06em;color:var(--muted-2);
-  border-bottom:1px solid var(--stroke)
+  display:flex;align-items:center;gap:8px;margin-top:10px;padding:5px 4px 4px;
+  font-family:'Hanken Grotesk';font-size:13.5px;font-weight:700;letter-spacing:.04em;color:var(--ink);
+  border-bottom:1.5px solid color-mix(in srgb,var(--loc,var(--stroke-hi)) 45%,var(--stroke))
 }
 
-/* Row label */
-.mg-slot-lbl{font-size:13px;font-weight:600;color:var(--muted);
-  padding:0 6px;display:flex;align-items:center;white-space:nowrap;
+/* Row label — Akzentschiene je Standort, wie im Wochenplan */
+.mg-slot-lbl{position:relative;font-size:12.5px;font-weight:600;color:var(--ink);
+  padding:0 6px 0 14px;display:flex;align-items:center;white-space:nowrap;
   min-height:38px}
+.mg-slot-lbl::before{content:"";position:absolute;left:3px;top:50%;transform:translateY(-50%);
+  width:3px;height:14px;border-radius:2px;background:var(--loc,var(--stroke-hi));opacity:.5}
+/* Pflichtplätze farblich hinterlegen (wichtigste Plätze) */
+.mg-slot-lbl.req{font-weight:700;background:color-mix(in srgb,var(--loc) 15%,transparent);border-radius:7px}
+.mg-slot-lbl.req::before{opacity:.95;width:4px;height:18px}
 
 /* Data cells */
 .mg-cell{min-height:38px;border-radius:7px;display:flex;flex-direction:row;
@@ -528,6 +538,8 @@ select.form-input,.dash-select{color-scheme:light}
 .mg-cell.empty{background:rgba(255,138,120,.05);border:1px dashed rgba(255,138,120,.22)}
 .mg-cell.empty:hover{background:rgba(255,138,120,.10)}
 .mg-cell.full{background:rgba(59,232,166,.08);border:1px solid rgba(59,232,166,.2)}
+/* Teilbesetzt: eingeteilt, aber Lücke im Kernfenster 08–16 → amber wie Legende */
+.mg-cell.full.partial{background:rgba(233,198,130,.22);border:1px solid rgba(233,198,130,.55)}
 /* Befüllbar wenn ein Berater ausgewählt ist (analog Wochenplan) */
 .mg-wrap.has-sel .mg-cell{cursor:pointer}
 .mg-wrap.has-sel .mg-cell.empty{border-color:rgba(191,146,0,.4);background:rgba(191,146,0,.05)}
@@ -580,11 +592,14 @@ select.form-input,.dash-select{color-scheme:light}
 /* Week view — Tageskopf-Badge */
 .pg-day-hd.understaffed{background:rgba(255,138,120,.10);border-color:rgba(255,138,120,.34)}
 .pg-day-hd.understaffed b{color:var(--neg)}
+.pg-day-hd.partialstaffed{background:rgba(233,198,130,.16);border-color:rgba(233,198,130,.5)}
+.pg-day-hd.partialstaffed b{color:var(--warn)}
 .staff-badge{display:inline-flex;align-items:center;gap:3px;margin-top:3px;
   font-family:'Hanken Grotesk';font-size:9px;font-weight:700;letter-spacing:.05em;
   text-transform:uppercase;padding:2px 6px;border-radius:999px;white-space:nowrap;line-height:1}
 .staff-badge svg{flex:0 0 auto;width:10px;height:10px}
 .staff-badge.under{color:var(--neg);background:rgba(255,138,120,.15);border:1px solid rgba(255,138,120,.42)}
+.staff-badge.partial{color:var(--warn);background:rgba(233,198,130,.22);border:1px solid rgba(233,198,130,.55)}
 .staff-badge.ok{color:var(--pos);background:rgba(59,232,166,.10);border:1px solid rgba(59,232,166,.26)}
 
 /* Week view — Pflichtzelle ohne Besetzung (überschreibt empty-Styling) */
@@ -601,6 +616,9 @@ select.form-input,.dash-select{color-scheme:light}
 .mg-day-hd.understaffed{background:rgba(255,138,120,.13);border-color:rgba(255,138,120,.4)}
 .mg-day-hd.understaffed b,.mg-day-hd.understaffed span{color:var(--neg)}
 .mg-under-dot{width:5px;height:5px;border-radius:50%;background:var(--neg);margin-top:3px;flex:0 0 5px}
+.mg-day-hd.partialstaffed{background:rgba(233,198,130,.16);border-color:rgba(233,198,130,.5)}
+.mg-day-hd.partialstaffed b,.mg-day-hd.partialstaffed span{color:var(--warn)}
+.mg-part-dot{width:5px;height:5px;border-radius:50%;background:var(--warn);margin-top:3px;flex:0 0 5px}
 
 /* Month view — Pflichtzelle ohne Besetzung */
 .mg-wrap .mg-cell.empty.req-missing{background:rgba(255,138,120,.13);border:1px solid rgba(255,138,120,.45)}

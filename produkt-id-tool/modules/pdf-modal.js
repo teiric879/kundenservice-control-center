@@ -149,19 +149,27 @@ async function printCurrent() {
   document.body.appendChild(ifr);
 }
 
-// ── Schrift: Carlito (metrisch Calibri-kompatibel) für alle Textfelder ────────
-// Einmal geladen und gecacht. Pfad relativ zu diesem Modul, damit er lokal wie
-// auf Vercel (statische Auslieferung aus dem Repo-Root) gleichermaßen aufgeht.
+// ── Schrift: DM Sans (e-regio CD-Body) für alle Textfelder ───────────────────
+// Befüllte Vertragsformulare tragen damit dieselbe Schrift wie die App-Oberfläche.
+// Carlito (Calibri-kompatibel) bleibt als Fallback, falls DM Sans nicht lädt.
+// Pfade relativ zu diesem Modul → lokal wie auf Vercel (statische Auslieferung).
 const FIELD_FONT_SIZE = 11;   // Standard
 const FIELD_FONT_MIN  = 9;    // Fallback, wenn Inhalt nicht in die Feldbreite passt
+const FIELD_FONT_FILES = ['../fonts/DMSans-Regular.ttf', '../fonts/Carlito-Regular.ttf'];
 let _fontBytesPromise = null;
 function loadFieldFont() {
   if (!_fontBytesPromise) {
-    const url = new URL('../fonts/Carlito-Regular.ttf', import.meta.url);
-    _fontBytesPromise = fetch(url).then(r => {
-      if (!r.ok) throw new Error(`Font HTTP ${r.status}`);
-      return r.arrayBuffer();
-    });
+    _fontBytesPromise = (async () => {
+      let lastErr;
+      for (const rel of FIELD_FONT_FILES) {
+        try {
+          const r = await fetch(new URL(rel, import.meta.url));
+          if (!r.ok) throw new Error(`Font HTTP ${r.status}`);
+          return await r.arrayBuffer();
+        } catch (e) { lastErr = e; }
+      }
+      throw lastErr || new Error('Keine Feldschrift gefunden');
+    })();
   }
   return _fontBytesPromise;
 }
@@ -482,14 +490,14 @@ async function loadAndShow(entry, fieldValues) {
     const { PDFDocument } = window.PDFLib;
     const doc  = await PDFDocument.load(bytes, { ignoreEncryption: true });
 
-    // Carlito einbetten (für alle Textfelder). Schlägt das fehl, wird ohne
+    // DM Sans (CD) einbetten – für alle Textfelder. Schlägt das fehl, wird ohne
     // Custom-Font weitergemacht (Standard-Helvetica), damit das Befüllen nie bricht.
     let font = null;
     try {
       const fontBytes = await loadFieldFont();
       doc.registerFontkit(window.fontkit);
-      font = await doc.embedFont(fontBytes, { subset: false });
-    } catch (e) { console.warn('Carlito nicht geladen – Standardschrift:', e); }
+      font = await doc.embedFont(fontBytes, { subset: true });
+    } catch (e) { console.warn('CD-Feldschrift nicht geladen – Standardschrift:', e); }
 
     const form = doc.getForm();
     // Carlito in die AcroForm-Default-Resources eintragen, damit der Viewer die
