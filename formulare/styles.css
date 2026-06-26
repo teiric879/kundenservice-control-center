@@ -191,7 +191,7 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
   background:#fff;color:#1a1a1a;
   box-shadow:var(--e2);border-radius:6px;
   padding:22mm 22mm 16mm;
-  font-family:'Carlito','Calibri','DM Sans',sans-serif;font-size:11pt;line-height:1.42;
+  font-family:var(--font-body);font-size:11pt;line-height:1.42;
   display:flex;flex-direction:column;
   animation:cardIn .35s var(--ease) both;
 }
@@ -216,17 +216,19 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
 .doc-meta td.dm-lbl{font-weight:700;white-space:nowrap;padding-right:14px}
 
 .doc-tabletitle{font-size:11pt;margin-bottom:5mm}
-.doc-cost-table{border-collapse:collapse;margin:0 0 6mm}
-.doc-cost-table td{padding:2px 7px;font-size:11pt;font-variant-numeric:tabular-nums;white-space:nowrap}
-.doc-cost-table td.dc-op{text-align:center;color:#444;padding:2px 4px}
-.doc-cost-table td.dc-num{text-align:right;font-weight:600}
 
-.doc-sum-table{border-collapse:collapse;margin:0 0 9mm;min-width:95mm}
-.doc-sum-table td{padding:3px 0;font-size:11pt;font-variant-numeric:tabular-nums}
-.doc-sum-table td.ds-lbl{font-weight:700;padding-right:24px}
-.doc-sum-table td.ds-num{text-align:right;white-space:nowrap}
-.doc-sum-table td.ds-unit{padding-left:8px;color:#444}
-.doc-sum-table tr.ds-total td{border-top:1.4px solid #222;padding-top:5px;font-weight:700}
+/* Berechnung: Formel + Summenblock teilen sich EINE Geldspalte (dcc-amt),
+   damit der Formel-Betrag exakt über dem Nettobetrag steht. */
+.doc-calc{border-collapse:collapse;margin:0 0 9mm;min-width:118mm}
+.doc-calc td{padding:3px 0;font-size:11pt;font-variant-numeric:tabular-nums}
+.doc-calc td.dcc-desc{padding-right:24px;white-space:nowrap}
+.doc-calc td.dcc-strong{font-weight:700}
+.doc-calc td.dcc-amt{text-align:right;white-space:nowrap;width:32mm}
+.doc-calc td.dcc-unit{padding-left:9px;color:#444;width:16mm}
+.doc-calc tr.dcc-formula td{padding-bottom:6px;border-bottom:.7px solid #c9c9c9}
+.doc-calc tr.dcc-formula td.dcc-desc{color:#333}
+.doc-calc tr.dcc-formula+tr td{padding-top:6px}
+.doc-calc tr.dcc-total td{border-top:1.4px solid #222;padding-top:5px;font-weight:700}
 
 .doc-greeting{font-size:11pt;line-height:1.6;margin-bottom:10mm}
 

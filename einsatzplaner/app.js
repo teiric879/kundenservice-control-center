@@ -64,6 +64,11 @@ function missingLabel(missing) {
 }
 const WARN_ICON = '<svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.2 1.3 13.8h13.4L8 2.2Z"/><path d="M8 6.4v3"/><path d="M8 11.4h.01"/></svg>';
 
+/* Standortfarben (= loc-pip), für Akzentschienen der Slot-Spalte */
+const LOC_COLORS = { kall: '#E8A06A', euskirchen: '#7A8BF0', homeoffice: '#5FD6A0' };
+const CHEV_DOWN = '<svg class="ex-chev" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>';
+const CHEV_UP   = '<svg class="ex-chev" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5 6 4l3.5 3.5"/></svg>';
+
 /* ── Kern-Besetzungsfenster (08:00–16:00) ──────────────────────────────────
    Ein Platz gilt als voll besetzt, wenn 08:00–16:00 lückenlos abgedeckt ist.
    Zeiten nach 16:00 zählen für die Abdeckung nicht und werden in der
@@ -223,6 +228,18 @@ async function init() {
   document.addEventListener('click', e => {
     if (!document.getElementById('ctxMenu').contains(e.target)) closeCtx();
   });
+
+  syncLeisteHeight();
+  window.addEventListener('resize', syncLeisteHeight);
+}
+
+/* Höhe der (umbruchfähigen) Berater-Leiste an den sticky Tageskopf weitergeben,
+   damit dieser exakt darunter andockt – egal über wie viele Zeilen die Pills laufen. */
+function syncLeisteHeight() {
+  const el = document.getElementById('beraterLeiste');
+  if (!el) return;
+  const h = el.classList.contains('hidden') ? 0 : el.offsetHeight;
+  document.documentElement.style.setProperty('--leiste-h', h + 'px');
 }
 
 /* ── Agent Pills ────────────────────────────────────────────────────────── */
@@ -237,6 +254,7 @@ function renderAgentPills() {
     </button>
   `).join('');
   document.getElementById('pillClear').classList.toggle('hidden', !S.selectedAgent);
+  syncLeisteHeight();
 }
 
 function selectAgent(id) {
@@ -340,13 +358,14 @@ function renderGrid() {
     const extraShown = S_EXPAND.has(loc.id) ? extraTotal : (loc.extra?.defaultShow ?? 0);
     const remaining  = extraTotal - extraShown;
 
-    html += `<div class="pg-section">
+    const lc = LOC_COLORS[loc.id] || 'var(--stroke-hi)';
+    html += `<div class="pg-section" style="--loc:${lc}">
       <div class="pg-section-lbl">
         <span class="loc-pip ${loc.id}"></span>${loc.label}
       </div>
     </div>`;
     for (const slot of shown) {
-      html += `<div class="pg-row">
+      html += `<div class="pg-row" style="--loc:${lc}">
         <div class="pg-slot-label">${SLOT_LABELS[slot] ?? slot}</div>
         ${days.map((date, i) => {
           if (dayHolidays[i]) return `<div class="pg-cell holiday"><span class="hday-dash">Feiertag</span></div>`;
@@ -357,13 +376,13 @@ function renderGrid() {
     }
     if (loc.extra) {
       if (!S_EXPAND.has(loc.id) && remaining > 0) {
-        html += `<div class="pg-row expand-row">
-          <button class="expand-btn" onclick="toggleExpand('${loc.id}')">▼ ${remaining} weitere</button>
+        html += `<div class="pg-row expand-row" style="--loc:${lc}">
+          <button class="expand-btn" onclick="toggleExpand('${loc.id}')">${CHEV_DOWN} ${remaining} weitere</button>
           <div style="grid-column:span 5"></div>
         </div>`;
       } else if (S_EXPAND.has(loc.id)) {
-        html += `<div class="pg-row expand-row">
-          <button class="expand-btn" onclick="toggleExpand('${loc.id}')">▲ einklappen</button>
+        html += `<div class="pg-row expand-row" style="--loc:${lc}">
+          <button class="expand-btn" onclick="toggleExpand('${loc.id}')">${CHEV_UP} einklappen</button>
           <div style="grid-column:span 5"></div>
         </div>`;
       }
@@ -941,6 +960,7 @@ function showTab(name) {
   document.querySelector(`.mod-item[data-tab-link="${name}"]`)?.classList.add('active');
   document.getElementById('weekNav').style.display = (name === 'plan') ? '' : 'none';
   document.getElementById('beraterLeiste')?.classList.toggle('hidden', name === 'dashboard');
+  syncLeisteHeight();
 
   if (name === 'dashboard') loadStats();
   if (name === 'monat')     loadMonthView();

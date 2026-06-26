@@ -131,17 +131,15 @@ var FORMULARE = {
         '<tr><td class="dm-lbl">Zeitraum:</td><td>' + esc(zeitraum) + '</td></tr>' +
       '</table></div>' +
       '<div class="doc-tabletitle">Stromkostenermittlung gemäß den für Sie im Trocknungs- und Bauzeitraum gültigen Verbrauchspreisen</div>' +
-      '<table class="doc-cost-table"><tr>' +
-        '<td class="dc-num">' + fmtKwh(r.verbrauch) + ' kWh</td>' +
-        '<td class="dc-op">×</td>' +
-        '<td class="dc-num">' + fmtCent(r.ap) + ' Cent</td>' +
-        '<td class="dc-op">=</td>' +
-        '<td class="dc-num">' + fmtEuro(r.netto) + ' EURO</td>' +
-      '</tr></table>' +
-      '<table class="doc-sum-table">' +
-        '<tr><td class="ds-lbl">Nettobetrag</td><td class="ds-num">' + fmtEuro(r.netto) + '</td><td class="ds-unit">EURO</td></tr>' +
-        '<tr><td class="ds-lbl">Mehrwertsteuer ' + fmtPct(r.mw) + ' %</td><td class="ds-num">' + fmtEuro(r.mwstBetrag) + '</td><td class="ds-unit">EURO</td></tr>' +
-        '<tr class="ds-total"><td class="ds-lbl">Bruttobetrag</td><td class="ds-num">' + fmtEuro(r.brutto) + '</td><td class="ds-unit">EURO</td></tr>' +
+      '<table class="doc-calc">' +
+        '<tr class="dcc-formula">' +
+          '<td class="dcc-desc">' + fmtKwh(r.verbrauch) + ' kWh &times; ' + fmtCent(r.ap) + ' Cent/kWh</td>' +
+          '<td class="dcc-amt">' + fmtEuro(r.netto) + '</td>' +
+          '<td class="dcc-unit">EURO</td>' +
+        '</tr>' +
+        '<tr><td class="dcc-desc dcc-strong">Nettobetrag</td><td class="dcc-amt">' + fmtEuro(r.netto) + '</td><td class="dcc-unit">EURO</td></tr>' +
+        '<tr><td class="dcc-desc dcc-strong">Mehrwertsteuer ' + fmtPct(r.mw) + ' %</td><td class="dcc-amt">' + fmtEuro(r.mwstBetrag) + '</td><td class="dcc-unit">EURO</td></tr>' +
+        '<tr class="dcc-total"><td class="dcc-desc dcc-strong">Bruttobetrag</td><td class="dcc-amt">' + fmtEuro(r.brutto) + '</td><td class="dcc-unit">EURO</td></tr>' +
       '</table>' +
       '<div class="doc-greeting">Freundliche Grüße<br>Ihr Kundenservice</div>' +
       '<div class="doc-footer">' + FOOTER_HTML + '</div>';
