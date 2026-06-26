@@ -36,9 +36,13 @@ module.exports = async function besucherRoutes(fastify) {
     if (!datum || !standort) {
       return reply.code(400).send({ error: 'datum und standort erforderlich' });
     }
-    // Leichte Format-/Längen-Validierung (Schutz gegen Müll-/Missbrauchsdaten).
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(datum))) {
-      return reply.code(400).send({ error: 'datum muss YYYY-MM-DD sein' });
+    // Datum auf YYYYMMDD normalisieren – das ist das in der besuche-Tabelle und im Dashboard
+    // durchgaengig genutzte Format (die Erfass-Leiste sendet bereits YYYYMMDD). Ein evtl. mit
+    // Bindestrichen geliefertes 2026-06-26 wird akzeptiert und entstrichen, damit beide Quellen
+    // funktionieren. (Frueher verlangte die Validierung YYYY-MM-DD und brach so das Erfassen.)
+    const datum8 = String(datum).replace(/-/g, '');
+    if (!/^\d{8}$/.test(datum8)) {
+      return reply.code(400).send({ error: 'datum muss YYYYMMDD oder YYYY-MM-DD sein' });
     }
     if (String(standort).length > 120 || (kategorie != null && String(kategorie).length > 200)) {
       return reply.code(400).send({ error: 'standort/kategorie zu lang' });
@@ -47,7 +51,7 @@ module.exports = async function besucherRoutes(fastify) {
     if (h != null && (!Number.isInteger(h) || h < 0 || h > 23)) {
       return reply.code(400).send({ error: 'stunde muss 0–23 sein' });
     }
-    const id = await besucherRepo.insertBesuch({ datum, standort, kategorie, stunde: h });
+    const id = await besucherRepo.insertBesuch({ datum: datum8, standort, kategorie, stunde: h });
     return { id };
   });
 };
