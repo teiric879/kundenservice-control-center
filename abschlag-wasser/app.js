@@ -176,21 +176,21 @@ function render() {
 
   // Abschlag-Aufschlüsselung pro Zyklus
   rows.push(sep('Abschlag ' + r.zyklusLabel));
-  rows.push(row('davon Frischwasser', fmtEuro(r.frischZyklus)));
-  rows.push(row('davon Abwasser', fmtEuro(r.abwasserZyklus)));
-  if (t.hatOberfl) rows.push(row('davon Oberflächenwasser', fmtEuro(r.oberflZyklus)));
+  rows.push(row('davon Frischwasser', fmtAbschlag(r.frischZyklus)));
+  rows.push(row('davon Abwasser', fmtAbschlag(r.abwasserZyklus)));
+  if (t.hatOberfl) rows.push(row('davon Oberflächenwasser', fmtAbschlag(r.oberflZyklus)));
 
   resultCard.innerHTML =
     '<div class="card-hdr">' +
       '<div class="prod-name">Wasser-Abschlag · ' + esc(t.label) + '</div>' +
       '<div class="card-hero">' +
-        '<div class="price-main"><span class="amount">' + esc(fmtNoUnit(r.abschlagZyklus)) + '</span><span class="currency">€</span></div>' +
+        '<div class="price-main"><span class="amount">' + esc(fmtAbschlagNoUnit(r.abschlagZyklus)) + '</span><span class="currency">€</span></div>' +
         '<div class="price-caption">' + esc(r.zyklusLabel) + ' · ' + esc(r.zyklusCaption) + '</div>' +
       '</div>' +
     '</div>' +
     '<div class="month-band">' +
       '<div class="mb-lbl">Monatlicher Vergleichswert</div>' +
-      '<div class="mb-val">' + esc(fmtEuro(r.monatlich)) + '<small> / Monat</small></div>' +
+      '<div class="mb-val">' + esc(fmtAbschlag(r.monatlich)) + '<small> / Monat</small></div>' +
     '</div>' +
     '<div class="card-body">' + rows.join('') + '</div>';
 
@@ -207,6 +207,12 @@ function sep(title) {
 }
 function fmtNoUnit(n) {
   return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtAbschlag(n) {
+  return Math.ceil(n).toLocaleString('de-DE') + ' €';
+}
+function fmtAbschlagNoUnit(n) {
+  return Math.ceil(n).toLocaleString('de-DE');
 }
 function esc(s) {
   return String(s).replace(/[&<>"']/g, function (c) {
