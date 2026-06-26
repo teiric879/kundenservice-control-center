@@ -4,10 +4,11 @@
 (function () {
   'use strict';
 
-  var LS_NOTES   = 'wz-notes';
-  var LS_CLIP    = 'wz-clipboard';
-  var LS_CALC    = 'wz-calc-history';
-  var LS_OPEN    = 'wz-open';
+  var LS_NOTES     = 'wz-notes';
+  var LS_CLIP      = 'wz-clipboard';
+  var LS_CALC      = 'wz-calc-history';
+  var LS_OPEN      = 'wz-open';
+  var LS_COLLAPSED = 'wz-collapsed';   // '1' eingeklappt | '0' ausgeklappt | '' keine Vorliebe
   var CLIP_MAX   = 20;
   var CALC_MAX   = 10;
 
@@ -29,7 +30,9 @@
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-11"/></svg>',
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>',
     paste: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><path d="M12 11v6M9 14h6"/></svg>',
-    x:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+    x:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+    chevR: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
+    chevL: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>'
   };
 
   /* ── Toast ───────────────────────────────────────────────────────────── */
@@ -229,7 +232,7 @@
   }
 
   /* ── State / DOM-Referenzen ──────────────────────────────────────────── */
-  var root, flyout, flyHead, flyBodyWrap, current = null, shownT = null;
+  var root, flyout, flyHead, flyBodyWrap, tabEl, current = null, shownT = null;
   var railBtns = {};
   var notesBody, clipBody, clipHolder, calcBody;   // gebaute Tool-Panels (einmalig, bleiben erhalten)
   var calcState = { val:'0', expr:'', justEvaled:false };
@@ -240,8 +243,24 @@
     calc:  { icon:I.calc, label:'Rechner', build:buildCalc }
   };
 
+  /* ── Ein-/Ausklappen der Leiste ──────────────────────────────────────── */
+  function isCollapsedDefault(){
+    var pref = lsGetRaw(LS_COLLAPSED, '');
+    if (pref === '1') return true;
+    if (pref === '0') return false;
+    return window.innerWidth < 1280;          // keine Vorliebe → kleine Screens eingeklappt
+  }
+  function applyCollapsed(on, persist){
+    if (root) root.classList.toggle('collapsed', on);
+    if (tabEl) tabEl.classList.toggle('show', on);
+    document.documentElement.classList.toggle('wz-collapsed', on);
+    if (on && current) closeTool();           // beim Einklappen offenes Popup schließen
+    if (persist) lsSetRaw(LS_COLLAPSED, on ? '1' : '0');
+  }
+
   /* ── Öffnen / Schließen (immer nur eines offen) ──────────────────────── */
   function openTool(key){
+    if (root && root.classList.contains('collapsed')) applyCollapsed(false, true);
     if (current === key){ closeTool(); return; }
     current = key;
     Object.keys(railBtns).forEach(function(k){
@@ -510,6 +529,12 @@
     root = el('div', 'wz-root');
 
     var rail = el('div', 'wz-rail');
+    var collapseBtn = el('button', 'wz-collapse', I.chevR);
+    collapseBtn.type = 'button';
+    collapseBtn.setAttribute('aria-label', 'Werkzeugleiste einklappen');
+    collapseBtn.title = 'Einklappen';
+    collapseBtn.onclick = function(){ applyCollapsed(true, true); };
+    rail.appendChild(collapseBtn);
     Object.keys(TOOLS).forEach(function(key){
       var t = TOOLS[key];
       var b = el('button', 'wz-railbtn', t.icon + '<span class="wz-tip">' + esc(t.label) + '</span>');
@@ -538,17 +563,33 @@
     // ein transformierter Vorfahre wäre sonst der Bezugsrahmen für position:fixed → top/right verschoben.
     document.body.appendChild(flyout);
 
+    // Schmaler Griff (nur eingeklappt sichtbar) → klick = ausklappen
+    tabEl = el('button', 'wz-tab', I.chevL);
+    tabEl.type = 'button';
+    tabEl.setAttribute('aria-label', 'Werkzeugleiste ausklappen');
+    tabEl.title = 'Werkzeuge';
+    tabEl.onclick = function(){ applyCollapsed(false, true); };
+    document.body.appendChild(tabEl);
+
+    // Schutzzone aktivieren + initialen Ein-/Ausklapp-Zustand setzen
+    document.documentElement.classList.add('wz-on');
+    applyCollapsed(isCollapsedDefault(), false);
+
     // Tool-Bodies einmalig bauen (Inhalte/State bleiben über Auf-/Zuklappen erhalten)
     notesBody  = buildNotes();
     clipHolder = buildClip();   // setzt intern clipBody (inneres .wz-body) für renderClip()
     calcBody   = buildCalc();
 
     document.addEventListener('keydown', onKey, true);
-    window.addEventListener('resize', function(){ if (current) positionFlyout(); });
+    window.addEventListener('resize', function(){
+      if (current) positionFlyout();
+      // Auto-Ein-/Ausklappen nur ohne gespeicherte Vorliebe
+      if (lsGetRaw(LS_COLLAPSED, '') === '') applyCollapsed(window.innerWidth < 1280, false);
+    });
 
-    // zuletzt offenes Tool wiederherstellen
+    // zuletzt offenes Tool wiederherstellen – aber nicht, wenn eingeklappt gestartet
     var last = lsGetRaw(LS_OPEN, '');
-    if (last && TOOLS[last]) openTool(last);
+    if (last && TOOLS[last] && !root.classList.contains('collapsed')) openTool(last);
   }
 
   function init(){

@@ -5,10 +5,10 @@
    Eigene --wz-*-Variablen gespiegelt aus shared/tokens.css → robust auch auf
    Seiten ohne tokens.css (Landing, mitbewerber). Keine Modul-Abhängigkeit.
    ========================================================================== */
-.wz-root{
-  position:fixed; right:0; top:50%; transform:translateY(-50%); z-index:9500;
-  font-family:'DM Sans',system-ui,-apple-system,sans-serif;
-  display:flex; align-items:flex-start; gap:0;
+/* Variablen auf :root, NICHT nur auf .wz-root – Flyout/Toast/Griff hängen direkt
+   am <body> (außerhalb .wz-root) und würden die Tokens sonst nicht erben
+   (transparenter Flyout-Hintergrund). Eigene --wz-*-Namen, robust auch ohne tokens.css. */
+:root{
   --wz-green:#004442; --wz-green-d:#013c39; --wz-gold:#ffc300; --wz-gold-ink:#8a6a00;
   --wz-ink:#063b37; --wz-muted:#5d7d77; --wz-muted2:#8aa39d;
   --wz-glass:#fffdf7; --wz-glass-hi:#f6f2e6; --wz-stroke:#e6e1d2; --wz-stroke-hi:#d6cfba;
@@ -19,6 +19,17 @@
   --wz-ease:cubic-bezier(.22,.61,.36,1);
   --wz-spring:cubic-bezier(.34,1.56,.64,1);
 }
+.wz-root{
+  position:fixed; right:0; top:50%; transform:translateY(-50%); z-index:9500;
+  font-family:'DM Sans',system-ui,-apple-system,sans-serif;
+  display:flex; align-items:flex-start; gap:0;
+}
+
+/* ── Schutzzone: Inhalt bekommt rechts Platz, Leiste überdeckt nie Inhalte ── */
+html.wz-on body{ padding-right:62px; transition:padding-right .26s var(--wz-ease); }
+html.wz-on.wz-collapsed body{ padding-right:20px; }
+@media (max-width:1280px){ html.wz-on body{ padding-right:58px; } }
+@media (prefers-reduced-motion:reduce){ html.wz-on body{ transition:none; } }
 
 /* ── Rail (rechts angedockt) ───────────────────────────────────────────── */
 .wz-rail{
@@ -26,7 +37,36 @@
   background:var(--wz-green); border:1px solid var(--wz-green);
   border-right:none; border-radius:14px 0 0 14px;
   box-shadow:-6px 8px 22px rgba(0,40,36,.20);
+  transition:opacity .22s var(--wz-ease), transform .26s var(--wz-spring);
 }
+
+/* ── Einklapp-Chevron (oben in der Rail) ───────────────────────────────── */
+.wz-collapse{
+  width:44px; height:22px; display:grid; place-items:center; cursor:pointer; font-family:inherit;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10);
+  border-radius:10px; color:#cdeee8; margin-bottom:2px;
+  transition:background var(--wz-ease) .18s, color var(--wz-ease) .18s;
+}
+.wz-collapse:hover{ background:rgba(255,255,255,.14); color:#fff; }
+.wz-collapse:focus-visible{ outline:2px solid var(--wz-gold); outline-offset:2px; }
+.wz-collapse svg{ width:16px; height:16px; }
+
+/* ── Eingeklappter Zustand: Rail weg, schmaler Griff sichtbar ──────────── */
+.wz-root.collapsed{ pointer-events:none; }
+.wz-root.collapsed .wz-rail{ opacity:0; transform:translateX(60px); pointer-events:none; }
+
+.wz-tab{
+  position:fixed; right:0; top:50%; transform:translateY(-50%); z-index:9500;
+  display:none; align-items:center; justify-content:center; cursor:pointer; font-family:inherit;
+  width:16px; height:62px; border-radius:10px 0 0 10px;
+  background:var(--wz-green); border:1px solid var(--wz-green); border-right:none;
+  box-shadow:-4px 6px 16px rgba(0,40,36,.18); color:var(--wz-gold);
+  transition:background var(--wz-ease) .18s, width .18s var(--wz-ease);
+}
+.wz-tab.show{ display:flex; }
+.wz-tab:hover{ background:var(--wz-green-d); width:19px; }
+.wz-tab:focus-visible{ outline:2px solid var(--wz-gold); outline-offset:2px; }
+.wz-tab svg{ width:13px; height:13px; }
 .wz-railbtn{
   position:relative; width:44px; height:44px; cursor:pointer; font-family:inherit;
   display:grid; place-items:center; color:#cdeee8;
@@ -51,8 +91,8 @@
 .wz-flyout{
   position:fixed; right:70px; z-index:9499;
   width:min(92vw,340px); max-height:min(78vh,640px);
-  background:var(--wz-glass); border:1px solid var(--wz-stroke); border-radius:var(--wz-r-lg);
-  box-shadow:var(--wz-e3); display:none; flex-direction:column; overflow:hidden;
+  background:var(--wz-glass); border:1px solid var(--wz-stroke-hi); border-radius:var(--wz-r-lg);
+  box-shadow:var(--wz-e3), 0 0 0 1px rgba(6,59,55,.05); display:none; flex-direction:column; overflow:hidden;
   opacity:0; transform:translateX(14px) scale(.985); transform-origin:right center;
   transition:opacity .2s var(--wz-ease), transform .26s var(--wz-spring);
 }
@@ -124,21 +164,23 @@
 .wz-clip-list{ display:flex; flex-direction:column; gap:7px }
 .wz-clip-item{
   display:flex; align-items:center; gap:8px; padding:9px 10px;
-  background:#fff; border:1px solid var(--wz-stroke); border-radius:var(--wz-r-md);
-  transition:border-color .15s, background .15s;
+  background:#fff; border:1px solid var(--wz-stroke-hi); border-radius:var(--wz-r-md);
+  box-shadow:0 1px 2px rgba(20,46,40,.05);
+  transition:border-color .15s, background .15s, box-shadow .15s;
 }
-.wz-clip-item:hover{ border-color:var(--wz-turq-2); background:var(--wz-glass-hi) }
+.wz-clip-item:hover{ border-color:var(--wz-turq-2); background:var(--wz-glass-hi);
+  box-shadow:0 2px 6px rgba(20,46,40,.08) }
 .wz-clip-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px }
 .wz-clip-text{ font-size:12.5px; font-weight:600; color:var(--wz-ink); white-space:nowrap;
   overflow:hidden; text-overflow:ellipsis }
-.wz-clip-ts{ font-size:10.5px; color:var(--wz-muted2) }
+.wz-clip-ts{ font-size:10.5px; color:var(--wz-muted) }
 .wz-icobtn{
   width:30px; height:30px; flex:0 0 30px; cursor:pointer; display:grid; place-items:center;
-  background:#fff; border:1px solid var(--wz-stroke); border-radius:9px; color:var(--wz-muted);
+  background:var(--wz-glass-hi); border:1px solid var(--wz-stroke-hi); border-radius:9px; color:var(--wz-green);
   transition:background .15s, color .15s, border-color .15s;
 }
 .wz-icobtn svg{ width:14px; height:14px }
-.wz-icobtn:hover{ background:var(--wz-glass-hi); color:var(--wz-green); border-color:var(--wz-turq-2) }
+.wz-icobtn:hover{ background:#fff; color:var(--wz-green); border-color:var(--wz-turq-2) }
 .wz-icobtn.copied{ background:rgba(15,122,90,.12); color:var(--wz-pos); border-color:rgba(15,122,90,.3) }
 .wz-icobtn.del:hover{ background:rgba(192,73,42,.10); color:var(--wz-neg); border-color:rgba(192,73,42,.35) }
 .wz-icobtn:focus-visible{ outline:2px solid var(--wz-gold); outline-offset:1px }
@@ -191,9 +233,10 @@
 
 /* ── Responsiv ─────────────────────────────────────────────────────────── */
 @media (max-width:560px){
-  .wz-flyout{ right:64px; width:calc(100vw - 76px) }
+  .wz-flyout{ right:auto; left:8px; width:calc(100vw - 16px); transform-origin:left center }
 }
 @media (prefers-reduced-motion:reduce){
-  .wz-railbtn,.wz-flyout,.wz-btn,.wz-key,.wz-icobtn,.wz-saved,.wz-toast,.wz-railbtn .wz-tip{ transition:none }
+  .wz-railbtn,.wz-flyout,.wz-btn,.wz-key,.wz-icobtn,.wz-saved,.wz-toast,.wz-railbtn .wz-tip,
+  .wz-rail,.wz-collapse,.wz-tab{ transition:none }
   .wz-flyout{ transform:none }
 }
