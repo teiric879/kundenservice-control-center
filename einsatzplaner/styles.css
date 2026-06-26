@@ -576,15 +576,16 @@ select.form-input,.dash-select{color-scheme:light}
   border:1px dashed rgba(245,158,11,.22);cursor:not-allowed;pointer-events:none}
 .hday-dash{font-size:10px;font-weight:700;color:rgba(245,158,11,.5);letter-spacing:.04em}
 
-/* Month view — holiday day header */
-.mg-day-hd.holiday{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.35)}
+/* Month view — holiday day header (deutlich hervorgehoben) */
+.mg-day-hd.holiday{background:rgba(245,158,11,.22);border-color:rgba(245,158,11,.55);
+  box-shadow:inset 0 2px 0 rgba(245,158,11,.6)}
 .mg-day-hd.holiday b,.mg-day-hd.holiday span{color:var(--warn)}
-.mg-hday-dot{width:5px;height:5px;border-radius:50%;background:var(--warn);margin-top:3px;flex:0 0 5px}
+.mg-hday-flag{color:var(--warn);margin-bottom:1px;flex:0 0 auto}
 
-/* Month view — holiday cells */
+/* Month view — holiday cells (kräftigere Schraffur als bisher) */
 .mg-cell.holiday{background:repeating-linear-gradient(
-    -45deg,transparent,transparent 5px,rgba(245,158,11,.05) 5px,rgba(245,158,11,.05) 10px);
-  border:1px dashed rgba(245,158,11,.22);cursor:not-allowed;pointer-events:none}
+    -45deg,rgba(245,158,11,.06),rgba(245,158,11,.06) 5px,rgba(245,158,11,.14) 5px,rgba(245,158,11,.14) 10px);
+  border:1px dashed rgba(245,158,11,.4);cursor:not-allowed;pointer-events:none}
 
 /* ── Pflichtbesetzung / Unterbesetzung ───────────────────────────────────────── */
 /* Mo–Fr müssen Kall B1+B2 und Euskirchen Zentrale+B1+B2 besetzt sein. */
@@ -628,6 +629,10 @@ select.form-input,.dash-select{color-scheme:light}
 
 /* Legend — Pflicht fehlt */
 .ml-item.under::before{background:rgba(255,138,120,.18);border:1px solid rgba(255,138,120,.5)}
+/* Legend — Feiertag (gleiche Optik wie die Feiertags-Markierung im Grid) */
+.ml-item.holiday::before{background:repeating-linear-gradient(
+    -45deg,rgba(245,158,11,.12),rgba(245,158,11,.12) 3px,rgba(245,158,11,.4) 3px,rgba(245,158,11,.4) 6px);
+  border:1px solid rgba(245,158,11,.55)}
 
 /* ── Notizen Drawer ──────────────────────────────────────────────────────────── */
 .notes-drawer{

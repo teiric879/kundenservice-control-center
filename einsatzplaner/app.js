@@ -49,26 +49,25 @@ function allSlots(loc) {
   return loc.extra ? [...loc.slots, ...loc.extra.slots] : loc.slots;
 }
 
-/* Besetzungsgrad EINES Pflichtplatzes an einem Tag:
-   'empty'   = niemand eingeteilt
-   'partial' = eingeteilt, aber Kernfenster 08–16 nicht lückenlos abgedeckt
-   'full'    = 08–16 lückenlos besetzt */
-function slotCoverage(date, loc, slot, map) {
-  const list = map.get(assignKey(date, loc, slot)) ?? [];
-  if (!list.length) return 'empty';
-  return hasCoreGap(list) ? 'partial' : 'full';
+/* Zeit als Stunde ohne ":00" ("13"), sonst "13:30" – für kompakte Lücken-Labels. */
+function hm(min) { const s = tStr(min); return s.endsWith(':00') ? s.slice(0, 2) : s; }
+/* Unbesetzte Kernfenster-Lücken eines Platzes als Text, z. B. "13–16"
+   (mehrere Lücken mit Komma getrennt). */
+function gapLabel(list) {
+  return coreGaps(list).map(([s, e]) => `${hm(s)}–${hm(e)}`).join(', ');
 }
 
 /* Liefert den Besetzungsstatus eines Tages anhand einer Assignment-Map
-   (Wochenplan: S.assignments, Monatsplan: S.monthData). Trennt fehlende von
-   nur teilweise (mit Lücke) besetzten Pflichtplätzen. */
+   (Wochenplan: S.assignments, Monatsplan: S.monthData). missing = Pflichtplätze
+   ganz ohne Besetzung; partial = besetzt, aber mit Lücke im Kernfenster 08–16
+   (inkl. der konkreten freien Zeitfenster). */
 function dayStaffing(date, map) {
   if (isHoliday(date)) return { holiday: true, ok: true, missing: [], partial: [] };
   const missing = [], partial = [];
   for (const r of REQUIRED_SLOTS) {
-    const cov = slotCoverage(date, r.loc, r.slot, map);
-    if (cov === 'empty') missing.push(r);
-    else if (cov === 'partial') partial.push(r);
+    const list = map.get(assignKey(date, r.loc, r.slot)) ?? [];
+    if (!list.length) missing.push(r);
+    else if (hasCoreGap(list)) partial.push({ loc: r.loc, slot: r.slot, gap: gapLabel(list) });
   }
   return { holiday: false, ok: missing.length === 0 && partial.length === 0, missing, partial };
 }
@@ -76,12 +75,19 @@ function locLabel(id) { return LOCATIONS.find(l => l.id === id)?.label ?? id; }
 function missingLabel(missing) {
   return missing.map(r => `${locLabel(r.loc)} · ${SLOT_LABELS[r.slot] ?? r.slot}`).join(', ');
 }
+/* Teilbesetzte Pflichtplätze inkl. freier Zeitfenster, z. B.
+   „Euskirchen · Zentrale: frei 13–16 Uhr". */
+function partialLabel(partial) {
+  return partial.map(p => `${locLabel(p.loc)} · ${SLOT_LABELS[p.slot] ?? p.slot}: frei ${p.gap} Uhr`).join(', ');
+}
 const WARN_ICON = '<svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.2 1.3 13.8h13.4L8 2.2Z"/><path d="M8 6.4v3"/><path d="M8 11.4h.01"/></svg>';
 
 /* Standortfarben (= loc-pip), für Akzentschienen der Slot-Spalte */
 const LOC_COLORS = { kall: '#E8A06A', euskirchen: '#7A8BF0', homeoffice: '#5FD6A0' };
 const CHEV_DOWN = '<svg class="ex-chev" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>';
 const CHEV_UP   = '<svg class="ex-chev" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5 6 4l3.5 3.5"/></svg>';
+/* Feiertags-Marker (kleine Fahne) – Monats-Datumskopf */
+const HOLIDAY_ICON = '<svg class="mg-hday-flag" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 1.5v9"/><path d="M3 2.2h6l-1.4 2 1.4 2H3"/></svg>';
 
 /* ── Kern-Besetzungsfenster (08:00–16:00) ──────────────────────────────────
    Ein Platz gilt als voll besetzt, wenn 08:00–16:00 lückenlos abgedeckt ist.
@@ -272,6 +278,8 @@ function renderAgentPills() {
 }
 
 function selectAgent(id) {
+  // Erneuter Klick auf den bereits gewählten Berater → Auswahl aufheben (Toggle).
+  if (S.selectedAgent && S.selectedAgent.id === id) { clearSelection(); return; }
   S.selectedAgent = S.agents.find(a => a.id === id) ?? null;
   renderAgentPills();
   renderGrid();
@@ -359,7 +367,7 @@ function renderGrid() {
         st.missing.length
           ? `<span class="staff-badge under" title="Unterbesetzt – fehlt: ${esc(missingLabel(st.missing))}">${WARN_ICON} unterbesetzt</span>`
           : st.partial.length
-          ? `<span class="staff-badge partial" title="Teilbesetzt – Lücke 08–16 Uhr: ${esc(missingLabel(st.partial))}">${WARN_ICON} teilbesetzt</span>`
+          ? `<span class="staff-badge partial" title="Teilbesetzt – ${esc(partialLabel(st.partial))}">${WARN_ICON} teilbesetzt</span>`
           : `<span class="staff-badge ok" title="Pflichtbesetzung vollständig">besetzt</span>`);
       const hdState = st.missing.length ? ' understaffed' : (st.partial.length ? ' partialstaffed' : '');
       return `<div class="pg-day-hd${h ? ' holiday' : hdState}">
@@ -426,7 +434,7 @@ function cellHtml(date, loc, slot, list) {
 
   // Zweiten Berater nur anbieten, wenn 08:00–16:00 noch nicht lückenlos besetzt ist
   const addBand = (hasAgent && list.length && loc !== 'homeoffice' && hasCoreGap(list))
-    ? `<div class="time-band add-more" onclick="event.stopPropagation();openTimePickerForAdd('${date}','${loc}','${slot}')">＋ hinzufügen</div>`
+    ? `<div class="time-band add-more" title="Frei ${esc(gapLabel(list))} Uhr – Zeit hinzufügen" onclick="event.stopPropagation();openTimePickerForAdd('${date}','${loc}','${slot}')">＋ hinzufügen</div>`
     : '';
 
   if (list.length) {
@@ -763,19 +771,10 @@ function renderMonthGrid(workDays) {
   const hds = workDays.map(dt => {
     const [yr, mo, dy] = dt.split('-').map(Number);
     const wd = ['So','Mo','Di','Mi','Do','Fr','Sa'][new Date(yr, mo-1, dy).getDay()];
+    // Datumskopf bleibt bewusst neutral – die Besetzungsfarben tragen die Zellen
+    // darunter. Nur Feiertage werden hier deutlich markiert (Tag + Name).
     const h = isHoliday(dt);
-    const st = dayStaffing(dt, S.monthData);
-    const miss = !h && st.missing.length > 0;
-    const part = !h && !miss && st.partial.length > 0;
-    const hdCls = h ? ' holiday' : (miss ? ' understaffed' : (part ? ' partialstaffed' : ''));
-    const dot   = h ? '<span class="mg-hday-dot"></span>'
-                    : (miss ? '<span class="mg-under-dot"></span>'
-                    : (part ? '<span class="mg-part-dot"></span>' : ''));
-    const title = h ? h
-                : (miss ? `Unterbesetzt – fehlt: ${missingLabel(st.missing)}`
-                : (part ? `Teilbesetzt – Lücke 08–16 Uhr: ${missingLabel(st.partial)}`
-                : 'Pflichtbesetzung vollständig'));
-    return `<div class="mg-day-hd${hdCls}" title="${esc(title)}"><b>${wd}</b><span>${dy}.</span>${dot}</div>`;
+    return `<div class="mg-day-hd${h ? ' holiday' : ''}" title="${h ? esc(h) : ''}">${h ? HOLIDAY_ICON : ''}<b>${wd}</b><span>${dy}.</span></div>`;
   }).join('');
 
   let html = `<div class="mg-wrap${selId ? ' has-sel' : ''}" style="grid-template-columns:${cols}">
