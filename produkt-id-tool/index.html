@@ -176,6 +176,37 @@
       </div>
     </div>
 
+    <div class="form-group" id="grpVerbrauchHelfer" style="display:none">
+
+      <!-- STROM: Personenanzahl -->
+      <div id="grpVerbrauchPersonen" style="display:none">
+        <label class="field-label" for="personenInput">Verbrauch nach Personenanzahl</label>
+        <div class="input-unit">
+          <input type="number" id="personenInput" class="field-input" placeholder="2" min="1" step="1" autocomplete="off">
+          <span class="unit-badge">Pers.</span>
+        </div>
+        <label class="check-opt" id="chkDLE" style="margin-top:6px">
+          <input type="checkbox" id="durchlauferhitzer">
+          <span class="check-box">
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          Durchlauferhitzer
+        </label>
+        <div class="verbrauch-hint">Verbrauchsvorschlag nach Personenanzahl gemäß Homepage-Richtwerten.</div>
+      </div>
+
+      <!-- ERDGAS: Wohnfläche -->
+      <div id="grpVerbrauchFlaeche" style="display:none">
+        <label class="field-label" for="flaecheInput">Verbrauch nach Wohnfläche</label>
+        <div class="input-unit">
+          <input type="number" id="flaecheInput" class="field-input" placeholder="100" min="0" step="10" autocomplete="off">
+          <span class="unit-badge">m²</span>
+        </div>
+        <div class="verbrauch-hint">Verbrauchsvorschlag nach Wohnfläche gemäß Homepage-Richtwerten.</div>
+      </div>
+
+    </div>
+
     <div class="form-group" id="grpVerbrauchNT" style="display:none">
       <label class="field-label" for="verbrauchNTInput">Jahresverbrauch NT</label>
       <div class="input-unit">

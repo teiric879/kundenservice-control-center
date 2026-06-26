@@ -53,6 +53,9 @@ const chkNKB              = $('chkNKB');
 const chkAB               = $('chkAB');
 const grpAktionsbonusWert = $('grpAktionsbonusWert');
 const aktionsbonusWert    = $('aktionsbonusWert');
+const personenInput       = $('personenInput');
+const flaecheInput        = $('flaecheInput');
+const chkDLE              = $('chkDLE');
 const vergleichAP         = $('vergleichAP');
 const vergleichAPNT       = $('vergleichAPNT');
 const vergleichGP         = $('vergleichGP');
@@ -139,6 +142,16 @@ function updatePanelForProduct() {
   $('grpVergleichNT').style.display = isDT ? '' : 'none';
   $('grpSteuveTyp').style.display    = isSV ? '' : 'none';
   $('grpSteuveModul').style.display  = isSV ? '' : 'none';
+
+  // Verbrauchsvorschlag: nur Strom (Personen) und Erdgas (Wohnfläche)
+  const isStrom = S.produkt === 'strom';
+  const isGas   = S.produkt === 'gas';
+  $('grpVerbrauchHelfer').style.display   = (isStrom || isGas) ? '' : 'none';
+  $('grpVerbrauchPersonen').style.display = isStrom ? '' : 'none';
+  $('grpVerbrauchFlaeche').style.display  = isGas   ? '' : 'none';
+  // Veraltete Vorschlag-Eingaben beim Spartenwechsel leeren
+  if (!isStrom) personenInput.value = '';
+  if (!isGas)   flaecheInput.value  = '';
 
   const defaultV = { gas:20000, strom:3500, heizstrom:8000, autostrom:2000, steuve:5000 };
   const dv = defaultV[S.produkt] || 5000;
@@ -278,6 +291,57 @@ verbrauchInput.addEventListener('input', debounce(() => {
 
 verbrauchInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') { S.verbrauch = parseFloat(verbrauchInput.value) || 0; calculate(); }
+});
+
+// ── Verbrauchsvorschlag (Strom: Personen · Erdgas: Wohnfläche) ───────────────
+// Befüllt nur das zentrale kWh-Feld. Prinzip „letzte bewusste Eingabe gewinnt":
+// jede Eingabe (kWh, Personen, Fläche, Durchlauferhitzer) setzt S.verbrauch direkt.
+
+// Strom: 1 Pers=1500, +1000 je weitere Person; +300/Person bei Durchlauferhitzer
+function vorschlagStrom(personen, dle) {
+  if (!personen || personen < 1) return 0;
+  const basis = 1000 * personen + 500;          // 1→1500, 2→2500, … 6→6500
+  return basis + (dle ? 300 * personen : 0);
+}
+
+// Erdgas: stückweise lineare Interpolation über die Richtwert-Anker.
+// Rechnerische Zwischen-/Extrapolationswerte werden immer auf die nächste
+// volle 1000 aufgerundet (z. B. 90 m² → 10.600 → 11.000). Die vorgegebenen
+// Anker sind bereits glatte 1000er und bleiben dadurch exakt erhalten.
+const GAS_ANKER = [[50,5000],[100,12000],[150,18000],[180,20000],[200,24000],[250,30000]];
+const auf1000 = v => Math.ceil(v / 1000) * 1000;
+function vorschlagGas(qm) {
+  if (!qm || qm <= 0) return 0;
+  const a = GAS_ANKER;
+  if (qm <= a[0][0]) return auf1000(qm * (a[0][1] / a[0][0]));   // ≤50: 100 kWh/m²
+  for (let i = 1; i < a.length; i++) {
+    if (qm <= a[i][0]) {
+      const [x0, y0] = a[i - 1], [x1, y1] = a[i];
+      return auf1000(y0 + (y1 - y0) * (qm - x0) / (x1 - x0));
+    }
+  }
+  const [x0, y0] = a[a.length - 2], [x1, y1] = a[a.length - 1];   // >250 extrapolieren
+  return auf1000(y1 + (y1 - y0) * (qm - x1) / (x1 - x0));
+}
+
+function applyVerbrauchVorschlag(v) {
+  if (!v || v <= 0) return;                 // leere Eingabe überschreibt nichts
+  verbrauchInput.value = String(v);         // ins zentrale Feld schreiben
+  S.verbrauch = v;
+  calculate();                              // bestehende Berechnung, unverändert
+}
+
+personenInput.addEventListener('input', () => {
+  const p = parseInt(personenInput.value, 10);
+  applyVerbrauchVorschlag(vorschlagStrom(p, S.durchlauferhitzer));
+});
+flaecheInput.addEventListener('input', () => {
+  applyVerbrauchVorschlag(vorschlagGas(parseFloat(flaecheInput.value)));
+});
+bindCheckbox(chkDLE, 'durchlauferhitzer', v => {
+  S.durchlauferhitzer = v;
+  const p = parseInt(personenInput.value, 10);
+  applyVerbrauchVorschlag(vorschlagStrom(p, v));   // nur wirksam wenn Personen gesetzt
 });
 
 verbrauchNTInput.addEventListener('input', debounce(() => {

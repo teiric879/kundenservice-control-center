@@ -9,6 +9,8 @@ export const S = {
   neukundenbonus:   false,
   aktionsbonus:     false,
   aktionsbonusWert: 0,
+  durchlauferhitzer: false, // Strom-Verbrauchsvorschlag: +300 kWh/a je Person
+
   tab:              'kunde',
   steuveTyp:        'WP',
   steuveModul:      1,

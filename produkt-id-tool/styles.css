@@ -302,6 +302,9 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
 .check-opt.sel .check-box svg{opacity:1}
 .check-opt.sel{color:var(--ink)}
 
+/* Dezenter Hinweis unter den Verbrauchsvorschlag-Feldern (Strom/Erdgas) */
+.verbrauch-hint{font-size:10.5px;color:var(--muted-2);line-height:1.4;margin-top:5px}
+
 .section-sep{height:1px;background:var(--stroke);margin:16px 0}
 
 .btn-calc{
