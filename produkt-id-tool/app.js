@@ -428,6 +428,31 @@ $('steuveModulPills').addEventListener('click', e => {
   }, 400));
 });
 
+// ── GP-Komfort: Jahresgrundpreis automatisch in Monatswert umrechnen ─────────
+// Beim Verlassen des Feldes (change) gilt: Werte ab 60 € werden als Jahresbetrag
+// gedeutet und durch 12 geteilt; ein dezenter Toast bestätigt die Umrechnung.
+// switchUstMode() setzt el.value programmatisch (kein change-Event) → kein Konflikt.
+let gpHintT;
+function showGpHint(monthly) {
+  const el = $('vglGpHint');
+  const fmt = monthly.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  el.innerHTML =
+    `<svg class="gp-hint-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8.5 12.2 11 14.6 15.6 9.4"/></svg>` +
+    `<span>Jahresgrundpreis erkannt – automatisch in <strong>${fmt} €/Monat</strong> umgerechnet.</span>`;
+  requestAnimationFrame(() => el.classList.add('show'));
+  clearTimeout(gpHintT);
+  gpHintT = setTimeout(() => el.classList.remove('show'), 2000);
+}
+vergleichGP.addEventListener('change', () => {
+  const raw = parseFloat(vergleichGP.value);
+  if (isNaN(raw) || raw < 60) return;            // < 60 → unverändert (Monatswert)
+  const monthly = Math.round(raw / 12 * 100) / 100;
+  vergleichGP.value = String(monthly);           // Monatswert zurückschreiben
+  S.vergleichFrei.gp = monthly;
+  calculate();                                   // bestehende Neuberechnung
+  showGpHint(monthly);
+});
+
 tabStrip.addEventListener('click', e => {
   const btn = e.target.closest('.tab-btn');
   if (btn) { S.tab = btn.dataset.tab; applyTab(); }

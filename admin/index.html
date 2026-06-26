@@ -739,6 +739,23 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
         </div>
       </div>
 
+      <!-- Sonstiges -->
+      <div class="mod-group" id="mg-sonstiges">
+        <button class="mod-toggle" id="mt-sonstiges" data-mg="sonstiges" aria-expanded="true">
+          <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>
+          </svg>
+          <span class="mod-label">Sonstiges</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mod-items" id="mi-sonstiges">
+          <a href="../abschlag-wasser/" class="mod-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5C12 2.5 5 10 5 14.5a7 7 0 0 0 14 0C19 10 12 2.5 12 2.5Z"/></svg>
+            Abschlag Wasser<span class="ext-dot"></span>
+          </a>
+        </div>
+      </div>
+
     </nav>
 
     <div class="side-foot">
@@ -2107,5 +2124,7 @@ async function duLoadHistory(){
 </script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=3"></script>
+<link rel="stylesheet" href="../shared/werkzeuge.css?v=1">
+<script src="../shared/werkzeuge.js?v=4"></script>
 </body>
 </html>

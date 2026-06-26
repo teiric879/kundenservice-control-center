@@ -1,0 +1,199 @@
+/* ============================================================================
+   Persönliche Werkzeugleiste · Notizzettel · Zwischenablage · Rechner
+   ----------------------------------------------------------------------------
+   Modulübergreifend, eigenständige Styles (e-regio CD, heller Look).
+   Eigene --wz-*-Variablen gespiegelt aus shared/tokens.css → robust auch auf
+   Seiten ohne tokens.css (Landing, mitbewerber). Keine Modul-Abhängigkeit.
+   ========================================================================== */
+.wz-root{
+  position:fixed; right:0; top:50%; transform:translateY(-50%); z-index:9500;
+  font-family:'DM Sans',system-ui,-apple-system,sans-serif;
+  display:flex; align-items:flex-start; gap:0;
+  --wz-green:#004442; --wz-green-d:#013c39; --wz-gold:#ffc300; --wz-gold-ink:#8a6a00;
+  --wz-ink:#063b37; --wz-muted:#5d7d77; --wz-muted2:#8aa39d;
+  --wz-glass:#fffdf7; --wz-glass-hi:#f6f2e6; --wz-stroke:#e6e1d2; --wz-stroke-hi:#d6cfba;
+  --wz-turq:#c8e6e1; --wz-turq-2:#a0c8c2; --wz-track:#ece7d8;
+  --wz-pos:#0f7a5a; --wz-neg:#c0492a;
+  --wz-r-sm:10px; --wz-r-md:14px; --wz-r-lg:18px;
+  --wz-e3:0 4px 12px rgba(20,46,40,.08), 0 26px 52px rgba(20,46,40,.14);
+  --wz-ease:cubic-bezier(.22,.61,.36,1);
+  --wz-spring:cubic-bezier(.34,1.56,.64,1);
+}
+
+/* ── Rail (rechts angedockt) ───────────────────────────────────────────── */
+.wz-rail{
+  display:flex; flex-direction:column; gap:6px; padding:8px;
+  background:var(--wz-green); border:1px solid var(--wz-green);
+  border-right:none; border-radius:14px 0 0 14px;
+  box-shadow:-6px 8px 22px rgba(0,40,36,.20);
+}
+.wz-railbtn{
+  position:relative; width:44px; height:44px; cursor:pointer; font-family:inherit;
+  display:grid; place-items:center; color:#cdeee8;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10);
+  border-radius:12px; transition:background var(--wz-ease) .18s, color var(--wz-ease) .18s, transform .12s var(--wz-spring);
+}
+.wz-railbtn svg{ width:21px; height:21px }
+.wz-railbtn:hover{ background:rgba(255,255,255,.14); color:#fff; transform:translateY(-1px) }
+.wz-railbtn:active{ transform:translateY(0) }
+.wz-railbtn:focus-visible{ outline:2px solid var(--wz-gold); outline-offset:2px }
+.wz-railbtn.active{ background:var(--wz-gold); border-color:var(--wz-gold); color:#3d2f00 }
+.wz-railbtn .wz-tip{
+  position:absolute; right:calc(100% + 10px); top:50%; transform:translateY(-50%) translateX(4px);
+  background:var(--wz-green-d); color:#fff; font-size:11.5px; font-weight:600; white-space:nowrap;
+  padding:5px 9px; border-radius:8px; opacity:0; pointer-events:none;
+  transition:opacity .15s, transform .15s; box-shadow:0 6px 18px rgba(0,40,36,.22);
+}
+.wz-railbtn:hover .wz-tip{ opacity:1; transform:translateY(-50%) translateX(0) }
+.wz-root.wz-has-open .wz-railbtn:hover .wz-tip{ opacity:0 }
+
+/* ── Flyout ────────────────────────────────────────────────────────────── */
+.wz-flyout{
+  position:fixed; right:70px; z-index:9499;
+  width:min(92vw,340px); max-height:min(78vh,640px);
+  background:var(--wz-glass); border:1px solid var(--wz-stroke); border-radius:var(--wz-r-lg);
+  box-shadow:var(--wz-e3); display:none; flex-direction:column; overflow:hidden;
+  opacity:0; transform:translateX(14px) scale(.985); transform-origin:right center;
+  transition:opacity .2s var(--wz-ease), transform .26s var(--wz-spring);
+}
+.wz-flyout.open{ display:flex }
+.wz-flyout.shown{ opacity:1; transform:translateX(0) scale(1) }
+
+.wz-head{
+  display:flex; align-items:center; gap:9px; padding:13px 14px 11px;
+  border-bottom:1px solid var(--wz-stroke); flex:0 0 auto;
+}
+.wz-head .wz-hi{
+  width:30px; height:30px; flex:0 0 30px; border-radius:9px; display:grid; place-items:center;
+  background:#fff6da; border:1px solid #f0d98a; color:var(--wz-gold-ink);
+}
+.wz-head .wz-hi svg{ width:16px; height:16px }
+.wz-title{
+  font-family:'Hanken Grotesk','DM Sans',sans-serif; font-size:14.5px; font-weight:600;
+  letter-spacing:-.01em; color:var(--wz-green); flex:1; line-height:1;
+}
+.wz-x{
+  width:28px; height:28px; flex:0 0 28px; cursor:pointer; display:grid; place-items:center;
+  background:transparent; border:1px solid transparent; border-radius:8px; color:var(--wz-muted);
+  transition:background .15s, color .15s;
+}
+.wz-x svg{ width:15px; height:15px }
+.wz-x:hover{ background:var(--wz-glass-hi); color:var(--wz-ink) }
+.wz-x:focus-visible{ outline:2px solid var(--wz-gold); outline-offset:1px }
+
+.wz-body{ padding:12px 14px 14px; overflow:auto; display:flex; flex-direction:column; gap:10px;
+  flex:1 1 auto; min-height:0 }
+.wz-body::-webkit-scrollbar{ width:9px }
+.wz-body::-webkit-scrollbar-thumb{ background:var(--wz-turq-2); border-radius:99px; border:2px solid var(--wz-glass) }
+.wz-body::-webkit-scrollbar-track{ background:transparent }
+.wz-foot{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:9px 14px; border-top:1px solid var(--wz-stroke); flex:0 0 auto;
+  font-size:11px; color:var(--wz-muted);
+}
+
+/* gemeinsame kleine Buttons */
+.wz-btn{
+  cursor:pointer; font-family:inherit; font-size:12px; font-weight:600;
+  padding:7px 11px; border-radius:var(--wz-r-sm); border:1px solid var(--wz-stroke);
+  background:#fff; color:var(--wz-ink); transition:background .15s, border-color .15s, color .15s, transform .12s;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.wz-btn svg{ width:13px; height:13px }
+.wz-btn:hover{ background:var(--wz-glass-hi); border-color:var(--wz-turq-2); transform:translateY(-1px) }
+.wz-btn:active{ transform:translateY(0) }
+.wz-btn:focus-visible{ outline:2px solid var(--wz-gold); outline-offset:2px }
+.wz-btn.danger:hover{ background:rgba(192,73,42,.10); border-color:rgba(192,73,42,.35); color:var(--wz-neg) }
+
+/* ── 1 · Notizzettel ───────────────────────────────────────────────────── */
+.wz-notes{
+  width:100%; flex:1 1 auto; min-height:160px; resize:none; font-family:inherit; font-size:13.5px;
+  line-height:1.55; color:var(--wz-ink); background:#fffefb;
+  border:1px solid var(--wz-stroke); border-radius:var(--wz-r-md); padding:11px 12px;
+  transition:border-color .15s, box-shadow .15s;
+}
+.wz-notes::placeholder{ color:var(--wz-muted2) }
+.wz-notes:focus{ outline:none; border-color:var(--wz-turq-2); box-shadow:0 0 0 3px rgba(0,68,66,.12) }
+.wz-saved{ display:inline-flex; align-items:center; gap:5px; color:var(--wz-pos); font-weight:600;
+  opacity:0; transition:opacity .25s }
+.wz-saved.show{ opacity:1 }
+.wz-saved svg{ width:13px; height:13px }
+
+/* ── 2 · Zwischenablage ────────────────────────────────────────────────── */
+.wz-clip-empty{ text-align:center; color:var(--wz-muted2); font-size:12.5px; padding:26px 8px; line-height:1.5 }
+.wz-clip-list{ display:flex; flex-direction:column; gap:7px }
+.wz-clip-item{
+  display:flex; align-items:center; gap:8px; padding:9px 10px;
+  background:#fff; border:1px solid var(--wz-stroke); border-radius:var(--wz-r-md);
+  transition:border-color .15s, background .15s;
+}
+.wz-clip-item:hover{ border-color:var(--wz-turq-2); background:var(--wz-glass-hi) }
+.wz-clip-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px }
+.wz-clip-text{ font-size:12.5px; font-weight:600; color:var(--wz-ink); white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis }
+.wz-clip-ts{ font-size:10.5px; color:var(--wz-muted2) }
+.wz-icobtn{
+  width:30px; height:30px; flex:0 0 30px; cursor:pointer; display:grid; place-items:center;
+  background:#fff; border:1px solid var(--wz-stroke); border-radius:9px; color:var(--wz-muted);
+  transition:background .15s, color .15s, border-color .15s;
+}
+.wz-icobtn svg{ width:14px; height:14px }
+.wz-icobtn:hover{ background:var(--wz-glass-hi); color:var(--wz-green); border-color:var(--wz-turq-2) }
+.wz-icobtn.copied{ background:rgba(15,122,90,.12); color:var(--wz-pos); border-color:rgba(15,122,90,.3) }
+.wz-icobtn.del:hover{ background:rgba(192,73,42,.10); color:var(--wz-neg); border-color:rgba(192,73,42,.35) }
+.wz-icobtn:focus-visible{ outline:2px solid var(--wz-gold); outline-offset:1px }
+
+/* ── 3 · Rechner ───────────────────────────────────────────────────────── */
+.wz-calc-disp{
+  background:#0d3b38; border:1px solid var(--wz-green); border-radius:var(--wz-r-md);
+  padding:12px 14px; text-align:right; overflow:hidden;
+}
+.wz-calc-expr{ color:#9fc9c2; font-size:12px; min-height:15px; white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis; font-variant-numeric:tabular-nums }
+.wz-calc-val{ color:#fff; font-size:26px; font-weight:600; line-height:1.15; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums }
+.wz-calc-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px }
+.wz-key{
+  cursor:pointer; font-family:inherit; min-height:46px; border-radius:var(--wz-r-md);
+  border:1px solid var(--wz-stroke); background:#fff; color:var(--wz-ink);
+  font-size:16px; font-weight:600; transition:background .14s, border-color .14s, transform .1s;
+}
+.wz-key:hover{ background:var(--wz-glass-hi); border-color:var(--wz-turq-2); transform:translateY(-1px) }
+.wz-key:active{ transform:translateY(0); background:var(--wz-turq) }
+.wz-key:focus-visible{ outline:2px solid var(--wz-gold); outline-offset:2px }
+.wz-key.op{ color:var(--wz-green); background:#f3faf8 }
+.wz-key.fn{ color:var(--wz-gold-ink); background:#fff8e6; font-size:14px }
+.wz-key.eq{ background:var(--wz-green); border-color:var(--wz-green); color:#fff }
+.wz-key.eq:hover{ background:var(--wz-green-d) }
+.wz-key.eq:active{ background:var(--wz-green-d) }
+.wz-calc-hist{ display:flex; flex-direction:column; gap:5px }
+.wz-calc-cap{ font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--wz-muted); margin-top:2px }
+.wz-hist-item{
+  cursor:pointer; display:flex; justify-content:space-between; gap:10px; align-items:baseline;
+  padding:6px 9px; background:#fff; border:1px solid var(--wz-stroke); border-radius:var(--wz-r-sm);
+  transition:background .14s, border-color .14s;
+}
+.wz-hist-item:hover{ background:var(--wz-glass-hi); border-color:var(--wz-turq-2) }
+.wz-hist-expr{ font-size:11px; color:var(--wz-muted); overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; font-variant-numeric:tabular-nums }
+.wz-hist-res{ font-size:13px; font-weight:600; color:var(--wz-ink); font-variant-numeric:tabular-nums; flex:0 0 auto }
+
+/* ── Toast (Rückschreiben in Zwischenablage etc.) ──────────────────────── */
+.wz-toast{
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(24px); z-index:10002;
+  background:linear-gradient(135deg,#ffc300,#dea600); color:#3d2f00;
+  border-radius:14px; padding:12px 20px; font-size:13px; font-weight:700;
+  font-family:'DM Sans',system-ui,sans-serif; opacity:0; pointer-events:none;
+  box-shadow:0 14px 34px rgba(222,166,0,.42); transition:opacity .3s, transform .3s;
+}
+.wz-toast.show{ opacity:1; transform:translateX(-50%) translateY(0) }
+
+/* ── Responsiv ─────────────────────────────────────────────────────────── */
+@media (max-width:560px){
+  .wz-flyout{ right:64px; width:calc(100vw - 76px) }
+}
+@media (prefers-reduced-motion:reduce){
+  .wz-railbtn,.wz-flyout,.wz-btn,.wz-key,.wz-icobtn,.wz-saved,.wz-toast,.wz-railbtn .wz-tip{ transition:none }
+  .wz-flyout{ transform:none }
+}

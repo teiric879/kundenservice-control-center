@@ -317,7 +317,44 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
 .vergleich-panel .field-select{margin-top:4px}
 .frei-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .frei-grid .form-group{margin-bottom:0}
-.frei-label{font-size:10.5px;font-weight:600;color:var(--muted-2);margin-bottom:3px}
+.frei-label{font-size:10.5px;font-weight:600;color:var(--muted-2);margin-bottom:3px;display:flex;align-items:center;gap:4px;white-space:nowrap;min-height:15px}
+
+/* ── Info-Icon mit CD-Tooltip (GP-Feld) ─────────────────────────────────── */
+.info-tip{position:relative;display:inline-flex;align-items:center;flex:0 0 auto;color:var(--muted-2);cursor:help;outline:none}
+.info-tip svg{width:12px;height:12px;display:block;transition:color var(--t-fast) var(--ease)}
+.info-tip:hover,.info-tip:focus-visible{color:var(--ci)}
+.info-tip:focus-visible{border-radius:var(--r-pill);box-shadow:0 0 0 2px var(--turq)}
+/* Sprechblase rechtsbündig am Icon verankert → öffnet nach links, damit sie in
+   der schmalen Sidebar (keine app-overflow-Beschneidung) vollständig sichtbar bleibt. */
+.info-tip-bubble{
+  position:absolute;bottom:calc(100% + 8px);right:-3px;left:auto;transform:translateY(3px);
+  width:210px;z-index:20;padding:9px 11px;
+  background:var(--glass);border:1px solid var(--stroke);border-radius:var(--r-sm);
+  box-shadow:var(--shadow);color:var(--ink);font-size:11px;font-weight:500;line-height:1.45;
+  white-space:normal;text-transform:none;letter-spacing:0;
+  opacity:0;pointer-events:none;transition:opacity var(--t-fast) var(--ease),transform var(--t-fast) var(--ease);
+}
+.info-tip-bubble::after{
+  content:"";position:absolute;top:100%;right:6px;
+  border:5px solid transparent;border-top-color:var(--glass);
+  filter:drop-shadow(0 1px 0 var(--stroke));
+}
+.info-tip:hover .info-tip-bubble,.info-tip:focus-visible .info-tip-bubble{opacity:1;transform:translateY(0)}
+
+/* ── Bestätigungs-Toast: Jahres→Monats-Umrechnung ──────────────────────── */
+.gp-hint{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:5;
+  display:flex;align-items:center;gap:6px;
+  padding:7px 10px;border-radius:var(--r-sm);
+  background:var(--turq-bg);border:1px solid var(--stroke);border-left:3px solid var(--acc);
+  box-shadow:var(--shadow);
+  color:var(--ci);font-size:10.5px;font-weight:600;line-height:1.35;
+  opacity:0;pointer-events:none;transform:translateY(-4px);
+  transition:opacity .25s var(--ease),transform .25s var(--ease);
+}
+.gp-hint.show{opacity:1;transform:translateY(0)}
+.gp-hint .gp-hint-ico{flex:0 0 auto;width:14px;height:14px;color:var(--pos)}
+.gp-hint strong{color:var(--ci);font-weight:800}
 
 /* ── Main Content ───────────────────────────────────────────────────────── */
 .content{
