@@ -1,0 +1,289 @@
+/* ============================================================================
+   Formulare · seiteneigene Styles
+   ----------------------------------------------------------------------------
+   Übernimmt die Layout-/Komponentenklassen des Produkt-ID Tools / Abschlag
+   Wasser (left-panel, form-group, field-*, btn-*) 1:1, damit sich das Modul
+   nahtlos einfügt. Farben/Radien/Schatten aus ../shared/tokens.css.
+   Modul-eigene Ergänzungen: forms-grid/form-card (Übersicht), doc-sheet
+   (druckreifer Brief), admin-* (Pflege) und @media print (Druck-Isolation).
+   ========================================================================== */
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--font-body);color:var(--ink);
+  background:radial-gradient(1100px 760px at 100% -10%, #e7f2ee 0%, transparent 55%),
+             radial-gradient(820px 640px at -10% 110%, #f6efdc 0%, transparent 50%),
+             linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#efe9d8 100%);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── Left Input Panel (Editor) ──────────────────────────────────────────────── */
+.left-panel{
+  width:300px;flex:0 0 300px;
+  display:flex;flex-direction:column;gap:0;
+  padding:22px 16px 16px;
+  background:rgba(6,59,55,.025);
+  border-right:1px solid var(--stroke);
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--stroke) transparent;
+}
+.panel-head{margin-bottom:16px}
+.panel-head h2{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--ink);letter-spacing:var(--track-tight)}
+.panel-head small{font-size:11px;color:var(--muted-2)}
+
+.btn-back{
+  display:inline-flex;align-items:center;gap:5px;
+  background:none;border:none;cursor:pointer;font-family:inherit;
+  font-size:11.5px;font-weight:600;color:var(--muted);
+  padding:0 0 10px;transition:color .15s var(--ease);
+}
+.btn-back:hover{color:var(--ci)}
+
+.form-group{margin-bottom:13px}
+.field-label{
+  display:block;font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted-2);margin-bottom:5px;
+}
+.field-select,.field-input{
+  width:100%;padding:9px 11px;border-radius:10px;font-size:13.5px;
+  background:rgba(6,59,55,.055);border:1px solid var(--stroke);color:var(--ink);
+  font-family:inherit;transition:border-color .15s,background .15s;
+  -webkit-appearance:none;appearance:none;
+}
+.field-select:focus,.field-input:focus{
+  outline:none;border-color:var(--ci);background:rgba(6,59,55,.06);
+  box-shadow:inset 0 0 0 1.5px rgba(0,68,66,.30);
+}
+.field-select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2393B2AB' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;padding-right:30px;
+}
+.field-select option{background:#ffffff;color:var(--ink)}
+.input-unit{position:relative}
+.input-unit .field-input{padding-right:58px}
+.unit-badge{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  font-size:11px;font-weight:700;color:var(--muted-2);pointer-events:none;
+}
+input[type=number].field-input{-moz-appearance:textfield;appearance:textfield}
+input[type=number].field-input::-webkit-outer-spin-button,
+input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+/* zweispaltige Eingabe (z. B. PLZ + Ort) */
+.field-row{display:flex;gap:9px}
+.field-row .form-group{flex:1;margin-bottom:13px}
+.field-row .form-group.grow2{flex:2}
+
+/* Abschnittsüberschrift im Eingabepanel */
+.fld-group-sep{
+  font-size:10.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;
+  color:var(--muted-2);margin:16px 0 9px;padding-top:13px;border-top:1px solid var(--stroke);
+}
+.fld-group-sep:first-child{border-top:none;padding-top:0;margin-top:0}
+
+/* ── Buttons ────────────────────────────────────────────────────────────────── */
+.editor-actions{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.btn-calc{
+  width:100%;padding:11px 16px;border-radius:12px;font-size:14px;font-weight:700;
+  background:linear-gradient(135deg,var(--acc),var(--acc-2));color:#022;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 8px 24px rgba(191,146,0,.30);transition:all .2s var(--ease);font-family:inherit;
+}
+.btn-calc:hover{transform:translateY(-1px);box-shadow:0 12px 30px rgba(191,146,0,.38)}
+.btn-calc:active{transform:translateY(0)}
+
+.btn-pdf{
+  width:100%;padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:700;
+  background:linear-gradient(135deg,#003431,#004B43);color:#fff;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:var(--e1);transition:all .2s var(--ease);font-family:inherit;
+}
+.btn-pdf:hover{transform:translateY(-1px);box-shadow:var(--e2)}
+.btn-pdf:active{transform:translateY(0)}
+
+.btn-reset{
+  width:100%;padding:9px 14px;border-radius:11px;font-size:13px;font-weight:600;
+  background:rgba(6,59,55,.04);color:var(--muted);border:1px solid var(--stroke);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:all .15s var(--ease);font-family:inherit;
+}
+.btn-reset:hover{color:var(--ink);background:var(--glass);border-color:var(--stroke-hi)}
+.btn-reset:active{transform:translateY(.5px)}
+
+/* ── Main Content ──────────────────────────────────────────────────────────── */
+.content{flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 30px 28px;overflow-y:auto}
+.content-doc{padding:0;background:rgba(6,59,55,.018)}
+.content-top{display:flex;align-items:center;justify-content:flex-end;margin-bottom:20px;min-height:20px}
+.content-doc .content-top{justify-content:space-between;align-items:center;margin:0;padding:13px 24px;border-bottom:1px solid var(--hairline);background:var(--glass)}
+.btn-back-doc{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:600;font-family:inherit;background:var(--glass);color:var(--ink);border:1px solid var(--stroke);cursor:pointer;transition:all .15s var(--ease)}
+.btn-back-doc:hover{border-color:var(--stroke-hi);background:var(--glass-hi);transform:translateY(-1px)}
+.result-meta{font-size:12px;color:var(--muted-2)}
+.result-meta strong{color:var(--muted)}
+
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:26px}
+.page-title{font-family:var(--font-display);font-size:25px;font-weight:700;color:var(--ink);letter-spacing:var(--track-tight)}
+.page-sub{font-size:13px;color:var(--muted);margin-top:4px}
+
+.btn-admin{
+  display:inline-flex;align-items:center;gap:7px;flex-shrink:0;
+  padding:9px 15px;border-radius:11px;font-size:12.5px;font-weight:600;font-family:inherit;
+  background:var(--glass);color:var(--muted);border:1px solid var(--stroke);cursor:pointer;
+  transition:all .15s var(--ease);
+}
+.btn-admin:hover{color:var(--ci);border-color:var(--stroke-hi);background:var(--glass-hi);transform:translateY(-1px)}
+
+/* ── Formular-Übersicht (Cards) ─────────────────────────────────────────────── */
+.forms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px;align-content:start}
+.form-card{
+  background:var(--glass);border:1px solid var(--stroke);border-radius:var(--radius);
+  padding:20px 20px 16px;display:flex;flex-direction:column;gap:0;
+  box-shadow:var(--e1),var(--inner);transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .2s var(--ease);
+  animation:cardIn .35s var(--ease) both;
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.form-card:hover{transform:translateY(-3px);border-color:var(--stroke-hi);box-shadow:var(--e2),var(--inner)}
+.form-card.archived{opacity:.6}
+
+.fc-top{display:flex;align-items:flex-start;gap:13px;margin-bottom:12px}
+.fc-icon{
+  width:42px;height:42px;flex:0 0 42px;border-radius:12px;display:grid;place-items:center;
+  color:var(--acc-ink);background:#fff6da;border:1px solid #f0d98a;
+}
+.fc-icon svg{width:21px;height:21px}
+.fc-head{flex:1;min-width:0}
+.fc-name{font-family:var(--font-display);font-size:15.5px;font-weight:700;color:var(--ci);letter-spacing:var(--track-tight);line-height:1.25}
+.fc-cat{display:inline-block;margin-top:5px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);background:var(--turq-bg);border:1px solid var(--turq-2);border-radius:999px;padding:2px 9px}
+.fc-desc{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:12px}
+.fc-meta{font-size:11px;color:var(--muted-2);margin-bottom:13px;display:flex;align-items:center;gap:6px}
+.fc-meta svg{width:13px;height:13px;opacity:.7}
+.fc-status{display:inline-block;margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--warn);background:var(--warn-bg);border-radius:999px;padding:2px 8px}
+
+/* Vorschau-Bildkachel (maßstäblicher Brief) */
+.fc-preview{position:relative;height:184px;overflow:hidden;border:1px solid var(--stroke);border-radius:12px;background:#fff;margin-bottom:13px}
+.fc-preview-inner{position:absolute;top:0;left:0;width:794px!important;max-width:none!important;min-height:0!important;transform-origin:top left;pointer-events:none;
+  box-shadow:none!important;border:none!important;border-radius:0!important;animation:none!important}
+.fc-preview-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted-2);background:rgba(6,59,55,.02)}
+.fc-preview-empty svg{width:30px;height:30px;opacity:.5}
+.fc-preview-empty span{font-size:12px;font-weight:600}
+
+.fc-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:auto;padding-top:13px;border-top:1px solid var(--hairline)}
+.fc-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:9px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;
+  border:1px solid var(--stroke);background:rgba(6,59,55,.04);color:var(--muted);transition:all .15s var(--ease);
+}
+.fc-btn svg{width:13px;height:13px}
+.fc-btn:hover{color:var(--ci);border-color:var(--stroke-hi);background:var(--glass-hi)}
+.fc-btn.primary{background:linear-gradient(135deg,var(--acc),var(--acc-2));color:#022;border-color:transparent;box-shadow:0 4px 14px rgba(191,146,0,.22)}
+.fc-btn.primary:hover{transform:translateY(-1px);color:#022}
+.fc-btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ── Druckreifer Brief (doc-sheet) ──────────────────────────────────────────── */
+.doc-scroll{flex:1;overflow-y:auto;padding:26px 30px 40px;display:flex;justify-content:center}
+.doc-sheet{
+  width:210mm;min-height:297mm;max-width:100%;
+  background:#fff;color:#1a1a1a;
+  box-shadow:var(--e2);border-radius:6px;
+  padding:22mm 22mm 16mm;
+  font-family:'Carlito','Calibri','DM Sans',sans-serif;font-size:11pt;line-height:1.42;
+  display:flex;flex-direction:column;
+  animation:cardIn .35s var(--ease) both;
+}
+.doc-logo-row{text-align:right;margin-bottom:11mm}
+.doc-logo{width:48mm;height:auto;display:inline-block}
+.doc-info-row{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:6mm}
+.doc-top-left{flex:1;min-width:0}
+.doc-contact{flex:0 0 60mm;text-align:left;font-size:10pt;line-height:1.55;color:#222}
+.doc-contact .dc-strong{font-weight:700;font-style:italic;color:#111;margin-bottom:3px}
+.doc-contact .dc-line{line-height:1.5}
+
+.doc-sender-line{font-size:7pt;color:#555;border-bottom:.5px solid #999;padding-bottom:2px;margin-bottom:4mm;max-width:82mm}
+.doc-address{font-size:11pt;line-height:1.5}
+.doc-date{text-align:right;font-size:11pt;margin:7mm 0 9mm}
+
+.doc-subject{font-size:12pt;font-weight:700;color:#111;margin-bottom:3px;line-height:1.3}
+.doc-note{font-size:11pt;font-weight:700;margin-bottom:8mm}
+
+.doc-meta{font-size:11pt;line-height:1.55;margin-bottom:8mm}
+.doc-meta table{border-collapse:collapse}
+.doc-meta td{padding:1px 0;vertical-align:top}
+.doc-meta td.dm-lbl{font-weight:700;white-space:nowrap;padding-right:14px}
+
+.doc-tabletitle{font-size:11pt;margin-bottom:5mm}
+.doc-cost-table{border-collapse:collapse;margin:0 0 6mm}
+.doc-cost-table td{padding:2px 7px;font-size:11pt;font-variant-numeric:tabular-nums;white-space:nowrap}
+.doc-cost-table td.dc-op{text-align:center;color:#444;padding:2px 4px}
+.doc-cost-table td.dc-num{text-align:right;font-weight:600}
+
+.doc-sum-table{border-collapse:collapse;margin:0 0 9mm;min-width:95mm}
+.doc-sum-table td{padding:3px 0;font-size:11pt;font-variant-numeric:tabular-nums}
+.doc-sum-table td.ds-lbl{font-weight:700;padding-right:24px}
+.doc-sum-table td.ds-num{text-align:right;white-space:nowrap}
+.doc-sum-table td.ds-unit{padding-left:8px;color:#444}
+.doc-sum-table tr.ds-total td{border-top:1.4px solid #222;padding-top:5px;font-weight:700}
+
+.doc-greeting{font-size:11pt;line-height:1.6;margin-bottom:10mm}
+
+.doc-footer{
+  margin-top:auto;padding-top:3mm;border-top:.5px solid #bbb;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px 12px;
+  font-size:6.6pt;line-height:1.4;color:#555;
+}
+.doc-footer .df-col strong{display:block;color:#333;font-weight:700;margin-bottom:1px}
+
+/* ── Adminbereich ───────────────────────────────────────────────────────────── */
+.admin-grid{display:grid;grid-template-columns:minmax(0,380px) 1fr;gap:20px;align-items:start}
+.admin-card{background:var(--glass);border:1px solid var(--stroke);border-radius:var(--radius);padding:20px;box-shadow:var(--e1),var(--inner)}
+.admin-card-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--ink);margin-bottom:16px;letter-spacing:var(--track-tight)}
+.admin-hint{margin-top:12px;font-size:12px;color:var(--pos);min-height:16px}
+.admin-list{display:flex;flex-direction:column;gap:9px}
+.admin-row{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--stroke);border-radius:12px;background:rgba(6,59,55,.02)}
+.admin-row.archived{opacity:.55}
+.ar-main{flex:1;min-width:0}
+.ar-name{font-size:13.5px;font-weight:700;color:var(--ink)}
+.ar-sub{font-size:11px;color:var(--muted-2);margin-top:2px}
+.ar-lock{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-2);background:rgba(6,59,55,.05);border-radius:999px;padding:2px 8px}
+.ar-act{display:flex;gap:6px}
+.ar-act button{
+  display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
+  border-radius:8px;border:1px solid var(--stroke);background:var(--glass);color:var(--muted);cursor:pointer;transition:all .15s var(--ease);
+}
+.ar-act button svg{width:15px;height:15px}
+.ar-act button:hover{color:var(--ci);border-color:var(--stroke-hi)}
+.ar-act button.danger:hover{color:var(--neg);border-color:var(--neg)}
+
+/* ── Responsiv ──────────────────────────────────────────────────────────────── */
+@media (max-width:980px){
+  .app{flex-direction:column;height:auto;min-height:100vh;overflow:auto}
+  .sidebar{display:none}
+  .left-panel{width:100%;flex:none;border-right:none;border-bottom:1px solid var(--stroke)}
+  .admin-grid{grid-template-columns:1fr}
+  .doc-scroll{padding:16px}
+  .doc-sheet{width:100%;padding:14mm}
+}
+
+/* ═══ DRUCK / PDF: nur den Brief zeigen, sonst nichts ════════════════════════ */
+@media print{
+  /* @page-Rand 0 → Browser druckt KEINE URL/Titel-Kopfzeile mehr */
+  @page{size:A4;margin:0}
+  html,body{height:auto!important;background:#fff!important}
+  /* Alles außerhalb der App (z. B. Werkzeugleiste) raus */
+  body>*:not(.app){display:none!important}
+  /* App-Chrome wirklich kollabieren (nicht nur unsichtbar) → keine Geisterseite */
+  .sidebar,#editorPanel,#viewListe,#viewAdmin,.content-top{display:none!important}
+  .app,#viewEditor,.doc-scroll{display:block!important;height:auto!important;min-height:0!important;overflow:visible!important;padding:0!important;margin:0!important}
+  /* Nur der Brief bleibt – als einziges Element im Fluss → genau eine Seite */
+  #docSheet{
+    position:static!important;width:100%!important;min-height:296mm!important;
+    margin:0!important;padding:14mm 16mm 12mm!important;
+    box-shadow:none!important;border:none!important;border-radius:0!important;animation:none!important;
+    display:flex!important;flex-direction:column;
+  }
+  .doc-footer{margin-top:auto!important}
+}

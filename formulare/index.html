@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>e-regio · Abschlag Wasser</title>
+<title>e-regio · Formulare</title>
 <link rel="stylesheet" href="../shared/fonts.css?v=1">
 <link rel="stylesheet" href="../shared/tokens.css?v=1">
-<link rel="stylesheet" href="styles.css?v=1">
+<link rel="stylesheet" href="styles.css?v=4">
 <link rel="stylesheet" href="../shared/sidebar.css?v=2">
 </head>
 <body>
@@ -23,14 +23,14 @@
 
       <!-- ── Modul 1: Kundencenter Analytics ── -->
       <div class="mod-group" id="mg-dashboard">
-        <button class="mod-toggle" id="mt-dashboard" data-mg="dashboard" aria-expanded="true">
+        <button class="mod-toggle collapsed" id="mt-dashboard" data-mg="dashboard">
           <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/>
           </svg>
           <span class="mod-label">Kundencenter Analytics</span>
           <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
-        <div class="mod-items" id="mi-dashboard">
+        <div class="mod-items collapsed" id="mi-dashboard">
           <a href="../besucher-dashboard/" class="mod-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
             Dashboard
@@ -46,14 +46,14 @@
 
       <!-- ── Modul 2: Produkt-ID Tool ── -->
       <div class="mod-group" id="mg-produkt">
-        <button class="mod-toggle" id="mt-produkt" data-mg="produkt" aria-expanded="true">
+        <button class="mod-toggle collapsed" id="mt-produkt" data-mg="produkt">
           <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/>
           </svg>
           <span class="mod-label">Produkt-ID Tool</span>
           <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
-        <div class="mod-items" id="mi-produkt">
+        <div class="mod-items collapsed" id="mi-produkt">
           <a href="../produkt-id-tool/?p=gas" class="mod-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6 8 4 13 4 16a8 8 0 0 0 16 0c0-3-2-8-8-14Z"/></svg>
             Erdgas
@@ -114,14 +114,14 @@
           <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="mod-items" id="mi-sonstiges">
-          <a href="./" class="mod-item active" aria-current="page">
+          <a href="../abschlag-wasser/" class="mod-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5C12 2.5 5 10 5 14.5a7 7 0 0 0 14 0C19 10 12 2.5 12 2.5Z"/></svg>
             Abschlag Wasser
+            <span class="ext-dot"></span>
           </a>
-          <a href="../formulare/" class="mod-item">
+          <a href="./" class="mod-item active" aria-current="page">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
             Formulare
-            <span class="ext-dot"></span>
           </a>
         </div>
       </div>
@@ -138,77 +138,120 @@
     </a>
 
     <div class="side-foot">
-      Wasser-Abschlag für WES &amp; Alfter – Berechnung wie im Tarifblatt.
+      Zentrale Formular-Datenbank – ausfüllen, Vorschau prüfen, drucken &amp; als PDF speichern.
     </div>
   </aside>
 
-  <!-- ── Left Input Panel ──────────────────────────────────────────────────── -->
-  <div class="left-panel" id="leftPanel">
+  <!-- ══ VIEW: Übersicht / Formular-Datenbank ══════════════════════════════ -->
+  <main class="content" id="viewListe">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Formulare</h1>
+        <p class="page-sub">Interne Formulare – auswählen, ausfüllen, drucken oder als PDF speichern.</p>
+      </div>
+      <button class="btn-admin" id="btnAdminOpen" type="button">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Adminbereich
+      </button>
+    </div>
+
+    <div class="forms-grid" id="formsGrid"></div>
+  </main>
+
+  <!-- ══ VIEW: Editor (Eingaben) ═══════════════════════════════════════════ -->
+  <div class="left-panel" id="editorPanel" style="display:none">
     <div class="panel-head">
-      <h2>Abschlag Wasser</h2>
-      <small>Ergebnis aktualisiert sich automatisch</small>
+      <button class="btn-back" id="btnBackList" type="button">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        Zur Übersicht
+      </button>
+      <h2 id="editorTitle">Formular</h2>
+      <small>Vorschau aktualisiert sich automatisch</small>
     </div>
 
-    <div class="form-group">
-      <label class="field-label" for="gebietSel">Versorgungsgebiet</label>
-      <select id="gebietSel" class="field-select" aria-label="Versorgungsgebiet">
-        <option value="WES">WES (Euskirchen-Swisttal)</option>
-        <option value="ALFTER">Alfter</option>
-      </select>
+    <div id="formFields"></div>
+
+    <div class="editor-actions">
+      <button class="btn-calc" id="btnPrint" type="button">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+        Drucken
+      </button>
+      <button class="btn-pdf" id="btnPdf" type="button">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9 15h6" transform="translate(0 0)"/></svg>
+        Als PDF speichern
+      </button>
+      <button class="btn-reset" id="btnResetForm" type="button">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        Felder zurücksetzen
+      </button>
     </div>
-
-    <div class="form-group" id="grpZaehler">
-      <label class="field-label" for="zaehlerSel">Zählergröße</label>
-      <select id="zaehlerSel" class="field-select" aria-label="Zählergröße"></select>
-    </div>
-
-    <div class="section-sep"></div>
-    <div class="field-label" style="margin-bottom:8px">Verbrauch ermitteln</div>
-
-    <div class="form-group">
-      <label class="field-label" for="personenInput">Personenanzahl</label>
-      <div class="input-unit">
-        <input type="number" id="personenInput" class="field-input" placeholder="z. B. 3" min="0" step="1" inputmode="numeric" autocomplete="off">
-        <span class="unit-badge">Pers.</span>
-      </div>
-    </div>
-
-    <div class="or-divider"><span>oder direkt</span></div>
-
-    <div class="form-group">
-      <label class="field-label" for="m3Input">Verbrauch</label>
-      <div class="input-unit">
-        <input type="number" id="m3Input" class="field-input" placeholder="z. B. 108" min="0" step="1" inputmode="numeric" autocomplete="off">
-        <span class="unit-badge">m³/a</span>
-      </div>
-    </div>
-
-    <button class="btn-reset" id="btnReset" type="button">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
-      Zurücksetzen
-    </button>
   </div>
 
-  <!-- ── Main Content ──────────────────────────────────────────────────────── -->
-  <main class="content" id="mainContent">
+  <main class="content content-doc" id="viewEditor" style="display:none">
     <div class="content-top">
-      <div class="result-meta" id="resultMeta"></div>
+      <button class="btn-back-doc" id="btnBackDoc" type="button">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        Zur Übersicht
+      </button>
+      <div class="result-meta" id="editorMeta"></div>
+    </div>
+    <div class="doc-scroll">
+      <div class="doc-sheet" id="docSheet"></div>
+    </div>
+  </main>
+
+  <!-- ══ VIEW: Adminbereich ════════════════════════════════════════════════ -->
+  <main class="content" id="viewAdmin" style="display:none">
+    <div class="page-head">
+      <div>
+        <button class="btn-back" id="btnBackList2" type="button">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          Zur Übersicht
+        </button>
+        <h1 class="page-title">Formularpflege</h1>
+        <p class="page-sub">Neue Formulare anlegen oder bestehende verwalten.</p>
+      </div>
     </div>
 
-    <div class="empty-state" id="emptyState">
-      <svg viewBox="0 0 48 48" width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 5C24 5 10 19 10 28a14 14 0 0 0 28 0C38 19 24 5 24 5Z"/></svg>
-      <p>Personenanzahl oder Verbrauch eingeben –<br>der Wasser-Abschlag erscheint automatisch</p>
-    </div>
+    <div class="admin-grid">
+      <!-- Editor-Karte -->
+      <div class="admin-card">
+        <div class="admin-card-title" id="adminFormTitle">Neues Formular anlegen</div>
+        <input type="hidden" id="adminEditId" value="">
+        <div class="form-group">
+          <label class="field-label" for="adminName">Formularname</label>
+          <input type="text" id="adminName" class="field-input" placeholder="z. B. Kündigungsbestätigung" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="adminKat">Kategorie</label>
+          <input type="text" id="adminKat" class="field-input" placeholder="z. B. Strom, Gas, Allgemein" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="adminBeschr">Beschreibung</label>
+          <textarea id="adminBeschr" class="field-input" rows="3" placeholder="Kurze Beschreibung des Formulars" style="resize:vertical"></textarea>
+        </div>
+        <div class="editor-actions">
+          <button class="btn-calc" id="btnAdminSave" type="button">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            Speichern
+          </button>
+          <button class="btn-reset" id="btnAdminClear" type="button">Formular leeren</button>
+        </div>
+        <div class="admin-hint" id="adminHint"></div>
+      </div>
 
-    <div id="cardWrap" style="display:none">
-      <div class="price-card" id="resultCard"></div>
+      <!-- Liste der Formulare -->
+      <div class="admin-card">
+        <div class="admin-card-title">Vorhandene Formulare</div>
+        <div id="adminList" class="admin-list"></div>
+      </div>
     </div>
   </main>
 
 </div>
 
-<script src="app.js?v=1"></script>
-<link rel="stylesheet" href="../shared/werkzeuge.css?v=1">
+<script src="app.js?v=5"></script>
+<link rel="stylesheet" href="../shared/werkzeuge.css?v=4">
 <script src="../shared/werkzeuge.js?v=4"></script>
 </body>
 </html>
