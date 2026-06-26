@@ -66,6 +66,7 @@ function currentRange(){
   if(state.period==='month')return [dateToYmd(new Date(nowDate.getFullYear(),nowDate.getMonth(),1)),nowYmd];
   if(state.period==='ytd')return [nowDate.getFullYear()*10000+101,nowYmd];
   if(state.period==='gestern'){var g=dateToYmd(addDays(nowDate,-1));return [g,g];}
+  if(state.period==='woche'){var dow=(nowDate.getDay()+6)%7;var mon=addDays(nowDate,-dow);return [dateToYmd(mon),dateToYmd(addDays(mon,4))];}
   if(state.period==='custom')return [state.from||minYmd,state.to||maxYmd];
   return [minYmd,maxYmd];
 }
@@ -88,13 +89,23 @@ function renderTrend(rows,a,b,anim){
   var box=document.getElementById('chartTrend');
   var W=Math.max(360,Math.round(box.clientWidth)||760),H=248,pad={l:44,r:14,t:16,b:30};
   var da=ymdToDate(a),db=ymdToDate(b),spanDays=Math.round((db-da)/864e5);
-  var mode=spanDays<=62?'day':(spanDays<=1100?'month':'year'),buckets=[],idx={};
+  // Bei „Heute"/„Gestern" zeigt der Verlauf den Tag stündlich statt als einzelnen Punkt.
+  var byHour=(state.period==='heute'||state.period==='gestern');
+  var mode=byHour?'hour':(spanDays<=62?'day':(spanDays<=1100?'month':'year')),buckets=[],idx={};
   function keyOf(ymd){var Y=Math.floor(ymd/10000),m=Math.floor(ymd/100)%100;return mode==='day'?ymd:mode==='month'?Y*100+m:Y;}
-  if(mode==='day'){for(var t=new Date(da);t<=db;t=addDays(t,1)){var k=dateToYmd(t);idx[k]=buckets.length;buckets.push({label:fmtDE(k).slice(0,5),v:0});}}
+  if(mode==='hour'){
+    // Stundenfenster dynamisch aus den Daten (Rand ±1 h), Fallback Öffnungszeiten 7–18.
+    var hrs=[];for(var hi=0;hi<rows.length;hi++){var sh=rows[hi].stunde;if(sh>0&&sh<=23)hrs.push(sh);}
+    var hmn=hrs.length?Math.max(0,Math.min.apply(null,hrs)-1):7,
+        hmx=hrs.length?Math.min(23,Math.max.apply(null,hrs)+1):18;
+    for(var hh=hmn;hh<=hmx;hh++){idx[hh]=buckets.length;buckets.push({label:(''+hh).padStart(2,'0'),tip:(''+hh).padStart(2,'0')+':00 Uhr',v:0});}
+  }
+  else if(mode==='day'){for(var t=new Date(da);t<=db;t=addDays(t,1)){var k=dateToYmd(t);idx[k]=buckets.length;buckets.push({label:fmtDE(k).slice(0,5),v:0});}}
   else if(mode==='month'){for(var t2=new Date(da.getFullYear(),da.getMonth(),1);t2<=db;t2=addMonths(t2,1)){var k2=t2.getFullYear()*100+(t2.getMonth()+1);idx[k2]=buckets.length;buckets.push({label:MON[t2.getMonth()]+' '+(''+t2.getFullYear()).slice(2),v:0});}}
   else{for(var y=da.getFullYear();y<=db.getFullYear();y++){idx[y]=buckets.length;buckets.push({label:''+y,v:0});}}
-  for(var i=0;i<rows.length;i++){var j=idx[keyOf(rows[i].ymd)];if(j!=null)buckets[j].v++;}
-  document.getElementById('trendSub').textContent=(mode==='day'?'täglich':mode==='month'?'monatlich':'jährlich')+' · '+nf(rows.length)+' Besuche';
+  if(mode==='hour'){for(var i=0;i<rows.length;i++){var st=rows[i].stunde,jh=(st>0?idx[st]:null);if(jh!=null)buckets[jh].v++;}}
+  else{for(var i=0;i<rows.length;i++){var j=idx[keyOf(rows[i].ymd)];if(j!=null)buckets[j].v++;}}
+  document.getElementById('trendSub').textContent=(mode==='hour'?'stündlich':mode==='day'?'täglich':mode==='month'?'monatlich':'jährlich')+' · '+nf(rows.length)+' Besuche';
   var max=Math.max(1,Math.max.apply(null,buckets.map(function(x){return x.v;})));
   var n=buckets.length,iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
   function X(i){return pad.l+(n<=1?iw/2:iw*i/(n-1));}
@@ -119,7 +130,7 @@ function renderTrend(rows,a,b,anim){
   if(anim&&!RM&&lp){var len=lp.getTotalLength();lp.style.strokeDasharray=len;lp.style.strokeDashoffset=len;
     raf(function(){lp.style.transition='stroke-dashoffset .5s cubic-bezier(.22,.61,.36,1)';lp.style.strokeDashoffset=0;ar.style.transition='opacity .35s ease .1s';ar.style.opacity=1;});}
   else{ar.style.opacity=1;}
-  box.querySelectorAll('rect[data-i]').forEach(function(rc){rc.addEventListener('mousemove',function(e){var d=buckets[+rc.dataset.i];showTip(e,esc(d.label)+': <b>'+nf(d.v)+'</b>');});rc.addEventListener('mouseleave',hideTip);});
+  box.querySelectorAll('rect[data-i]').forEach(function(rc){rc.addEventListener('mousemove',function(e){var d=buckets[+rc.dataset.i];showTip(e,esc(d.tip||d.label)+': <b>'+nf(d.v)+'</b>');});rc.addEventListener('mouseleave',hideTip);});
 }
 
 /* ---------- donut ---------- */
@@ -507,7 +518,16 @@ function renderHeatmap(rows,anim){
     });
   });
   s+='</svg>';
-  box.innerHTML='<div class="heatmap-wrap">'+s+'</div>';
+  // Legende: Farbskala (wenig → viel) + Spitzenwert. Verlauf identisch zur Zellfärbung
+  // oben (hell rgb(200,230,225) → e-regio-Grün rgb(0,68,66)).
+  var legend='<div class="hm-legend">'+
+    '<span class="hm-leg-item"><span class="hm-sw zero"></span>keine</span>'+
+    '<span class="hm-leg-scale"><span class="hm-leg-lbl">wenig</span>'+
+    '<span class="hm-leg-bar"></span>'+
+    '<span class="hm-leg-lbl">viel</span></span>'+
+    '<span class="hm-leg-max">Spitze <b>'+nf(maxVal)+'</b>/Std.</span>'+
+  '</div>';
+  box.innerHTML='<div class="heatmap-wrap">'+s+'</div>'+legend;
   box.querySelectorAll('rect[data-v]').forEach(function(rc){
     rc.addEventListener('mousemove',function(e){showTip(e,WDF[+rc.dataset.d]+' · '+rc.dataset.h+':00 Uhr: <b>'+nf(+rc.dataset.v)+'</b>');});
     rc.addEventListener('mouseleave',hideTip);
