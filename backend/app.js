@@ -47,6 +47,7 @@ async function buildApp() {
   fastify.register(require('./routes/besucher'));
   fastify.register(require('./routes/einsatzplaner'));
   fastify.register(require('./routes/vertragsformulare'));
+  fastify.register(require('./routes/standaloneFormulare'));
   fastify.register(require('./routes/admin-import'));
   fastify.register(require('./routes/mitbewerber'), { prefix: '/api/mitbewerber' });
 

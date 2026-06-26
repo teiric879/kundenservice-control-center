@@ -584,6 +584,27 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
 }
 .pdf-add-btn:hover{color:var(--acc-hi);border-color:rgba(191,146,0,.4);background:rgba(191,146,0,.06)}
 .pdf-add-btn svg{width:12px;height:12px}
+
+/* Eigenständige Download-Formulare (Tab „Formulare") */
+.sf-row{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+  background:rgba(6,59,55,.04);border:1px solid var(--stroke);margin-bottom:8px;
+}
+.sf-row.archived{opacity:.55}
+.sf-row-main{flex:1;min-width:0}
+.sf-row-name{font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sf-row-sub{font-size:11.5px;color:var(--muted-2);margin-top:2px}
+.sf-row-act{display:flex;gap:6px;flex:0 0 auto}
+.sf-row-act a,.sf-row-act button{
+  width:30px;height:30px;border-radius:8px;flex:0 0 30px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--stroke);background:var(--glass);color:var(--muted);
+  transition:all .15s;
+}
+.sf-row-act a:hover,.sf-row-act button:hover{color:var(--ci);border-color:var(--stroke-hi);background:var(--glass-hi)}
+.sf-row-act button.danger{border-color:rgba(255,138,120,.2);background:rgba(255,138,120,.06);color:var(--neg)}
+.sf-row-act button.danger:hover{background:rgba(255,138,120,.18);color:#ff8a78}
+.sf-row-act svg{width:14px;height:14px}
 </style>
 <link rel="stylesheet" href="../shared/tokens.css?v=1">
 <link rel="stylesheet" href="../shared/sidebar.css?v=3">
@@ -732,6 +753,10 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             Vertragsformulare
           </button>
+          <button class="mod-item" id="sideTab-downloadformulare" onclick="showTab('downloadformulare')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Formulare
+          </button>
           <button class="mod-item" id="sideTab-datenupdate" onclick="showTab('datenupdate')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Datenaktualisierung
@@ -795,6 +820,10 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
       <button class="tab-btn" id="tab-formulare" onclick="showTab('formulare')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
         Vertragsformulare
+      </button>
+      <button class="tab-btn" id="tab-downloadformulare" onclick="showTab('downloadformulare')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Formulare
       </button>
       <button class="tab-btn" id="tab-einsatzplaner" onclick="showTab('einsatzplaner')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
@@ -949,6 +978,76 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
       </div>
 
     </div><!-- /panel-formulare -->
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: Formulare (eigenständige Download-Formulare)                       -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-downloadformulare">
+
+      <div class="sync-box" style="margin-bottom:20px">
+        <div class="card-icon icon-gold" style="margin-right:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </div>
+        <div class="sync-box-text">
+          <div class="sync-title">Formulare verwalten</div>
+          <div class="sync-sub">Eigenst&auml;ndige Download-Formulare (PDF) &middot; erscheinen auf der <a href="../formulare/" target="_blank" style="color:var(--ci)">&ouml;ffentlichen Formularseite</a> unter &bdquo;Weitere Formulare&ldquo; &ndash; nur als Download</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+
+        <!-- Neues Formular -->
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">Neues Formular hinzuf&uuml;gen</div><div class="card-sub">PDF hochladen oder Online-URL verlinken</div></div>
+            <div class="card-icon icon-green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+            </div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">NAME</label>
+            <input class="field-input" id="sfName" type="text" placeholder="z.B. Vollmacht Z&auml;hlerstandserfassung">
+          </div>
+          <div class="field-row">
+            <label class="field-label">KATEGORIE</label>
+            <input class="field-input" id="sfKat" type="text" placeholder="z.B. Strom, Gas, Allgemein">
+          </div>
+          <div class="field-row">
+            <label class="field-label">BESCHREIBUNG</label>
+            <textarea class="field-input" id="sfBeschr" rows="2" placeholder="Kurzer Hinweis zum Formular" style="resize:vertical"></textarea>
+          </div>
+          <div class="field-row">
+            <label class="field-label">QUELLE</label>
+            <select class="field-input" id="sfType" onchange="sfTypeChanged()">
+              <option value="upload">Datei hochladen (PDF)</option>
+              <option value="url">Online-URL</option>
+            </select>
+          </div>
+          <div class="field-row" id="sfUploadRow">
+            <input type="file" id="sfFile" accept="application/pdf,.pdf" class="field-input" style="padding:7px;cursor:pointer">
+          </div>
+          <div class="field-row" id="sfUrlRow" style="display:none">
+            <input class="field-input" id="sfUrl" type="text" placeholder="https://www.eregio.de/formulare/Datei.pdf">
+          </div>
+          <button class="btn btn-primary" id="sfAddBtn" onclick="sfAdd()" style="width:100%;justify-content:center;margin-top:4px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Formular speichern
+          </button>
+        </div>
+
+        <!-- Vorhandene Formulare -->
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">Vorhandene Formulare</div><div class="card-sub">Aktiv/Archiviert umschalten &middot; l&ouml;schen wirkt sofort</div></div>
+            <div class="card-icon icon-blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+            </div>
+          </div>
+          <div id="sfList"><div style="color:var(--muted-2);font-size:13px">Lade&hellip;</div></div>
+        </div>
+
+      </div>
+    </div><!-- /panel-downloadformulare -->
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
     <!-- TAB: Einsatzplaner                                                     -->
@@ -1221,7 +1320,7 @@ function logout(){
 }
 
 // ── Tab Navigation ───────────────────────────────────────────────────────────
-const TABS = ['produkte','gueltigkeiten','formulare','einsatzplaner','datenupdate'];
+const TABS = ['produkte','gueltigkeiten','formulare','downloadformulare','einsatzplaner','datenupdate'];
 function showTab(name){
   TABS.forEach(t=>{
     const panel = document.getElementById('panel-'+t);
@@ -1234,6 +1333,7 @@ function showTab(name){
   if(name==='einsatzplaner') epLoadAgents();
   if(name==='gueltigkeiten') gueInit();
   if(name==='formulare') renderPdfPanel();
+  if(name==='downloadformulare') sfRender();
   if(name==='datenupdate') duInit();
 }
 
@@ -1644,6 +1744,120 @@ async function savePdfPaths(){
   }
   if(err) showToast(`${err} Fehler beim Speichern`,'err');
   else showToast(`${ok} Einträge gespeichert`,'ok');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Eigenständige Download-Formulare (Tab „Formulare")
+// ════════════════════════════════════════════════════════════════════════════
+const SF_API = (['127.0.0.1','localhost'].includes(location.hostname) ? `http://${location.hostname}:3001` : '') + '/api/standalone-formulare';
+
+function sfTypeChanged(){
+  const type = document.getElementById('sfType').value;
+  document.getElementById('sfUploadRow').style.display = type==='url' ? 'none' : '';
+  document.getElementById('sfUrlRow').style.display    = type==='url' ? '' : 'none';
+}
+
+async function sfRender(){
+  const list = document.getElementById('sfList');
+  if(!list) return;
+  list.innerHTML = '<div style="color:var(--muted-2);font-size:13px">Lade…</div>';
+  let items = [];
+  try{
+    const r = await fetch(SF_API);
+    if(r.ok){ const j = await r.json(); items = j.items||[]; }
+  }catch{
+    list.innerHTML = '<div style="color:var(--neg,#c0392b);font-size:13px">Backend nicht erreichbar.</div>';
+    return;
+  }
+  if(items.length===0){
+    list.innerHTML = '<div style="color:var(--muted-2);font-size:13px;padding:6px 0">Noch keine Formulare hinterlegt.</div>';
+    return;
+  }
+  list.innerHTML = items.map(f=>{
+    const archived = !f.active;
+    return `<div class="sf-row${archived?' archived':''}">
+      <div class="sf-row-main">
+        <div class="sf-row-name">${escHtml(f.name)}</div>
+        <div class="sf-row-sub">${escHtml(f.kategorie||'Allgemein')}${f.updated?' · Stand '+escHtml(f.updated):''}${archived?' · archiviert':''}</div>
+      </div>
+      <div class="sf-row-act">
+        <a href="${SF_API}/${f.id}/file" target="_blank" title="PDF öffnen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </a>
+        <button title="${archived?'Aktivieren':'Archivieren'}" onclick="sfToggle(${f.id},${archived?1:0})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+        </button>
+        <button class="danger" title="Löschen" onclick="sfDelete(${f.id})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function sfFileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload  = ()=>resolve(String(reader.result).split(',')[1]||'');
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function sfAdd(){
+  const name  = document.getElementById('sfName').value.trim();
+  const kat   = document.getElementById('sfKat').value.trim();
+  const besch = document.getElementById('sfBeschr').value.trim();
+  const type  = document.getElementById('sfType').value;
+  if(!name){ showToast('Bitte einen Namen eingeben','err'); return; }
+
+  const payload = { name, kategorie:kat, beschreibung:besch, source_type:type };
+  if(type==='url'){
+    const url = document.getElementById('sfUrl').value.trim();
+    if(!url){ showToast('Bitte eine URL eingeben','err'); return; }
+    payload.source_value = url;
+  } else {
+    const file = document.getElementById('sfFile').files[0];
+    if(!file){ showToast('Bitte eine PDF-Datei wählen','err'); return; }
+    if(file.type!=='application/pdf' && !file.name.toLowerCase().endsWith('.pdf')){
+      showToast('Bitte eine PDF-Datei wählen','err'); return;
+    }
+    payload.file_base64 = await sfFileToBase64(file);
+    payload.source_value = file.name;
+  }
+
+  const btn = document.getElementById('sfAddBtn');
+  btn.disabled = true;
+  try{
+    const r = await fetch(SF_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok){ const j=await r.json().catch(()=>({})); showToast(j.error||'Speichern fehlgeschlagen','err'); return; }
+    showToast('Formular gespeichert','ok');
+    document.getElementById('sfName').value='';
+    document.getElementById('sfKat').value='';
+    document.getElementById('sfBeschr').value='';
+    document.getElementById('sfUrl').value='';
+    document.getElementById('sfFile').value='';
+    sfRender();
+  }catch{ showToast('Speichern fehlgeschlagen','err'); }
+  finally{ btn.disabled = false; }
+}
+
+async function sfToggle(id, makeActive){
+  try{
+    const r = await fetch(`${SF_API}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:!!makeActive})});
+    if(!r.ok){ showToast('Aktualisieren fehlgeschlagen','err'); return; }
+    sfRender();
+  }catch{ showToast('Aktualisieren fehlgeschlagen','err'); }
+}
+
+async function sfDelete(id){
+  if(!confirm('Dieses Formular wirklich löschen?')) return;
+  try{
+    const r = await fetch(`${SF_API}/${id}`,{method:'DELETE'});
+    if(!r.ok){ showToast('Löschen fehlgeschlagen','err'); return; }
+    showToast('Formular gelöscht','ok');
+    sfRender();
+  }catch{ showToast('Löschen fehlgeschlagen','err'); }
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────

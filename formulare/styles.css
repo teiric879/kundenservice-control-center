@@ -169,6 +169,17 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
 .fc-preview-inner{position:absolute;top:0;left:0;width:794px!important;max-width:none!important;min-height:0!important;transform-origin:top left;pointer-events:none;
   box-shadow:none!important;border:none!important;border-radius:0!important;animation:none!important}
 .fc-preview-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted-2);background:rgba(6,59,55,.02)}
+
+/* PDF-Vorschau (erste Seite, oben angeschnitten – wie die Live-Vorschau) */
+.fc-preview-pdf{display:flex;align-items:flex-start;justify-content:center}
+.fc-preview-pdf .fc-pdf-canvas{display:block;width:100%}
+.fc-preview-pdf .fc-pdf-fallback{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;color:var(--muted-2);background:rgba(6,59,55,.02);
+}
+.fc-preview-pdf .fc-pdf-fallback svg{width:30px;height:30px;opacity:.5}
+.fc-preview-pdf .fc-pdf-fallback span{font-size:12px;font-weight:600}
+.fc-preview-pdf.has-thumb .fc-pdf-fallback{display:none}
 .fc-preview-empty svg{width:30px;height:30px;opacity:.5}
 .fc-preview-empty span{font-size:12px;font-weight:600}
 
@@ -183,6 +194,12 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
 .fc-btn.primary{background:linear-gradient(135deg,var(--acc),var(--acc-2));color:#022;border-color:transparent;box-shadow:0 4px 14px rgba(191,146,0,.22)}
 .fc-btn.primary:hover{transform:translateY(-1px);color:#022}
 .fc-btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ── Weitere Formulare (zweite Sektion) ─────────────────────────────────────── */
+.section-heading{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--ci);
+  letter-spacing:var(--track-tight);margin-bottom:14px;padding-bottom:10px;
+  border-bottom:1px solid var(--hairline)}
+.weitere-empty{font-size:13px;color:var(--muted-2);padding:20px 0;text-align:center}
 
 /* ── Druckreifer Brief (doc-sheet) ──────────────────────────────────────────── */
 .doc-scroll{flex:1;overflow-y:auto;padding:26px 30px 40px;display:flex;justify-content:center}

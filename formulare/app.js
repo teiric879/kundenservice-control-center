@@ -65,9 +65,9 @@ var FORMULARE = {
 
     // nur für die Thumbnail-Vorschau auf der Übersichtskachel
     sample: {
-      datum:'2026-04-29', anrede:'Frau', name:'Julia Ahrnert', strasse:'Wiener Str. 18',
-      plz:'53881', ort:'Euskirchen', kdnr:'828.383.509-1', zaehlernr:'9448762',
-      vsadresse:'Wiener Str. 18, 53881 Euskirchen', angabenLt:'Kunde',
+      datum:'2026-04-29', anrede:'', name:'Max Mustermann', strasse:'Musterstraße 1',
+      plz:'00000', ort:'Musterstadt', kdnr:'000.000.000-0', zaehlernr:'0000000',
+      vsadresse:'Musterstraße 1, 00000 Musterstadt', angabenLt:'Kunde',
       verbrauch:'209', zeitVon:'2026-03-24', zeitBis:'2026-04-07', arbeitspreis:30.58, mwst:19
     },
 
@@ -151,6 +151,9 @@ var FORMULARE = {
 var CUSTOM_KEY = 'formulare_custom_v1';
 var DRAFT_PREFIX = 'formulare_draft_';
 
+/* Backend-API für eigenständige Download-Formulare (Pflege im zentralen Admin). */
+var SF_API = (['127.0.0.1','localhost'].indexOf(location.hostname) >= 0 ? 'http://' + location.hostname + ':3001' : '') + '/api/standalone-formulare';
+
 function loadCustom(){ try { return JSON.parse(localStorage.getItem(CUSTOM_KEY)) || []; } catch(e){ return []; } }
 function saveCustom(arr){ try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(arr)); } catch(e){} }
 function loadDraft(id){ try { return JSON.parse(localStorage.getItem(DRAFT_PREFIX + id)) || {}; } catch(e){ return {}; } }
@@ -191,6 +194,8 @@ var editorPanel = $('editorPanel');
 var viewEditor  = $('viewEditor');
 var viewAdmin   = $('viewAdmin');
 var formsGrid   = $('formsGrid');
+var weitereGrid = $('weitereGrid');
+var weitereEmpty = $('weitereEmpty');
 var formFields  = $('formFields');
 var docSheet    = $('docSheet');
 var editorTitle = $('editorTitle');
@@ -207,70 +212,173 @@ function show(view){
 }
 
 /* ── Übersicht / Formular-Datenbank ───────────────────────────────────────── */
-function renderUebersicht(){
-  var forms = allForms();
-  formsGrid.innerHTML = forms.map(function(f){
-    var icon = f.icon || '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/>';
-    var statusBadge = f.active ? '' : '<span class="fc-status">Archiviert</span>';
-    var unconf = !f.configured
-      ? '<span class="fc-status" style="color:var(--info);background:var(--info-bg)">In Vorbereitung</span>' : '';
-    var disabled = f.configured && f.active ? '' : 'disabled';
+function cardHTML(f, downloadOnly){
+  var icon = f.icon || '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/>';
+  var statusBadge = f.active ? '' : '<span class="fc-status">Archiviert</span>';
+  var unconf = !f.configured
+    ? '<span class="fc-status" style="color:var(--info);background:var(--info-bg)">In Vorbereitung</span>' : '';
+  var disabled = f.configured && f.active ? '' : 'disabled';
 
-    // Vorschau-Kachel: maßstäbliche Live-Vorschau des Briefs (sample) oder Platzhalter
-    var form = getForm(f.id);
-    var preview;
-    if (form && form.renderDoc && form.sample){
-      preview = '<div class="fc-preview"><div class="fc-preview-inner doc-sheet">' + form.renderDoc(form.sample) + '</div></div>';
-    } else {
-      preview = '<div class="fc-preview fc-preview-empty">' +
+  var form = getForm(f.id);
+  var preview;
+  if (form && form.renderDoc && form.sample){
+    preview = '<div class="fc-preview"><div class="fc-preview-inner doc-sheet">' + form.renderDoc(form.sample) + '</div></div>';
+  } else {
+    preview = '<div class="fc-preview fc-preview-empty">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' +
+      '<span>Keine Vorschau</span></div>';
+  }
+
+  return '' +
+  '<div class="form-card' + (f.active ? '' : ' archived') + '" data-id="' + esc(f.id) + '">' +
+    '<div class="fc-top">' +
+      '<div class="fc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + icon + '</svg></div>' +
+      '<div class="fc-head">' +
+        '<div class="fc-name">' + esc(f.name) + '</div>' +
+        '<span class="fc-cat">' + esc(f.kategorie || 'Allgemein') + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="fc-desc">' + esc(f.beschreibung || '') + '</div>' +
+    preview +
+    '<div class="fc-meta">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' +
+      'Letztes Update: ' + esc(dateShort(f.updated) || f.updated || '–') + statusBadge + unconf +
+    '</div>' +
+    '<div class="fc-actions">' +
+      (!downloadOnly ? '<button class="fc-btn primary" data-act="open" ' + disabled + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>Öffnen</button>' : '') +
+      '<button class="fc-btn' + (downloadOnly ? ' primary' : '') + '" data-act="download" ' + disabled + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download</button>' +
+    '</div>' +
+  '</div>';
+}
+
+/* Reine Download-Kachel für eigenständige Formulare (PDF aus dem Admin).
+   Kein Editor, keine Live-Vorschau – nur ein Download-Link auf das PDF. */
+function downloadCardHTML(f){
+  var href = SF_API + '/' + encodeURIComponent(f.id) + '/file';
+  return '' +
+  '<div class="form-card" data-id="sf-' + esc(f.id) + '">' +
+    '<div class="fc-top">' +
+      '<div class="fc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></div>' +
+      '<div class="fc-head">' +
+        '<div class="fc-name">' + esc(f.name) + '</div>' +
+        '<span class="fc-cat">' + esc(f.kategorie || 'Allgemein') + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="fc-desc">' + esc(f.beschreibung || '') + '</div>' +
+    '<div class="fc-preview fc-preview-pdf">' +
+      '<canvas class="fc-pdf-canvas" data-pdf-id="' + esc(f.id) + '"></canvas>' +
+      '<div class="fc-pdf-fallback">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' +
-        '<span>Keine Vorschau</span></div>';
-    }
+        '<span>PDF-Dokument</span></div>' +
+    '</div>' +
+    '<div class="fc-meta">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' +
+      'Letztes Update: ' + esc(dateShort(f.updated) || f.updated || '–') +
+    '</div>' +
+    '<div class="fc-actions">' +
+      '<a class="fc-btn primary" href="' + href + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download</a>' +
+    '</div>' +
+  '</div>';
+}
 
-    return '' +
-    '<div class="form-card' + (f.active ? '' : ' archived') + '" data-id="' + esc(f.id) + '">' +
-      '<div class="fc-top">' +
-        '<div class="fc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + icon + '</svg></div>' +
-        '<div class="fc-head">' +
-          '<div class="fc-name">' + esc(f.name) + '</div>' +
-          '<span class="fc-cat">' + esc(f.kategorie || 'Allgemein') + '</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="fc-desc">' + esc(f.beschreibung || '') + '</div>' +
-      preview +
-      '<div class="fc-meta">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' +
-        'Letztes Update: ' + esc(dateShort(f.updated) || f.updated || '–') + statusBadge + unconf +
-      '</div>' +
-      '<div class="fc-actions">' +
-        '<button class="fc-btn primary" data-act="open" ' + disabled + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>Öffnen</button>' +
-        '<button class="fc-btn" data-act="download" ' + disabled + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
+/* PDF.js-Worker einmalig konfigurieren (lokal vendored, kein CDN). */
+var PDFJS_READY = (function(){
+  if (typeof pdfjsLib === 'undefined') return false;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '../shared/vendor/pdfjs/pdf.worker.min.js?v=1';
+  return true;
+})();
 
+/* Rendert die erste Seite jedes Download-PDFs maßstäblich in seine Kachel.
+   Bei Fehler/ohne PDF.js bleibt der Datei-Platzhalter (.fc-pdf-fallback) sichtbar.
+   PDF.js rendert in einem versteckten Tab nicht fertig (Browser drosselt) – deshalb
+   bei Sichtbarwerden noch offene Kacheln nachrendern. */
+function renderPdfThumbs(){
+  if (!PDFJS_READY) return;
+  if (document.hidden){
+    document.addEventListener('visibilitychange', function onVis(){
+      if (!document.hidden){ document.removeEventListener('visibilitychange', onVis); renderPdfThumbs(); }
+    });
+    return;
+  }
+  weitereGrid.querySelectorAll('.fc-preview-pdf:not(.has-thumb) .fc-pdf-canvas').forEach(function(canvas){
+    var id = canvas.getAttribute('data-pdf-id');
+    var url = SF_API + '/' + encodeURIComponent(id) + '/file';
+    pdfjsLib.getDocument({ url: url }).promise
+      .then(function(pdf){ return pdf.getPage(1); })
+      .then(function(page){
+        var box = canvas.parentElement;
+        var cssW = box.clientWidth || 300;
+        var base = page.getViewport({ scale: 1 });
+        var dpr = window.devicePixelRatio || 1;
+        var scale = cssW / base.width;
+        var vp = page.getViewport({ scale: scale * dpr });
+        canvas.width = Math.round(vp.width);
+        canvas.height = Math.round(vp.height);
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = Math.round(vp.height / dpr) + 'px';
+        var ctx = canvas.getContext('2d');
+        return page.render({ canvasContext: ctx, viewport: vp }).promise;
+      })
+      .then(function(){ canvas.parentElement.classList.add('has-thumb'); })
+      .catch(function(){ /* Fallback-Platzhalter bleibt sichtbar */ });
+  });
+}
+
+function renderUebersicht(){
+  // Built-in-Formulare (ausfüllbar) – aus der Code-Registry
+  var builtin = allForms().filter(function(f){ return f.builtin; });
+  formsGrid.innerHTML = builtin.map(function(f){ return cardHTML(f, false); }).join('');
   scaleThumbs();
+
+  // Weitere Formulare (reine Downloads) – aus dem Admin-Backend
+  renderWeitereFormulare();
+}
+
+/* Lädt die eigenständigen Download-Formulare aus dem Backend (nur aktive). */
+function renderWeitereFormulare(){
+  fetch(SF_API + '?active=1')
+    .then(function(r){ return r.ok ? r.json() : { items: [] }; })
+    .then(function(j){
+      var items = (j && j.items) || [];
+      if (items.length){
+        weitereGrid.innerHTML = items.map(downloadCardHTML).join('');
+        weitereGrid.style.display = '';
+        weitereEmpty.style.display = 'none';
+        renderPdfThumbs();
+      } else {
+        weitereGrid.innerHTML = '';
+        weitereGrid.style.display = 'none';
+        weitereEmpty.style.display = '';
+      }
+    })
+    .catch(function(){
+      weitereGrid.innerHTML = '';
+      weitereGrid.style.display = 'none';
+      weitereEmpty.style.display = '';
+    });
 }
 
 /* Thumbnails maßstäblich auf Kachelbreite skalieren (210mm = 794px Basis).
    Synchron – die Übersicht wird vor renderUebersicht() sichtbar geschaltet, daher
    ist clientWidth hier bereits korrekt (Lesen erzwingt Reflow). */
 function scaleThumbs(){
-  formsGrid.querySelectorAll('.fc-preview-inner').forEach(function(inner){
+  document.querySelectorAll('.fc-preview-inner').forEach(function(inner){
     var w = inner.parentElement.clientWidth;
     if (!w) return;
     inner.style.transform = 'scale(' + (w / 794) + ')';
   });
 }
 
-formsGrid.addEventListener('click', function(e){
+function onCardClick(e){
   var btn = e.target.closest('.fc-btn'); if (!btn || btn.disabled) return;
   var card = e.target.closest('.form-card'); if (!card) return;
   var id = card.getAttribute('data-id');
   var act = btn.getAttribute('data-act');
   if (act === 'open') openEditor(id, false);
   else if (act === 'download') openEditor(id, true);
-});
+}
+formsGrid.addEventListener('click', onCardClick);
+weitereGrid.addEventListener('click', onCardClick);
 
 /* ── Editor: Felder rendern ───────────────────────────────────────────────── */
 function fieldHTML(f, val){
@@ -438,7 +546,8 @@ $('btnAdminSave').addEventListener('click', function(){
   clearAdminForm();
 });
 $('btnAdminClear').addEventListener('click', clearAdminForm);
-$('btnAdminOpen').addEventListener('click', showAdmin);
+/* Adminbereich per URL-Hash erreichbar: formulare/#admin */
+if (window.location.hash === '#admin') showAdmin();
 $('btnBackList2').addEventListener('click', function(){ show('liste'); renderUebersicht(); });
 
 /* ── Sidebar-Klappgruppen ─────────────────────────────────────────────────── */

@@ -6,7 +6,7 @@
 <title>e-regio · Formulare</title>
 <link rel="stylesheet" href="../shared/fonts.css?v=1">
 <link rel="stylesheet" href="../shared/tokens.css?v=1">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=7">
 <link rel="stylesheet" href="../shared/sidebar.css?v=3">
 </head>
 <body>
@@ -138,7 +138,7 @@
     </a>
 
     <div class="side-foot">
-      Zentrale Formular-Datenbank – ausfüllen, Vorschau prüfen, drucken &amp; als PDF speichern.
+      Zentrale Formular-Datenbank – auswählen und als PDF herunterladen.
     </div>
   </aside>
 
@@ -147,15 +147,17 @@
     <div class="page-head">
       <div>
         <h1 class="page-title">Formulare</h1>
-        <p class="page-sub">Interne Formulare – auswählen, ausfüllen, drucken oder als PDF speichern.</p>
+        <p class="page-sub">Interne Formulare – auswählen und als PDF herunterladen.</p>
       </div>
-      <button class="btn-admin" id="btnAdminOpen" type="button">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Adminbereich
-      </button>
     </div>
 
     <div class="forms-grid" id="formsGrid"></div>
+
+    <section id="weitereFormulare" style="margin-top:40px">
+      <h2 class="section-heading">Weitere Formulare</h2>
+      <div class="forms-grid" id="weitereGrid"></div>
+      <p class="weitere-empty" id="weitereEmpty" style="display:none">Hier erscheinen weitere Download-Formulare, sobald sie im Adminbereich hinterlegt wurden.</p>
+    </section>
   </main>
 
   <!-- ══ VIEW: Editor (Eingaben) ═══════════════════════════════════════════ -->
@@ -250,7 +252,8 @@
 
 </div>
 
-<script src="app.js?v=6"></script>
+<script src="../shared/vendor/pdfjs/pdf.min.js?v=1"></script>
+<script src="app.js?v=8"></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">
 <script src="../shared/werkzeuge.js?v=6"></script>
 </body>

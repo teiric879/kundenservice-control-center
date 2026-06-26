@@ -14,6 +14,7 @@ function initProdukte() {
   db.exec(ddl.PRODUKTE_REGISTRY);
   db.exec(ddl.VERTRAGSFORMULARE_TABLE);
   for (const sql of ddl.VERTRAGSFORMULARE_ALTERS) { try { db.exec(sql); } catch {} }
+  db.exec(ddl.STANDALONE_FORMULARE_TABLE);
 }
 
 function initBesucher() {

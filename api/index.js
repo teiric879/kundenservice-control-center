@@ -9339,6 +9339,20 @@ var require_ddl = __commonJS({
     var VERTRAGSFORMULARE_ALTERS = [
       "ALTER TABLE vertragsformulare ADD COLUMN file_data TEXT"
     ];
+    var STANDALONE_FORMULARE_TABLE = `
+  CREATE TABLE IF NOT EXISTS standalone_formulare (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT NOT NULL DEFAULT 'Formular',
+    kategorie    TEXT NOT NULL DEFAULT 'Allgemein',
+    beschreibung TEXT NOT NULL DEFAULT '',
+    source_type  TEXT NOT NULL DEFAULT 'upload',   -- 'upload' (file_data) | 'url' (source_value)
+    source_value TEXT NOT NULL DEFAULT '',          -- URL bei 'url', Dateiname bei 'upload'
+    file_data    TEXT,                              -- Base64-PDF bei source_type='upload'
+    active       INTEGER NOT NULL DEFAULT 1,
+    sort_order   INTEGER NOT NULL DEFAULT 0,
+    updated      TEXT
+  );
+`;
     var PRODUKTE_REGISTRY = `
   -- Angebots-ID HT: Lookup \xFCber (sparte, AP_netto, GP_Jahr_netto). Quelle TB 602/702/802/502 (WERK=59).
   CREATE TABLE IF NOT EXISTS aid_registry (
@@ -9474,6 +9488,7 @@ var require_ddl = __commonJS({
       PRODUKTE_REGISTRY,
       VERTRAGSFORMULARE_TABLE,
       VERTRAGSFORMULARE_ALTERS,
+      STANDALONE_FORMULARE_TABLE,
       BESUCHER_TABLES,
       BESUCHER_ALTERS,
       EINSATZPLAN_TABLES,
@@ -9503,6 +9518,7 @@ var require_schema = __commonJS({
       await db.exec(ddl.PRODUKTE_REGISTRY);
       await db.exec(ddl.VERTRAGSFORMULARE_TABLE);
       await tryAlters(db, ddl.VERTRAGSFORMULARE_ALTERS);
+      await db.exec(ddl.STANDALONE_FORMULARE_TABLE);
     }
     async function ensureBesucher() {
       const db = getDb("besucher");
@@ -70826,16 +70842,13 @@ var require_vertragsformulareRepo = __commonJS({
   }
 });
 
-// backend/routes/vertragsformulare.js
-var require_vertragsformulare = __commonJS({
-  "backend/routes/vertragsformulare.js"(exports2, module2) {
+// backend/lib/pdf-source.js
+var require_pdf_source = __commonJS({
+  "backend/lib/pdf-source.js"(exports2, module2) {
     var fs = require("node:fs");
     var path = require("node:path");
     var dns = require("node:dns").promises;
     var net = require("node:net");
-    var repo = require_vertragsformulareRepo();
-    var { requireAdmin } = require_auth();
-    var BIG_BODY = { bodyLimit: 20 * 1024 * 1024, preHandler: requireAdmin };
     var LOCAL_PDF_BASE = (() => {
       const base = process.env.LOCAL_PDF_DIR || path.resolve(__dirname, "..", "..", "pdf-vorlagen");
       try {
@@ -70884,6 +70897,73 @@ var require_vertragsformulare = __commonJS({
       }
       return u.toString();
     }
+    async function sendPdfFromRow(row, reply, req) {
+      const setPdfHeaders = () => {
+        reply.header("Content-Type", "application/pdf");
+        reply.header("Content-Disposition", `inline; filename="${encodeURIComponent(row.name || "formular")}.pdf"`);
+      };
+      if (row.source_type === "upload") {
+        if (!row.file_data) return reply.code(404).send({ error: "Keine Datei gespeichert" });
+        setPdfHeaders();
+        return reply.send(Buffer.from(row.file_data, "base64"));
+      }
+      if (row.source_type === "local") {
+        const candidate = path.resolve(LOCAL_PDF_BASE, row.source_value);
+        let realPath;
+        try {
+          realPath = fs.realpathSync(candidate);
+        } catch {
+          return reply.code(404).send({ error: "Lokale Datei nicht gefunden" });
+        }
+        const rel = path.relative(LOCAL_PDF_BASE, realPath);
+        if (rel.startsWith("..") || path.isAbsolute(rel)) {
+          return reply.code(403).send({ error: "Pfad au\xDFerhalb des erlaubten Verzeichnisses" });
+        }
+        setPdfHeaders();
+        return reply.send(fs.createReadStream(realPath));
+      }
+      let safeUrl;
+      try {
+        safeUrl = await assertSafeUrl(row.source_value);
+      } catch (e) {
+        if (req) req.log.warn({ err: e, id: row.id }, "PDF-URL abgelehnt (SSRF-Schutz)");
+        return reply.code(400).send({ error: "PDF-URL nicht erlaubt" });
+      }
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS);
+      try {
+        const res = await fetch(safeUrl, { redirect: "error", signal: ac.signal });
+        if (!res.ok) {
+          return reply.code(502).send({ error: `PDF-URL nicht erreichbar: ${res.status}` });
+        }
+        const len = Number(res.headers.get("content-length") || 0);
+        if (len && len > MAX_PDF_BYTES) {
+          return reply.code(502).send({ error: "PDF zu gro\xDF" });
+        }
+        const buf = Buffer.from(await res.arrayBuffer());
+        if (buf.byteLength > MAX_PDF_BYTES) {
+          return reply.code(502).send({ error: "PDF zu gro\xDF" });
+        }
+        setPdfHeaders();
+        return reply.send(buf);
+      } catch (e) {
+        if (req) req.log.warn({ err: e, id: row.id }, "PDF-Proxy fehlgeschlagen");
+        return reply.code(502).send({ error: "PDF konnte nicht geladen werden" });
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    module2.exports = { assertSafeUrl, isBlockedAddress, sendPdfFromRow, LOCAL_PDF_BASE };
+  }
+});
+
+// backend/routes/vertragsformulare.js
+var require_vertragsformulare = __commonJS({
+  "backend/routes/vertragsformulare.js"(exports2, module2) {
+    var repo = require_vertragsformulareRepo();
+    var { requireAdmin } = require_auth();
+    var { sendPdfFromRow } = require_pdf_source();
+    var BIG_BODY = { bodyLimit: 20 * 1024 * 1024, preHandler: requireAdmin };
     module2.exports = async function vertragsformulareRoutes(fastify) {
       fastify.get("/api/vertragsformulare", async () => {
         const items = await repo.listAll();
@@ -70939,60 +71019,135 @@ var require_vertragsformulare = __commonJS({
         const id = parseInt(req.params.id, 10);
         const row = await repo.getById(id);
         if (!row) return reply.code(404).send({ error: "Nicht gefunden" });
-        const setPdfHeaders = () => {
-          reply.header("Content-Type", "application/pdf");
-          reply.header("Content-Disposition", `inline; filename="${encodeURIComponent(row.name || "formular")}.pdf"`);
-        };
-        if (row.source_type === "upload") {
-          if (!row.file_data) return reply.code(404).send({ error: "Keine Datei gespeichert" });
-          setPdfHeaders();
-          return reply.send(Buffer.from(row.file_data, "base64"));
+        return sendPdfFromRow(row, reply, req);
+      });
+    };
+  }
+});
+
+// backend/data/repositories/standaloneFormulareRepo.js
+var require_standaloneFormulareRepo = __commonJS({
+  "backend/data/repositories/standaloneFormulareRepo.js"(exports2, module2) {
+    var { getDb } = require_driver();
+    var db = () => getDb("produkte");
+    var META_COLS = "id, name, kategorie, beschreibung, source_type, source_value, active, sort_order, updated";
+    module2.exports = {
+      // Liste OHNE file_data (Base64 wäre zu groß für die Übersicht).
+      // onlyActive=true filtert für die öffentliche Formularseite.
+      listAll({ onlyActive = false } = {}) {
+        const where = onlyActive ? "WHERE active=1" : "";
+        return db().all(
+          `SELECT ${META_COLS} FROM standalone_formulare ${where} ORDER BY sort_order, id`
+        );
+      },
+      // Vollständiger Datensatz inkl. file_data (für den /file-Endpoint).
+      getById(id) {
+        return db().get("SELECT * FROM standalone_formulare WHERE id=?", [id]);
+      },
+      async insert({ name, kategorie, beschreibung, source_type, source_value, file_data, active = 1, sort_order = 0, updated }) {
+        const r = await db().run(
+          `INSERT INTO standalone_formulare
+         (name, kategorie, beschreibung, source_type, source_value, file_data, active, sort_order, updated)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+          [name, kategorie, beschreibung, source_type, source_value, file_data ?? null, active ? 1 : 0, sort_order, updated]
+        );
+        return r.lastInsertRowid;
+      },
+      // file_data nur überschreiben, wenn neue Bytes mitkommen (sonst bestehende behalten).
+      update(id, { name, kategorie, beschreibung, source_type, source_value, file_data, active, sort_order, updated }) {
+        if (file_data !== void 0 && file_data !== null) {
+          return db().run(
+            `UPDATE standalone_formulare
+           SET name=?, kategorie=?, beschreibung=?, source_type=?, source_value=?, file_data=?, active=?, sort_order=?, updated=?
+         WHERE id=?`,
+            [name, kategorie, beschreibung, source_type, source_value, file_data, active ? 1 : 0, sort_order ?? 0, updated, id]
+          );
         }
-        if (row.source_type === "local") {
-          const candidate = path.resolve(LOCAL_PDF_BASE, row.source_value);
-          let realPath;
-          try {
-            realPath = fs.realpathSync(candidate);
-          } catch {
-            return reply.code(404).send({ error: "Lokale Datei nicht gefunden" });
-          }
-          const rel = path.relative(LOCAL_PDF_BASE, realPath);
-          if (rel.startsWith("..") || path.isAbsolute(rel)) {
-            return reply.code(403).send({ error: "Pfad au\xDFerhalb des erlaubten Verzeichnisses" });
-          }
-          setPdfHeaders();
-          return reply.send(fs.createReadStream(realPath));
+        return db().run(
+          `UPDATE standalone_formulare
+         SET name=?, kategorie=?, beschreibung=?, source_type=?, source_value=?, active=?, sort_order=?, updated=?
+       WHERE id=?`,
+          [name, kategorie, beschreibung, source_type, source_value, active ? 1 : 0, sort_order ?? 0, updated, id]
+        );
+      },
+      deleteById(id) {
+        return db().run("DELETE FROM standalone_formulare WHERE id=?", [id]);
+      }
+    };
+  }
+});
+
+// backend/routes/standaloneFormulare.js
+var require_standaloneFormulare = __commonJS({
+  "backend/routes/standaloneFormulare.js"(exports2, module2) {
+    var repo = require_standaloneFormulareRepo();
+    var { requireAdmin } = require_auth();
+    var { sendPdfFromRow } = require_pdf_source();
+    var BIG_BODY = { bodyLimit: 20 * 1024 * 1024, preHandler: requireAdmin };
+    var todayISO = () => (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    module2.exports = async function standaloneFormulareRoutes(fastify) {
+      fastify.get("/api/standalone-formulare", async (req) => {
+        const onlyActive = req.query && (req.query.active === "1" || req.query.active === "true");
+        const items = await repo.listAll({ onlyActive });
+        return { ok: true, items };
+      });
+      fastify.post("/api/standalone-formulare", BIG_BODY, async (req, reply) => {
+        const { name, kategorie, beschreibung, source_type, source_value, file_base64, active, sort_order } = req.body || {};
+        if (!name || !String(name).trim()) {
+          return reply.code(400).send({ error: "name ist erforderlich" });
         }
-        let safeUrl;
-        try {
-          safeUrl = await assertSafeUrl(row.source_value);
-        } catch (e) {
-          req.log.warn({ err: e, id }, "PDF-URL abgelehnt (SSRF-Schutz)");
-          return reply.code(400).send({ error: "PDF-URL nicht erlaubt" });
+        const type = source_type || "upload";
+        if (type === "url" && !source_value) {
+          return reply.code(400).send({ error: "source_value (URL) ist erforderlich" });
         }
-        const ac = new AbortController();
-        const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS);
-        try {
-          const res = await fetch(safeUrl, { redirect: "error", signal: ac.signal });
-          if (!res.ok) {
-            return reply.code(502).send({ error: `PDF-URL nicht erreichbar: ${res.status}` });
-          }
-          const len = Number(res.headers.get("content-length") || 0);
-          if (len && len > MAX_PDF_BYTES) {
-            return reply.code(502).send({ error: "PDF zu gro\xDF" });
-          }
-          const buf = Buffer.from(await res.arrayBuffer());
-          if (buf.byteLength > MAX_PDF_BYTES) {
-            return reply.code(502).send({ error: "PDF zu gro\xDF" });
-          }
-          setPdfHeaders();
-          return reply.send(buf);
-        } catch (e) {
-          req.log.warn({ err: e, id }, "PDF-Proxy fehlgeschlagen");
-          return reply.code(502).send({ error: "PDF konnte nicht geladen werden" });
-        } finally {
-          clearTimeout(timer);
+        if (type === "upload" && !file_base64) {
+          return reply.code(400).send({ error: "file_base64 (Datei) ist erforderlich" });
         }
+        const id = await repo.insert({
+          name: String(name).trim(),
+          kategorie: kategorie && String(kategorie).trim() || "Allgemein",
+          beschreibung: beschreibung || "",
+          source_type: type,
+          source_value: source_value || "",
+          file_data: type === "upload" ? file_base64 : null,
+          active: active === void 0 ? 1 : active ? 1 : 0,
+          sort_order: sort_order ?? 0,
+          updated: todayISO()
+        });
+        return { ok: true, id };
+      });
+      fastify.put("/api/standalone-formulare/:id", BIG_BODY, async (req, reply) => {
+        const id = parseInt(req.params.id, 10);
+        const { name, kategorie, beschreibung, source_type, source_value, file_base64, active, sort_order } = req.body || {};
+        const row = await repo.getById(id);
+        if (!row) return reply.code(404).send({ error: "Nicht gefunden" });
+        const type = source_type || row.source_type;
+        await repo.update(id, {
+          name: name && String(name).trim() || row.name,
+          kategorie: kategorie !== void 0 ? String(kategorie).trim() || "Allgemein" : row.kategorie,
+          beschreibung: beschreibung !== void 0 ? beschreibung : row.beschreibung,
+          source_type: type,
+          source_value: source_value ?? row.source_value,
+          // Nur überschreiben, wenn eine neue Datei kommt; bei URL file_data leeren.
+          file_data: type === "url" ? "" : file_base64 || void 0,
+          active: active === void 0 ? row.active : active ? 1 : 0,
+          sort_order: sort_order ?? row.sort_order,
+          updated: todayISO()
+        });
+        return { ok: true };
+      });
+      fastify.delete("/api/standalone-formulare/:id", { preHandler: requireAdmin }, async (req, reply) => {
+        const id = parseInt(req.params.id, 10);
+        const row = await repo.getById(id);
+        if (!row) return reply.code(404).send({ error: "Nicht gefunden" });
+        await repo.deleteById(id);
+        return { ok: true };
+      });
+      fastify.get("/api/standalone-formulare/:id/file", async (req, reply) => {
+        const id = parseInt(req.params.id, 10);
+        const row = await repo.getById(id);
+        if (!row) return reply.code(404).send({ error: "Nicht gefunden" });
+        return sendPdfFromRow(row, reply, req);
       });
     };
   }
@@ -71411,6 +71566,7 @@ var require_app = __commonJS({
       fastify.register(require_besucher());
       fastify.register(require_einsatzplaner());
       fastify.register(require_vertragsformulare());
+      fastify.register(require_standaloneFormulare());
       fastify.register(require_admin_import());
       fastify.register(require_mitbewerber(), { prefix: "/api/mitbewerber" });
       fastify.get("/api/health", async () => ({ ok: true }));

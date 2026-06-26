@@ -118,6 +118,25 @@ const VERTRAGSFORMULARE_ALTERS = [
   'ALTER TABLE vertragsformulare ADD COLUMN file_data TEXT',
 ];
 
+// Eigenständige Download-Formulare (nicht an Tarif/Produkt gebunden). Werden im
+// Admin-Tab „Formulare" gepflegt und auf der öffentlichen Formularseite als reine
+// Downloads angeboten. Spiegelt das vertragsformulare-Upload-Muster (Base64-PDF
+// in file_data bei source_type='upload', sonst URL in source_value).
+const STANDALONE_FORMULARE_TABLE = `
+  CREATE TABLE IF NOT EXISTS standalone_formulare (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT NOT NULL DEFAULT 'Formular',
+    kategorie    TEXT NOT NULL DEFAULT 'Allgemein',
+    beschreibung TEXT NOT NULL DEFAULT '',
+    source_type  TEXT NOT NULL DEFAULT 'upload',   -- 'upload' (file_data) | 'url' (source_value)
+    source_value TEXT NOT NULL DEFAULT '',          -- URL bei 'url', Dateiname bei 'upload'
+    file_data    TEXT,                              -- Base64-PDF bei source_type='upload'
+    active       INTEGER NOT NULL DEFAULT 1,
+    sort_order   INTEGER NOT NULL DEFAULT 0,
+    updated      TEXT
+  );
+`;
+
 const PRODUKTE_REGISTRY = `
   -- Angebots-ID HT: Lookup über (sparte, AP_netto, GP_Jahr_netto). Quelle TB 602/702/802/502 (WERK=59).
   CREATE TABLE IF NOT EXISTS aid_registry (
@@ -260,6 +279,7 @@ module.exports = {
   PRODUKTE_REGISTRY,
   VERTRAGSFORMULARE_TABLE,
   VERTRAGSFORMULARE_ALTERS,
+  STANDALONE_FORMULARE_TABLE,
   BESUCHER_TABLES,
   BESUCHER_ALTERS,
   EINSATZPLAN_TABLES,
