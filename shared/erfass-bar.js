@@ -104,7 +104,22 @@
     }
   }
 
+  // Nur anzeigen, wenn der eingeloggte User das Modul „besucher-dashboard" hat (oder Admin ist).
+  // Lokal/Dev ohne Login-Gate (oder API offline) → nicht blockieren.
+  async function moduleAllowed(){
+    var isLocal = ['127.0.0.1','localhost'].includes(location.hostname);
+    var authBase = isLocal ? 'http://' + location.hostname + ':3001' : '';
+    try {
+      var r = await fetch(authBase + '/api/auth/me', { credentials: isLocal ? 'include' : 'same-origin' });
+      if (!r.ok) return true; // nicht eingeloggt / lokal → nicht aussperren
+      var d = await r.json();
+      var mods = d.modules || [];
+      return !!d.isAdmin || mods.indexOf('besucher-dashboard') >= 0;
+    } catch (e) { return true; } // API offline → Dev → zeigen
+  }
+
   async function init(){
+    if (!(await moduleAllowed())) return; // keine Berechtigung → keine Leiste
     try {
       var r = await fetch(API + '/erfass-config?n=6');
       cfg = await r.json();

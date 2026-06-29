@@ -55,14 +55,14 @@ h1,h2,h3,.num{font-family:var(--font-display,'Hanken Grotesk','DM Sans',sans-ser
     linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#efe9d8 100%);
 }
 .lock-box{
-  width:360px;padding:40px 36px 36px;
-  background:#ffffff;
+  width:360px;padding:44px 36px 36px;
+  background:var(--glass);
   border:1px solid var(--stroke);
-  border-radius:24px;
-  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-  box-shadow:0 32px 80px rgba(0,12,10,.6);
+  border-radius:18px;
+  box-shadow:0 16px 34px rgba(20,46,40,.10);
   text-align:center;
 }
+.lock-logo{width:165px;max-width:70%;height:auto;display:block;margin:0 auto 22px}
 .lock-icon{
   width:56px;height:56px;border-radius:16px;
   background:rgba(191,146,0,.15);border:1px solid rgba(191,146,0,.3);
@@ -94,13 +94,13 @@ h1,h2,h3,.num{font-family:var(--font-display,'Hanken Grotesk','DM Sans',sans-ser
 .pw-toggle:hover{color:var(--ink)}
 .lock-btn{
   width:100%;padding:12px;border-radius:12px;
-  background:linear-gradient(135deg,var(--acc),var(--acc-2));
+  background:var(--ci);
   border:none;color:#fff;font-size:14px;font-weight:700;
   cursor:pointer;font-family:inherit;
-  transition:opacity .15s,transform .1s;
+  transition:filter .15s,transform .1s;
   letter-spacing:.01em;
 }
-.lock-btn:hover{opacity:.9}
+.lock-btn:hover{filter:brightness(1.1)}
 .lock-btn:active{transform:scale(.98)}
 .lock-error{
   color:var(--neg);font-size:12px;margin-top:10px;
@@ -615,22 +615,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
 <!-- ── Lock Screen ──────────────────────────────────────────────────────────── -->
 <div id="lockScreen">
   <div class="lock-box">
-    <div class="lock-brand">
-      <svg viewBox="0 0 44 44" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="44" height="44" rx="12" fill="#003431"/>
-        <rect width="44" height="44" rx="12" fill="url(#lg1)" opacity=".6"/>
-        <defs>
-          <linearGradient id="lg1" x1="0" y1="0" x2="44" y2="44">
-            <stop offset="0%" stop-color="#006058"/>
-            <stop offset="100%" stop-color="#001a18"/>
-          </linearGradient>
-        </defs>
-        <path d="M22 12a10 10 0 1 0 7.07 17.07" stroke="#bf9200" stroke-width="3" stroke-linecap="round" fill="none"/>
-        <line x1="12" y1="22" x2="31" y2="22" stroke="#bf9200" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="32.5" cy="22" r="1.8" fill="#e0ad1f"/>
-      </svg>
-      <div><b>Kundencenter</b><br><small>Control Center</small></div>
-    </div>
+    <img src="../shared/eregio-logo-gruen.png" class="lock-logo" alt="e-regio">
 
     <div class="lock-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -652,11 +637,6 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
 
     <button class="lock-btn" id="unlockBtn">Anmelden</button>
     <div class="lock-error" id="lockError"></div>
-
-    <div class="lock-hint">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:12px;height:12px;display:inline;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-      Nur auf Port 8124 nutzbar · e-regio intern
-    </div>
   </div>
 </div>
 
@@ -793,7 +773,6 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
     </nav>
 
     <div class="side-foot">
-      <div class="sync-badge" id="sideSync">Demo-Daten</div>
       <button class="logout-btn" id="logoutBtn" onclick="logout()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Abmelden
@@ -2553,7 +2532,7 @@ async function buDelete(id, name) {
 document.getElementById('buModal').addEventListener('click', function(e){ if(e.target===this) buCloseModal(); });
 </script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
-<script src="../shared/erfass-bar.js?v=4"></script>
+<script src="../shared/erfass-bar.js?v=5"></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">
 <script src="../shared/werkzeuge.js?v=6"></script>
 <script>window.CC_MODULE='admin';</script>

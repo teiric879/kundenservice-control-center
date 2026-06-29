@@ -72,8 +72,7 @@
       var st = document.createElement('style');
       st.id = 'cc-guard-style';
       st.textContent =
-        '.cc-user{margin-top:10px;padding-top:10px;border-top:1px solid var(--stroke,#e6e1d2);' +
-        'font-size:10.5px;line-height:1.4;color:var(--muted-2,#8aa6a0)}' +
+        '.cc-user{font-size:10.5px;line-height:1.4;color:var(--muted-2,#8aa6a0)}' +
         '.cc-user strong{display:block;font-size:12.5px;color:var(--ink,#063b37);font-weight:600;margin-top:1px}' +
         '.cc-user .cc-role{display:inline-block;margin-top:3px;font-size:9.5px;font-weight:600;letter-spacing:.03em;' +
         'text-transform:uppercase;color:var(--acc-ink,#8a6a00)}' +
@@ -86,14 +85,14 @@
       document.head.appendChild(st);
     }
 
-    // User-Anzeige (idempotent).
+    // User-Anzeige (idempotent) — als erstes Element, damit der Name oben steht.
     if (!foot.querySelector('.cc-user')) {
       var u = document.createElement('div');
       u.className = 'cc-user';
       u.innerHTML = 'Eingeloggt als<strong></strong>' +
         (isAdmin ? '<span class="cc-role">Administrator</span>' : '');
       u.querySelector('strong').textContent = username || 'Unbekannt';
-      foot.appendChild(u);
+      foot.insertBefore(u, foot.firstChild);
     }
 
     // Abmelden-Button: vorhandenen wiederverwenden, sonst neuen anlegen.
