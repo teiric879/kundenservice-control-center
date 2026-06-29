@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Anmeldung · e-regio Kundencenter</title>
+<link rel="stylesheet" href="/shared/fonts.css?v=1">
+<style>
+:root{
+  --ci:#004442;--bg0:#f1ede0;--bg1:#ece7d7;
+  --acc:#ffc300;--ink:#063b37;--muted:#5d7d77;
+  --glass:#fffdf7;--glass-hi:#f6f2e6;--stroke:#e6e1d2;--turq-2:#a0c8c2;
+  --radius:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--font-body,'DM Sans',system-ui,sans-serif);color:var(--ink);
+  background:radial-gradient(1100px 760px at 100% -10%, #e7f2ee 0%, transparent 55%),
+             radial-gradient(820px 640px at -10% 110%, #f6efdc 0%, transparent 50%),
+             linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#efe9d8 100%);
+  display:flex;align-items:center;justify-content:center;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.card{
+  background:var(--glass);border:1px solid var(--stroke);border-radius:var(--radius);
+  padding:2.5rem 2.5rem 2.25rem;width:min(92vw,380px);text-align:center;
+  box-shadow:0 16px 34px rgba(20,46,40,.10)}
+.brand-logo{width:180px;max-width:70%;height:auto;display:block;margin:0 auto 1.75rem}
+h1{font-family:var(--font-display,'Hanken Grotesk',sans-serif);font-size:1.18rem;font-weight:600;
+  letter-spacing:-.015em;color:var(--ci);margin-bottom:.4rem}
+.sub{color:var(--muted);font-size:.85rem;margin-bottom:1.75rem}
+label{display:block;text-align:left;font-size:.78rem;color:var(--muted);margin-bottom:.4rem}
+input[type=password]{
+  width:100%;padding:.8rem .9rem;border:1px solid var(--stroke);border-radius:12px;
+  font:inherit;color:var(--ink);background:#fff;outline:none;transition:border-color .15s ease}
+input[type=password]:focus{border-color:var(--turq-2)}
+button{
+  width:100%;margin-top:1.25rem;padding:.85rem 1rem;border:none;border-radius:12px;
+  background:var(--ci);color:#fff;font:inherit;font-weight:600;cursor:pointer;
+  transition:transform .15s ease,filter .15s ease}
+button:hover:not(:disabled){filter:brightness(1.08)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.6;cursor:default}
+.msg{min-height:1.2rem;margin-top:.9rem;font-size:.82rem;color:#b3261e}
+.foot{margin-top:1.5rem;font-size:.72rem;color:var(--muted);opacity:.7}
+</style>
+</head>
+<body>
+<form class="card" id="loginForm" autocomplete="on">
+  <img class="brand-logo" src="/shared/eregio-logo-gruen.png" alt="e-regio">
+  <h1>Kundencenter</h1>
+  <div class="sub">Bitte mit dem Zugangspasswort anmelden.</div>
+  <label for="pw">Passwort</label>
+  <input type="password" id="pw" name="password" autocomplete="current-password" required autofocus>
+  <button type="submit" id="btn">Anmelden</button>
+  <div class="msg" id="msg" role="alert"></div>
+  <div class="foot">Interner Zugang · e-regio GmbH &amp; Co. KG</div>
+</form>
+<script>
+(function () {
+  var form = document.getElementById('loginForm');
+  var btn = document.getElementById('btn');
+  var msg = document.getElementById('msg');
+
+  // Nur relative, same-origin Ziele zulassen (kein Open-Redirect).
+  function safeNext() {
+    var n = new URLSearchParams(location.search).get('next');
+    if (n && /^\/(?!\/)/.test(n)) return n;
+    return '/';
+  }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    msg.textContent = '';
+    btn.disabled = true;
+    var prev = btn.textContent;
+    btn.textContent = 'Anmelden …';
+    try {
+      var res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ password: document.getElementById('pw').value }),
+      });
+      if (res.ok) { location.replace(safeNext()); return; }
+      if (res.status === 401) msg.textContent = 'Falsches Passwort.';
+      else if (res.status === 503) msg.textContent = 'Login ist noch nicht konfiguriert.';
+      else if (res.status === 429) msg.textContent = 'Zu viele Versuche. Bitte kurz warten.';
+      else msg.textContent = 'Anmeldung fehlgeschlagen.';
+    } catch (_) {
+      msg.textContent = 'Netzwerkfehler. Bitte erneut versuchen.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = prev;
+    }
+  });
+})();
+</script>
+</body>
+</html>

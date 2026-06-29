@@ -42,6 +42,7 @@ async function buildApp() {
     origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
   });
 
+  fastify.register(require('./routes/auth'));
   fastify.register(require('./routes/preise'));
   fastify.register(require('./routes/admin-preise'));
   fastify.register(require('./routes/besucher'));

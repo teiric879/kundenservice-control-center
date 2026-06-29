@@ -60,4 +60,4 @@ async function requireAdmin(req, reply) {
   }
 }
 
-module.exports = { requireAdmin };
+module.exports = { requireAdmin, safeEqual };
