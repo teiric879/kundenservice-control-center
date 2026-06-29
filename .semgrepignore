@@ -3,6 +3,8 @@ api/node_modules/
 backend/node_modules/
 api/db/
 api/index.js
+shared/vendor/
+*.min.js
 .git/
 .claude/
 .vercel/

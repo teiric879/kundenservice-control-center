@@ -15,6 +15,8 @@ const { makeDb } = require('./libsql');
 // api/db/<name> → korrekt enkodierter file:-URL (Leerzeichen im Pfad "Claude Code" werden zu %20).
 // backend/data/driver/ → backend/data/ → backend/ → project-root/ → api/db/
 const DB_DIR = path.join(__dirname, '..', '..', '..', 'api', 'db');
+// `name` ist NIE User-Input: ausschließlich drei hartcodierte Literale (s. CONFIG unten).
+// nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
 const fileUrl = (name) => pathToFileURL(path.join(DB_DIR, name)).href;
 
 // Pro DB: ENV-URL/-Token gewinnen, sonst lokale Datei. (DB_DRIVER ist Reserve für künftige Treiber.)

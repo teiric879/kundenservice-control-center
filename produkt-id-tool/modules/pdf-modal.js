@@ -383,6 +383,8 @@ function fillForm(form, fv, font) {
   // ── Gas/Strom: Staffel-Tabelle GP_x-y[_suffix] / VP_x-y[_suffix] ───────────
   if (fv.tiers && fv.tiers.length) {
     const tiers  = fv.tiers;
+    // `p` ist immer Literal 'GP'/'VP' (s. unten) → effektiv statische Regex, kein dynamischer Input.
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
     const isTier = (n, p) => new RegExp(`^${p}_\\d+\\s*-\\s*\\d+(_[A-Za-z0-9]+)?$`).test(n);
     const lower  = n => { const m = n.match(/_(\d+)\s*-/); return m ? +m[1] : 0; };
     const gpF = fields.filter(f => isTier(f.getName(), 'GP')).sort((a, b) => lower(a.getName()) - lower(b.getName()));
@@ -399,6 +401,8 @@ function fillForm(form, fv, font) {
     }
   }
   if (fv.selectedModule) { // SteuVE: Checkbox mit passendem Modul-Suffix (Wärme/Ladestrom)
+    // fv.selectedModule ist ein interner Modul-Suffix (kein freier User-Input) → kein ReDoS.
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
     const f = fields.find(x => isCheckbox(x) && new RegExp(fv.selectedModule + '$').test(x.getName()));
     if (f) check(f);
   }

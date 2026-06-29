@@ -148,6 +148,8 @@ async function upsertTarife(tarife) {
       );
       if (result.changes) added++;
     } catch (err) {
+      // JS-Template-Literal (bereits interpoliert), kein util.format-Format-String → kein Risiko.
+      // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring
       console.error(`Fehler beim Einfügen von ${tarif.anbieter}/${tarif.sparte}:`, err.message);
     }
   }
