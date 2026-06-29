@@ -73,7 +73,9 @@ module.exports = async function authRoutes(fastify) {
   fastify.get('/api/auth/me', async (req, reply) => {
     const token = getTokenFromRequest(req);
     const payload = token ? verifySiteToken(token) : null;
-    if (!payload) return reply.code(401).send({ ok: false, error: 'Nicht eingeloggt' });
+    // Alte Tokens (statisches Passwort-Login, ohne username) gelten als nicht eingeloggt
+    // → erzwingt erneuten Login mit dem neuen User-System.
+    if (!payload || !payload.username) return reply.code(401).send({ ok: false, error: 'Nicht eingeloggt' });
     return {
       ok: true,
       username: payload.username || null,

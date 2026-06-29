@@ -70046,7 +70046,7 @@ var require_auth2 = __commonJS({
       fastify.get("/api/auth/me", async (req, reply) => {
         const token = getTokenFromRequest(req);
         const payload = token ? verifySiteToken(token) : null;
-        if (!payload) return reply.code(401).send({ ok: false, error: "Nicht eingeloggt" });
+        if (!payload || !payload.username) return reply.code(401).send({ ok: false, error: "Nicht eingeloggt" });
         return {
           ok: true,
           username: payload.username || null,

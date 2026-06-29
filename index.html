@@ -96,8 +96,10 @@ html,body{height:100%;font-family:var(--font-body,'DM Sans',system-ui,sans-serif
   try {
     var res = await fetch(apiBase + '/api/auth/me', { credentials: isLocal ? 'include' : 'same-origin' });
     if (!res.ok) {
-      // Lokal gibt es keinen Login-Gate → alle Module zeigen. Auf Prod: 401 = nicht eingeloggt.
-      if (isLocal) showAll();
+      // Lokal gibt es keinen Login-Gate → alle Module zeigen.
+      // Auf Prod: 401 = nicht (mehr) eingeloggt → zur Login-Seite (fängt auch alte Tokens ab).
+      if (isLocal) { showAll(); return; }
+      location.replace('/login.html?next=' + encodeURIComponent(location.pathname));
       return;
     }
     var data = await res.json();
