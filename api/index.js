@@ -70039,6 +70039,10 @@ var require_auth2 = __commonJS({
         reply.header("Set-Cookie", cookieHeader("", 0));
         return { ok: true };
       });
+      fastify.get("/api/auth/usernames", async () => {
+        const users = await usersRepo.listAll();
+        return { users: users.map((u) => u.username) };
+      });
       fastify.get("/api/auth/me", async (req, reply) => {
         const token = getTokenFromRequest(req);
         const payload = token ? verifySiteToken(token) : null;

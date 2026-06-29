@@ -63,6 +63,13 @@ module.exports = async function authRoutes(fastify) {
     return { ok: true };
   });
 
+  // Öffentliche Namensliste für das Login-Dropdown (nur Benutzernamen, nichts Sensibles).
+  // Liegt unter /api/auth/ → von der Edge-Middleware durchgelassen (vor dem Login erreichbar).
+  fastify.get('/api/auth/usernames', async () => {
+    const users = await usersRepo.listAll();
+    return { users: users.map((u) => u.username) };
+  });
+
   fastify.get('/api/auth/me', async (req, reply) => {
     const token = getTokenFromRequest(req);
     const payload = token ? verifySiteToken(token) : null;
