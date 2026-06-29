@@ -70805,10 +70805,44 @@ var require_besucherRepo = __commonJS({
   }
 });
 
+// backend/lib/module-auth.js
+var require_module_auth = __commonJS({
+  "backend/lib/module-auth.js"(exports2, module2) {
+    var { COOKIE_NAME, verifySiteToken } = require_site_auth();
+    function inCloudProd() {
+      return Boolean(process.env.VERCEL) && process.env.VERCEL_ENV !== "development";
+    }
+    function getSiteToken(req) {
+      const raw = req.headers.cookie || "";
+      for (const part of raw.split(";")) {
+        const idx = part.indexOf("=");
+        if (idx < 0) continue;
+        if (part.slice(0, idx).trim() === COOKIE_NAME) return part.slice(idx + 1).trim();
+      }
+      return null;
+    }
+    function requireModule(moduleId) {
+      return async function(req, reply) {
+        if (!inCloudProd()) return;
+        const token = getSiteToken(req);
+        const payload = token ? verifySiteToken(token) : null;
+        if (!payload || !payload.username) {
+          return reply.code(401).send({ ok: false, error: "Nicht eingeloggt" });
+        }
+        const mods = Array.isArray(payload.modules) ? payload.modules : [];
+        if (payload.isAdmin || mods.includes(moduleId)) return;
+        return reply.code(403).send({ ok: false, error: "Keine Berechtigung f\xFCr dieses Modul" });
+      };
+    }
+    module2.exports = { requireModule, getSiteToken };
+  }
+});
+
 // backend/routes/besucher.js
 var require_besucher = __commonJS({
   "backend/routes/besucher.js"(exports2, module2) {
     var besucherRepo = require_besucherRepo();
+    var { requireModule } = require_module_auth();
     module2.exports = async function besucherRoutes(fastify) {
       fastify.get("/api/besucher", async (req, reply) => {
         const { von, bis } = req.query;
@@ -70833,7 +70867,7 @@ var require_besucher = __commonJS({
         }));
         return { ok: true, standorte, kategorien };
       });
-      fastify.post("/api/besucher", async (req, reply) => {
+      fastify.post("/api/besucher", { preHandler: requireModule("besucher-dashboard") }, async (req, reply) => {
         const { datum, standort, kategorie, stunde } = req.body || {};
         if (!datum || !standort) {
           return reply.code(400).send({ error: "datum und standort erforderlich" });
@@ -71038,19 +71072,21 @@ var require_einsatzplanerRepo = __commonJS({
 var require_einsatzplaner = __commonJS({
   "backend/routes/einsatzplaner.js"(exports2, module2) {
     var repo = require_einsatzplanerRepo();
+    var { requireModule } = require_module_auth();
     module2.exports = async function einsatzplanerRoutes(fastify) {
+      const writeGuard = { preHandler: requireModule("einsatzplaner") };
       fastify.get("/api/einsatzplaner/agents", async () => repo.listAgents());
-      fastify.post("/api/einsatzplaner/agents", async (req, reply) => {
+      fastify.post("/api/einsatzplaner/agents", writeGuard, async (req, reply) => {
         const { name, kuerzel, color } = req.body ?? {};
         if (!name || !kuerzel) return reply.code(400).send({ error: "name und kuerzel erforderlich" });
         const id = await repo.insertAgent({ name, kuerzel, color });
         return { id };
       });
-      fastify.patch("/api/einsatzplaner/agents/:id", async (req) => {
+      fastify.patch("/api/einsatzplaner/agents/:id", writeGuard, async (req) => {
         await repo.updateAgent(Number(req.params.id), req.body ?? {});
         return { ok: true };
       });
-      fastify.delete("/api/einsatzplaner/agents/:id", async (req) => {
+      fastify.delete("/api/einsatzplaner/agents/:id", writeGuard, async (req) => {
         await repo.deleteAgent(Number(req.params.id));
         return { ok: true };
       });
@@ -71058,17 +71094,17 @@ var require_einsatzplaner = __commonJS({
         const { monday, from, to } = req.query;
         return repo.listAssignments({ monday, from, to });
       });
-      fastify.put("/api/einsatzplaner/assignments", async (req) => {
+      fastify.put("/api/einsatzplaner/assignments", writeGuard, async (req) => {
         const { date, location, slot } = req.body ?? {};
         if (!date || !location || !slot) return { error: "date, location, slot required" };
         return repo.putAssignment(req.body);
       });
-      fastify.patch("/api/einsatzplaner/assignments/:id", async (req) => {
+      fastify.patch("/api/einsatzplaner/assignments/:id", writeGuard, async (req) => {
         const { time_from, time_to } = req.body ?? {};
         await repo.patchAssignment(Number(req.params.id), time_from, time_to);
         return { ok: true };
       });
-      fastify.delete("/api/einsatzplaner/assignments/:id", async (req) => {
+      fastify.delete("/api/einsatzplaner/assignments/:id", writeGuard, async (req) => {
         await repo.deleteAssignment(Number(req.params.id));
         return { ok: true };
       });
@@ -71076,7 +71112,7 @@ var require_einsatzplaner = __commonJS({
         const { monday, from, to } = req.query;
         return repo.listNotes({ monday, from, to });
       });
-      fastify.put("/api/einsatzplaner/notes", async (req) => {
+      fastify.put("/api/einsatzplaner/notes", writeGuard, async (req) => {
         return repo.putNote(req.body ?? {});
       });
       fastify.get("/api/einsatzplaner/stats", async (req) => {

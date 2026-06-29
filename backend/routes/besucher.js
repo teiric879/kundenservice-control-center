@@ -1,6 +1,7 @@
 // Route: Besucher (lesend + erfassen). Enthält KEIN SQL mehr — Datenzugriff über besucherRepo.
 
 const besucherRepo = require('../data/repositories/besucherRepo');
+const { requireModule } = require('../lib/module-auth');
 
 module.exports = async function besucherRoutes(fastify) {
   fastify.get('/api/besucher', async (req, reply) => {
@@ -31,7 +32,7 @@ module.exports = async function besucherRoutes(fastify) {
     return { ok: true, standorte, kategorien };
   });
 
-  fastify.post('/api/besucher', async (req, reply) => {
+  fastify.post('/api/besucher', { preHandler: requireModule('besucher-dashboard') }, async (req, reply) => {
     const { datum, standort, kategorie, stunde } = req.body || {};
     if (!datum || !standort) {
       return reply.code(400).send({ error: 'datum und standort erforderlich' });
