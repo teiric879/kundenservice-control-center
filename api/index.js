@@ -9481,6 +9481,16 @@ var require_ddl = __commonJS({
       ["Marc Klens", "MK", "#34d399"],
       ["Lydia Kaufmann", "LK", "#fb7185"]
     ];
+    var USERS_TABLE = `
+  CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    modules       TEXT NOT NULL DEFAULT '[]',
+    is_admin      INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`;
     module2.exports = {
       PRODUKTE_TABLES,
       PRODUKTE_ALTERS,
@@ -9489,6 +9499,7 @@ var require_ddl = __commonJS({
       VERTRAGSFORMULARE_TABLE,
       VERTRAGSFORMULARE_ALTERS,
       STANDALONE_FORMULARE_TABLE,
+      USERS_TABLE,
       BESUCHER_TABLES,
       BESUCHER_ALTERS,
       EINSATZPLAN_TABLES,
@@ -9519,6 +9530,7 @@ var require_schema = __commonJS({
       await db.exec(ddl.VERTRAGSFORMULARE_TABLE);
       await tryAlters(db, ddl.VERTRAGSFORMULARE_ALTERS);
       await db.exec(ddl.STANDALONE_FORMULARE_TABLE);
+      await db.exec(ddl.USERS_TABLE);
     }
     async function ensureBesucher() {
       const db = getDb("besucher");
@@ -9539,6 +9551,187 @@ var require_schema = __commonJS({
       await ensureEinsatzplan();
     }
     module2.exports = { ensureSchemas, ensureProdukte, ensureBesucher, ensureEinsatzplan };
+  }
+});
+
+// backend/data/repositories/usersRepo.js
+var require_usersRepo = __commonJS({
+  "backend/data/repositories/usersRepo.js"(exports2, module2) {
+    var { getDb } = require_driver();
+    function db() {
+      return getDb("produkte");
+    }
+    async function findByUsername(username) {
+      return db().get("SELECT * FROM users WHERE username = ?", [username]);
+    }
+    async function listAll() {
+      return db().all("SELECT id, username, modules, is_admin, created_at FROM users ORDER BY id");
+    }
+    async function create({ username, passwordHash, modules = [], isAdmin = false }) {
+      const r = await db().run(
+        "INSERT INTO users (username, password_hash, modules, is_admin) VALUES (?,?,?,?)",
+        [username, passwordHash, JSON.stringify(modules), isAdmin ? 1 : 0]
+      );
+      return r.lastInsertRowid;
+    }
+    async function update(id, { passwordHash, modules, isAdmin }) {
+      const fields = [];
+      const args = [];
+      if (passwordHash !== void 0) {
+        fields.push("password_hash = ?");
+        args.push(passwordHash);
+      }
+      if (modules !== void 0) {
+        fields.push("modules = ?");
+        args.push(JSON.stringify(modules));
+      }
+      if (isAdmin !== void 0) {
+        fields.push("is_admin = ?");
+        args.push(isAdmin ? 1 : 0);
+      }
+      if (!fields.length) return;
+      args.push(id);
+      await db().run(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`, args);
+    }
+    async function remove(id) {
+      await db().run("DELETE FROM users WHERE id = ?", [id]);
+    }
+    async function count() {
+      const r = await db().get("SELECT COUNT(*) as n FROM users");
+      return r ? r.n : 0;
+    }
+    module2.exports = { findByUsername, listAll, create, update, remove, count };
+  }
+});
+
+// backend/lib/auth.js
+var require_auth = __commonJS({
+  "backend/lib/auth.js"(exports2, module2) {
+    var crypto = require("node:crypto");
+    var DEV_FALLBACK_TOKEN = "eregio2026#";
+    function expectedToken() {
+      const t = process.env.ADMIN_API_TOKEN;
+      if (t && t.length > 0) return t;
+      if (process.env.VERCEL && process.env.VERCEL_ENV !== "development") {
+        return null;
+      }
+      return DEV_FALLBACK_TOKEN;
+    }
+    function safeEqual(a, b) {
+      const ba = Buffer.from(String(a), "utf8");
+      const bb = Buffer.from(String(b), "utf8");
+      if (ba.length !== bb.length) {
+        crypto.timingSafeEqual(ba, ba);
+        return false;
+      }
+      return crypto.timingSafeEqual(ba, bb);
+    }
+    function extractBearer(req) {
+      const h = req.headers["authorization"] || req.headers["Authorization"];
+      if (!h || typeof h !== "string") return null;
+      const m = /^Bearer\s+(.+)$/i.exec(h.trim());
+      return m ? m[1].trim() : null;
+    }
+    async function requireAdmin(req, reply) {
+      const expected = expectedToken();
+      if (!expected) {
+        req.log.error("ADMIN_API_TOKEN ist in dieser Umgebung nicht gesetzt \u2014 Admin-Routen gesperrt.");
+        return reply.code(503).send({ ok: false, error: "Server nicht konfiguriert" });
+      }
+      if (process.env.ADMIN_API_TOKEN == null && (!process.env.VERCEL || process.env.VERCEL_ENV === "development")) {
+        req.log.warn("ADMIN_API_TOKEN nicht gesetzt \u2014 verwende lokalen Dev-Fallback. NICHT f\xFCr Produktion.");
+      }
+      const got = extractBearer(req);
+      if (!got || !safeEqual(got, expected)) {
+        return reply.code(401).send({ ok: false, error: "Nicht autorisiert" });
+      }
+    }
+    module2.exports = { requireAdmin, safeEqual };
+  }
+});
+
+// backend/lib/site-auth.js
+var require_site_auth = __commonJS({
+  "backend/lib/site-auth.js"(exports2, module2) {
+    var crypto = require("node:crypto");
+    var { safeEqual } = require_auth();
+    var COOKIE_NAME = "site_auth";
+    var DEFAULT_TTL_SECONDS = 30 * 24 * 60 * 60;
+    var DEV_FALLBACK_PASSWORD = "eregio2026#";
+    var DEV_FALLBACK_SECRET = "dev-only-insecure-secret-change-me";
+    function inCloudProd() {
+      return Boolean(process.env.VERCEL) && process.env.VERCEL_ENV !== "development";
+    }
+    function expectedPassword() {
+      const p = process.env.SITE_PASSWORD;
+      if (p && p.length > 0) return p;
+      if (inCloudProd()) return null;
+      return DEV_FALLBACK_PASSWORD;
+    }
+    function authSecret() {
+      const s = process.env.SITE_AUTH_SECRET;
+      if (s && s.length > 0) return s;
+      if (inCloudProd()) return null;
+      return DEV_FALLBACK_SECRET;
+    }
+    function b64urlEncode(buf) {
+      return Buffer.from(buf).toString("base64url");
+    }
+    function hmac(secret, msg) {
+      return crypto.createHmac("sha256", secret).update(msg).digest();
+    }
+    function hashPassword(plain) {
+      const salt = crypto.randomBytes(16).toString("hex");
+      const hash = crypto.pbkdf2Sync(plain, salt, 1e5, 64, "sha512").toString("hex");
+      return `${salt}:${hash}`;
+    }
+    function verifyPassword(plain, stored) {
+      const idx = stored.indexOf(":");
+      if (idx < 0) return false;
+      const salt = stored.slice(0, idx);
+      const expected = stored.slice(idx + 1);
+      const got = crypto.pbkdf2Sync(plain, salt, 1e5, 64, "sha512").toString("hex");
+      return safeEqual(got, expected);
+    }
+    function signSiteToken(ttlSeconds = DEFAULT_TTL_SECONDS, userPayload = {}) {
+      const secret = authSecret();
+      if (!secret) throw new Error("SITE_AUTH_SECRET not configured");
+      const exp = Math.floor(Date.now() / 1e3) + ttlSeconds;
+      const msg = b64urlEncode(JSON.stringify({ v: 1, exp, ...userPayload }));
+      const sig = b64urlEncode(hmac(secret, msg));
+      return `${msg}.${sig}`;
+    }
+    function verifySiteToken(token) {
+      const secret = authSecret();
+      if (!secret || typeof token !== "string") return null;
+      const dot = token.indexOf(".");
+      if (dot < 1) return null;
+      const msg = token.slice(0, dot);
+      const sig = token.slice(dot + 1);
+      const expectedSig = b64urlEncode(hmac(secret, msg));
+      if (!safeEqual(sig, expectedSig)) return null;
+      try {
+        const payload = JSON.parse(Buffer.from(msg, "base64url").toString("utf8"));
+        if (!payload || payload.v !== 1 || typeof payload.exp !== "number") return null;
+        if (Math.floor(Date.now() / 1e3) >= payload.exp) return null;
+        return payload;
+      } catch {
+        return null;
+      }
+    }
+    function isConfigured() {
+      return authSecret() != null;
+    }
+    module2.exports = {
+      COOKIE_NAME,
+      DEFAULT_TTL_SECONDS,
+      expectedPassword,
+      hashPassword,
+      verifyPassword,
+      signSiteToken,
+      verifySiteToken,
+      isConfigured
+    };
   }
 });
 
@@ -69793,155 +69986,139 @@ var require_cors = __commonJS({
   }
 });
 
-// backend/lib/auth.js
-var require_auth = __commonJS({
-  "backend/lib/auth.js"(exports2, module2) {
-    var crypto = require("node:crypto");
-    var DEV_FALLBACK_TOKEN = "eregio2026#";
-    function expectedToken() {
-      const t = process.env.ADMIN_API_TOKEN;
-      if (t && t.length > 0) return t;
-      if (process.env.VERCEL && process.env.VERCEL_ENV !== "development") {
-        return null;
-      }
-      return DEV_FALLBACK_TOKEN;
-    }
-    function safeEqual(a, b) {
-      const ba = Buffer.from(String(a), "utf8");
-      const bb = Buffer.from(String(b), "utf8");
-      if (ba.length !== bb.length) {
-        crypto.timingSafeEqual(ba, ba);
-        return false;
-      }
-      return crypto.timingSafeEqual(ba, bb);
-    }
-    function extractBearer(req) {
-      const h = req.headers["authorization"] || req.headers["Authorization"];
-      if (!h || typeof h !== "string") return null;
-      const m = /^Bearer\s+(.+)$/i.exec(h.trim());
-      return m ? m[1].trim() : null;
-    }
-    async function requireAdmin(req, reply) {
-      const expected = expectedToken();
-      if (!expected) {
-        req.log.error("ADMIN_API_TOKEN ist in dieser Umgebung nicht gesetzt \u2014 Admin-Routen gesperrt.");
-        return reply.code(503).send({ ok: false, error: "Server nicht konfiguriert" });
-      }
-      if (process.env.ADMIN_API_TOKEN == null && (!process.env.VERCEL || process.env.VERCEL_ENV === "development")) {
-        req.log.warn("ADMIN_API_TOKEN nicht gesetzt \u2014 verwende lokalen Dev-Fallback. NICHT f\xFCr Produktion.");
-      }
-      const got = extractBearer(req);
-      if (!got || !safeEqual(got, expected)) {
-        return reply.code(401).send({ ok: false, error: "Nicht autorisiert" });
-      }
-    }
-    module2.exports = { requireAdmin, safeEqual };
-  }
-});
-
-// backend/lib/site-auth.js
-var require_site_auth = __commonJS({
-  "backend/lib/site-auth.js"(exports2, module2) {
-    var crypto = require("node:crypto");
-    var { safeEqual } = require_auth();
-    var COOKIE_NAME = "site_auth";
-    var DEFAULT_TTL_SECONDS = 30 * 24 * 60 * 60;
-    var DEV_FALLBACK_PASSWORD = "eregio2026#";
-    var DEV_FALLBACK_SECRET = "dev-only-insecure-secret-change-me";
-    function inCloudProd() {
-      return Boolean(process.env.VERCEL) && process.env.VERCEL_ENV !== "development";
-    }
-    function expectedPassword() {
-      const p = process.env.SITE_PASSWORD;
-      if (p && p.length > 0) return p;
-      if (inCloudProd()) return null;
-      return DEV_FALLBACK_PASSWORD;
-    }
-    function authSecret() {
-      const s = process.env.SITE_AUTH_SECRET;
-      if (s && s.length > 0) return s;
-      if (inCloudProd()) return null;
-      return DEV_FALLBACK_SECRET;
-    }
-    function b64urlEncode(buf) {
-      return Buffer.from(buf).toString("base64url");
-    }
-    function hmac(secret, msg) {
-      return crypto.createHmac("sha256", secret).update(msg).digest();
-    }
-    function signSiteToken(ttlSeconds = DEFAULT_TTL_SECONDS) {
-      const secret = authSecret();
-      if (!secret) throw new Error("SITE_AUTH_SECRET not configured");
-      const exp = Math.floor(Date.now() / 1e3) + ttlSeconds;
-      const msg = b64urlEncode(JSON.stringify({ v: 1, exp }));
-      const sig = b64urlEncode(hmac(secret, msg));
-      return `${msg}.${sig}`;
-    }
-    function verifySiteToken(token) {
-      const secret = authSecret();
-      if (!secret || typeof token !== "string") return false;
-      const dot = token.indexOf(".");
-      if (dot < 1) return false;
-      const msg = token.slice(0, dot);
-      const sig = token.slice(dot + 1);
-      const expectedSig = b64urlEncode(hmac(secret, msg));
-      if (!safeEqual(sig, expectedSig)) return false;
-      try {
-        const payload = JSON.parse(Buffer.from(msg, "base64url").toString("utf8"));
-        if (!payload || payload.v !== 1 || typeof payload.exp !== "number") return false;
-        return Math.floor(Date.now() / 1e3) < payload.exp;
-      } catch {
-        return false;
-      }
-    }
-    function isConfigured() {
-      return expectedPassword() != null && authSecret() != null;
-    }
-    module2.exports = {
-      COOKIE_NAME,
-      DEFAULT_TTL_SECONDS,
-      expectedPassword,
-      signSiteToken,
-      verifySiteToken,
-      isConfigured
-    };
-  }
-});
-
 // backend/routes/auth.js
 var require_auth2 = __commonJS({
   "backend/routes/auth.js"(exports2, module2) {
     var {
       COOKIE_NAME,
       DEFAULT_TTL_SECONDS,
-      expectedPassword,
       signSiteToken,
-      isConfigured
+      verifySiteToken,
+      isConfigured,
+      verifyPassword
     } = require_site_auth();
-    var { safeEqual } = require_auth();
+    var usersRepo = require_usersRepo();
     var secureAttr = process.env.VERCEL ? "; Secure" : "";
     function cookieHeader(value, maxAgeSeconds) {
       return `${COOKIE_NAME}=${value}; HttpOnly${secureAttr}; SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}`;
     }
+    function getTokenFromRequest(req) {
+      const cookieHeader2 = req.headers.cookie || "";
+      for (const part of cookieHeader2.split(";")) {
+        const idx = part.indexOf("=");
+        if (idx < 0) continue;
+        if (part.slice(0, idx).trim() === COOKIE_NAME) return part.slice(idx + 1).trim();
+      }
+      return null;
+    }
     module2.exports = async function authRoutes(fastify) {
       const LOGIN_LIMIT = { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } };
       fastify.post("/api/auth/login", LOGIN_LIMIT, async (req, reply) => {
-        const expected = expectedPassword();
-        if (!isConfigured() || expected == null) {
-          req.log.error("SITE_PASSWORD/SITE_AUTH_SECRET nicht gesetzt \u2014 Website-Login gesperrt.");
+        if (!isConfigured()) {
+          req.log.error("SITE_AUTH_SECRET nicht gesetzt \u2014 Login gesperrt.");
           return reply.code(503).send({ ok: false, error: "Login nicht konfiguriert" });
         }
-        const password = req.body && req.body.password || "";
-        if (!safeEqual(password, expected)) {
-          return reply.code(401).send({ ok: false, error: "Falsches Passwort" });
+        const { username = "", password = "" } = req.body || {};
+        if (!username || !password) {
+          return reply.code(401).send({ ok: false, error: "Benutzername und Passwort erforderlich" });
         }
-        const token = signSiteToken(DEFAULT_TTL_SECONDS);
+        const user = await usersRepo.findByUsername(username);
+        if (!user || !verifyPassword(password, user.password_hash)) {
+          return reply.code(401).send({ ok: false, error: "Ung\xFCltige Anmeldedaten" });
+        }
+        const modules = JSON.parse(user.modules || "[]");
+        const token = signSiteToken(DEFAULT_TTL_SECONDS, {
+          username: user.username,
+          modules,
+          isAdmin: user.is_admin === 1
+        });
         reply.header("Set-Cookie", cookieHeader(token, DEFAULT_TTL_SECONDS));
-        return { ok: true };
+        return { ok: true, username: user.username, modules, isAdmin: user.is_admin === 1 };
       });
       fastify.post("/api/auth/logout", async (_req, reply) => {
         reply.header("Set-Cookie", cookieHeader("", 0));
         return { ok: true };
+      });
+      fastify.get("/api/auth/me", async (req, reply) => {
+        const token = getTokenFromRequest(req);
+        const payload = token ? verifySiteToken(token) : null;
+        if (!payload) return reply.code(401).send({ ok: false, error: "Nicht eingeloggt" });
+        return {
+          ok: true,
+          username: payload.username || null,
+          modules: payload.modules || [],
+          isAdmin: payload.isAdmin || false
+        };
+      });
+    };
+  }
+});
+
+// backend/routes/admin-users.js
+var require_admin_users = __commonJS({
+  "backend/routes/admin-users.js"(exports2, module2) {
+    var { requireAdmin } = require_auth();
+    var usersRepo = require_usersRepo();
+    var { hashPassword } = require_site_auth();
+    var ALL_MODULES = [
+      "besucher-dashboard",
+      "produkt-id-tool",
+      "einsatzplaner",
+      "abschlag-wasser",
+      "formulare",
+      "admin"
+    ];
+    module2.exports = async function adminUsersRoutes(fastify) {
+      fastify.get("/api/admin/users", { preHandler: requireAdmin }, async () => {
+        const users = await usersRepo.listAll();
+        return users.map((u) => ({
+          ...u,
+          modules: JSON.parse(u.modules || "[]"),
+          is_admin: u.is_admin === 1
+        }));
+      });
+      fastify.post("/api/admin/users", { preHandler: requireAdmin }, async (req, reply) => {
+        const { username, password, modules = [], isAdmin = false } = req.body || {};
+        if (!username || !password) {
+          return reply.code(400).send({ ok: false, error: "username und password erforderlich" });
+        }
+        const validModules = modules.filter((m) => ALL_MODULES.includes(m));
+        try {
+          const id = await usersRepo.create({
+            username: username.trim(),
+            passwordHash: hashPassword(password),
+            modules: validModules,
+            isAdmin
+          });
+          return { ok: true, id };
+        } catch (e) {
+          if (e.message && e.message.includes("UNIQUE")) {
+            return reply.code(409).send({ ok: false, error: "Benutzername bereits vergeben" });
+          }
+          throw e;
+        }
+      });
+      fastify.put("/api/admin/users/:id", { preHandler: requireAdmin }, async (req, reply) => {
+        const id = Number(req.params.id);
+        const { password, modules, isAdmin } = req.body || {};
+        const patch = {};
+        if (password) patch.passwordHash = hashPassword(password);
+        if (modules !== void 0) patch.modules = modules.filter((m) => ALL_MODULES.includes(m));
+        if (isAdmin !== void 0) patch.isAdmin = Boolean(isAdmin);
+        await usersRepo.update(id, patch);
+        return { ok: true };
+      });
+      fastify.delete("/api/admin/users/:id", { preHandler: requireAdmin }, async (req, reply) => {
+        const id = Number(req.params.id);
+        const total = await usersRepo.count();
+        if (total <= 1) {
+          return reply.code(409).send({ ok: false, error: "Letzten User nicht l\xF6schbar" });
+        }
+        await usersRepo.remove(id);
+        return { ok: true };
+      });
+      fastify.get("/api/admin/users/modules", { preHandler: requireAdmin }, async () => {
+        return ALL_MODULES;
       });
     };
   }
@@ -71645,6 +71822,25 @@ var require_mitbewerber = __commonJS({
 var require_app = __commonJS({
   "backend/app.js"(exports2, module2) {
     var { ensureSchemas } = require_schema();
+    var usersRepo = require_usersRepo();
+    var { hashPassword } = require_site_auth();
+    var ALL_MODULES = ["besucher-dashboard", "produkt-id-tool", "einsatzplaner", "abschlag-wasser", "formulare", "admin"];
+    var DEV_ADMIN_PW = "eregio2026#";
+    async function seedAdminUser() {
+      try {
+        const n = await usersRepo.count();
+        if (n > 0) return;
+        const pw = process.env.ADMIN_API_TOKEN || DEV_ADMIN_PW;
+        await usersRepo.create({
+          username: "admin",
+          passwordHash: hashPassword(pw),
+          modules: ALL_MODULES,
+          isAdmin: true
+        });
+      } catch (e) {
+        console.error("[seed] Admin-Seed fehlgeschlagen:", e.message);
+      }
+    }
     var ALLOWED_ORIGINS = /* @__PURE__ */ new Set([
       "https://kundenservice-control-center.vercel.app",
       ...String(process.env.CORS_EXTRA_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean)
@@ -71670,6 +71866,7 @@ var require_app = __commonJS({
         origin: (origin, cb) => cb(null, isAllowedOrigin(origin))
       });
       fastify.register(require_auth2());
+      fastify.register(require_admin_users());
       fastify.register(require_preise());
       fastify.register(require_admin_preise());
       fastify.register(require_besucher());
@@ -71679,7 +71876,8 @@ var require_app = __commonJS({
       fastify.register(require_admin_import());
       fastify.register(require_mitbewerber(), { prefix: "/api/mitbewerber" });
       fastify.get("/api/health", async () => ({ ok: true }));
-      if (!process.env.VERCEL || process.env.VERCEL_ENV === "development") await ensureSchemas();
+      await ensureSchemas();
+      await seedAdminUser();
       return fastify;
     }
     module2.exports = buildApp2;

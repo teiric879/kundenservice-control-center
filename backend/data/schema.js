@@ -26,6 +26,7 @@ async function ensureProdukte() {
   await db.exec(ddl.VERTRAGSFORMULARE_TABLE);
   await tryAlters(db, ddl.VERTRAGSFORMULARE_ALTERS);
   await db.exec(ddl.STANDALONE_FORMULARE_TABLE);
+  await db.exec(ddl.USERS_TABLE);
 }
 
 async function ensureBesucher() {

@@ -272,6 +272,19 @@ const INITIAL_AGENTS = [
   ['Lydia Kaufmann',    'LK', '#fb7185'],
 ];
 
+// User-Accounts für den website-weiten Login (Multi-User-System).
+// Liegt in der produkte-DB (zentralste DB, enthält auch import_history).
+const USERS_TABLE = `
+  CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    modules       TEXT NOT NULL DEFAULT '[]',
+    is_admin      INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`;
+
 module.exports = {
   PRODUKTE_TABLES,
   PRODUKTE_ALTERS,
@@ -280,6 +293,7 @@ module.exports = {
   VERTRAGSFORMULARE_TABLE,
   VERTRAGSFORMULARE_ALTERS,
   STANDALONE_FORMULARE_TABLE,
+  USERS_TABLE,
   BESUCHER_TABLES,
   BESUCHER_ALTERS,
   EINSATZPLAN_TABLES,

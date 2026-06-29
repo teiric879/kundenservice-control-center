@@ -782,6 +782,10 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
             Formulare<span class="ext-dot"></span>
           </a>
+          <button class="mod-item" id="sideTab-benutzer" onclick="showTab('benutzer')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Benutzer
+          </button>
         </div>
       </div>
 
@@ -832,6 +836,10 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
       <button class="tab-btn" id="tab-datenupdate" onclick="showTab('datenupdate')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Datenaktualisierung
+      </button>
+      <button class="tab-btn" id="tab-benutzer" onclick="showTab('benutzer')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Benutzer
       </button>
     </div>
 
@@ -1201,8 +1209,58 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
 
     </div><!-- /panel-datenupdate -->
 
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: Benutzer                                                          -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-benutzer">
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Benutzerverwaltung</div>
+            <div class="card-sub">User anlegen, Module zuweisen und Passwörter verwalten</div>
+          </div>
+          <button class="btn-primary" onclick="buNeuModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:15px;height:15px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Neuer Benutzer
+          </button>
+        </div>
+
+        <div id="buList"><div style="color:var(--muted-2);font-size:13px;padding:12px 0">Lade…</div></div>
+      </div>
+
+    </div><!-- /panel-benutzer -->
+
   </main>
 </div><!-- /adminApp -->
+
+<!-- Benutzer-Modal -->
+<div id="buModal" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(6,59,55,.35);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:20px;padding:32px 28px;width:min(96vw,460px);box-shadow:0 32px 80px rgba(0,12,10,.25);max-height:90vh;overflow-y:auto">
+    <h2 id="buModalTitle" style="font-size:17px;font-weight:700;margin-bottom:20px;color:var(--ci)">Neuer Benutzer</h2>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px">Benutzername</label>
+      <input id="buUsername" type="text" style="width:100%;padding:10px 12px;border:1.5px solid var(--stroke);border-radius:10px;font:inherit;font-size:14px;color:var(--ink);background:#fafaf8;outline:none" placeholder="z.B. team-a">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px">Passwort <span id="buPwHint" style="color:var(--muted-2)">(leer = unverändert)</span></label>
+      <input id="buPassword" type="password" style="width:100%;padding:10px 12px;border:1.5px solid var(--stroke);border-radius:10px;font:inherit;font-size:14px;color:var(--ink);background:#fafaf8;outline:none" placeholder="Passwort eingeben">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:10px">Module (sichtbar für diesen User)</label>
+      <div id="buModules" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+    </div>
+    <div style="margin-bottom:24px;display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="buIsAdmin" style="width:16px;height:16px;accent-color:var(--ci)">
+      <label for="buIsAdmin" style="font-size:13px;color:var(--ink);cursor:pointer">Admin-Rechte (Zugriff auf dieses Panel)</label>
+    </div>
+    <div id="buModalErr" style="min-height:18px;margin-bottom:12px;font-size:12px;color:var(--neg)"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="buCloseModal()" style="padding:10px 20px;border-radius:10px;border:1.5px solid var(--stroke);background:transparent;font:inherit;font-size:14px;cursor:pointer;color:var(--muted)">Abbrechen</button>
+      <button id="buSaveBtn" onclick="buSave()" style="padding:10px 22px;border-radius:10px;border:none;background:var(--ci);color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer">Speichern</button>
+    </div>
+  </div>
+</div>
 
 <!-- Toast -->
 <div class="toast" id="toast">
@@ -1320,7 +1378,7 @@ function logout(){
 }
 
 // ── Tab Navigation ───────────────────────────────────────────────────────────
-const TABS = ['produkte','gueltigkeiten','formulare','downloadformulare','einsatzplaner','datenupdate'];
+const TABS = ['produkte','gueltigkeiten','formulare','downloadformulare','einsatzplaner','datenupdate','benutzer'];
 function showTab(name){
   TABS.forEach(t=>{
     const panel = document.getElementById('panel-'+t);
@@ -1335,6 +1393,7 @@ function showTab(name){
   if(name==='formulare') renderPdfPanel();
   if(name==='downloadformulare') sfRender();
   if(name==='datenupdate') duInit();
+  if(name==='benutzer') buInit();
 }
 
 // ── Sidebar Toggles ──────────────────────────────────────────────────────────
@@ -2339,6 +2398,155 @@ async function duLoadHistory(){
     }).join('');
   }catch(e){ el.innerHTML='<div style="color:var(--muted-2);font-size:13px">Historie nicht verfügbar.</div>'; }
 }
+
+// ── Benutzer-Verwaltung ──────────────────────────────────────────────────────
+const BU_MODULE_LABELS = {
+  'besucher-dashboard': 'Besucher-Dashboard',
+  'produkt-id-tool':    'Produkt-ID Tool',
+  'einsatzplaner':      'Einsatzplaner',
+  'abschlag-wasser':    'Abschlag Wasser',
+  'formulare':          'Formulare',
+  'admin':              'Administration',
+};
+let buAllModules = Object.keys(BU_MODULE_LABELS);
+let buEditId = null;
+
+async function buInit() {
+  const el = document.getElementById('buList');
+  try {
+    const res = await fetch('/api/admin/users');
+    if (!res.ok) throw new Error(res.status);
+    const users = await res.json();
+    if (!users.length) {
+      el.innerHTML = '<div style="color:var(--muted-2);font-size:13px;padding:8px 0">Keine Benutzer vorhanden.</div>';
+      return;
+    }
+    el.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="border-bottom:2px solid var(--stroke)">
+          <th style="text-align:left;padding:8px 10px 10px;color:var(--muted);font-weight:600">Benutzername</th>
+          <th style="text-align:left;padding:8px 10px 10px;color:var(--muted);font-weight:600">Module</th>
+          <th style="text-align:left;padding:8px 10px 10px;color:var(--muted);font-weight:600">Rolle</th>
+          <th style="padding:8px 10px 10px"></th>
+        </tr></thead>
+        <tbody>
+          ${users.map(u => `
+            <tr style="border-bottom:1px solid var(--stroke)" data-uid="${u.id}">
+              <td style="padding:10px 10px;font-weight:600;color:var(--ci)">${escHtml(u.username)}</td>
+              <td style="padding:10px 10px">
+                <div style="display:flex;flex-wrap:wrap;gap:4px">
+                  ${(u.modules||[]).length ? u.modules.map(m=>`<span style="background:var(--turq);color:var(--ci);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600">${escHtml(BU_MODULE_LABELS[m]||m)}</span>`).join('') : '<span style="color:var(--muted-2)">–</span>'}
+                </div>
+              </td>
+              <td style="padding:10px 10px">
+                ${u.is_admin ? '<span style="background:rgba(255,195,0,.18);color:var(--gold);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700">Admin</span>' : '<span style="color:var(--muted-2);font-size:12px">Benutzer</span>'}
+              </td>
+              <td style="padding:10px 10px;text-align:right;white-space:nowrap">
+                <button onclick="buEditModal(${u.id})" style="padding:5px 12px;border-radius:8px;border:1.5px solid var(--stroke);background:transparent;font:inherit;font-size:12px;cursor:pointer;color:var(--ink);margin-right:6px">Bearbeiten</button>
+                <button onclick="buDelete(${u.id},'${escHtml(u.username)}')" style="padding:5px 12px;border-radius:8px;border:1.5px solid rgba(153,60,29,.3);background:transparent;font:inherit;font-size:12px;cursor:pointer;color:var(--neg)">Löschen</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--muted-2);font-size:13px">Fehler beim Laden.</div>';
+  }
+}
+
+function buRenderModuleCheckboxes(selected=[]) {
+  const el = document.getElementById('buModules');
+  el.innerHTML = buAllModules.map(m => `
+    <label style="display:flex;align-items:center;gap:7px;background:var(--glass-hi);border:1.5px solid var(--stroke);border-radius:9px;padding:7px 12px;cursor:pointer;font-size:13px;user-select:none">
+      <input type="checkbox" value="${m}" ${selected.includes(m)?'checked':''} style="accent-color:var(--ci);width:14px;height:14px">
+      ${escHtml(BU_MODULE_LABELS[m]||m)}
+    </label>`).join('');
+}
+
+function buNeuModal() {
+  buEditId = null;
+  document.getElementById('buModalTitle').textContent = 'Neuer Benutzer';
+  document.getElementById('buUsername').value = '';
+  document.getElementById('buUsername').disabled = false;
+  document.getElementById('buPassword').value = '';
+  document.getElementById('buPwHint').style.display = 'none';
+  document.getElementById('buIsAdmin').checked = false;
+  document.getElementById('buModalErr').textContent = '';
+  buRenderModuleCheckboxes([]);
+  const m = document.getElementById('buModal');
+  m.style.display = 'flex';
+}
+
+async function buEditModal(id) {
+  try {
+    const res = await fetch('/api/admin/users');
+    const users = await res.json();
+    const user = users.find(u => u.id === id);
+    if (!user) return;
+    buEditId = id;
+    document.getElementById('buModalTitle').textContent = 'Benutzer bearbeiten';
+    document.getElementById('buUsername').value = user.username;
+    document.getElementById('buUsername').disabled = true;
+    document.getElementById('buPassword').value = '';
+    document.getElementById('buPwHint').style.display = '';
+    document.getElementById('buIsAdmin').checked = user.is_admin;
+    document.getElementById('buModalErr').textContent = '';
+    buRenderModuleCheckboxes(user.modules || []);
+    document.getElementById('buModal').style.display = 'flex';
+  } catch(e) { toast('Fehler beim Laden', true); }
+}
+
+function buCloseModal() {
+  document.getElementById('buModal').style.display = 'none';
+}
+
+function buGetSelectedModules() {
+  return [...document.querySelectorAll('#buModules input[type=checkbox]:checked')].map(cb => cb.value);
+}
+
+async function buSave() {
+  const errEl = document.getElementById('buModalErr');
+  errEl.textContent = '';
+  const username = document.getElementById('buUsername').value.trim();
+  const password = document.getElementById('buPassword').value;
+  const isAdmin = document.getElementById('buIsAdmin').checked;
+  const modules = buGetSelectedModules();
+
+  if (!buEditId && !username) { errEl.textContent = 'Benutzername erforderlich.'; return; }
+  if (!buEditId && !password) { errEl.textContent = 'Passwort erforderlich.'; return; }
+
+  const btn = document.getElementById('buSaveBtn');
+  btn.disabled = true;
+  try {
+    let res;
+    if (buEditId) {
+      const body = { modules, isAdmin };
+      if (password) body.password = password;
+      res = await fetch(`/api/admin/users/${buEditId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    } else {
+      res = await fetch('/api/admin/users', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, password, modules, isAdmin }) });
+    }
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Fehler beim Speichern.'; return; }
+    buCloseModal();
+    toast(buEditId ? 'Benutzer aktualisiert' : 'Benutzer angelegt');
+    buInit();
+  } catch(e) { errEl.textContent = 'Netzwerkfehler.'; }
+  finally { btn.disabled = false; }
+}
+
+async function buDelete(id, name) {
+  if (!confirm(`Benutzer „${name}" wirklich löschen?`)) return;
+  try {
+    const res = await fetch(`/api/admin/users/${id}`, { method:'DELETE' });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'Fehler beim Löschen', true); return; }
+    toast('Benutzer gelöscht');
+    buInit();
+  } catch(e) { toast('Netzwerkfehler', true); }
+}
+
+// Modal schließen bei Klick außen
+document.getElementById('buModal').addEventListener('click', function(e){ if(e.target===this) buCloseModal(); });
 </script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=4"></script>
