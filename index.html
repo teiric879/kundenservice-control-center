@@ -87,15 +87,28 @@ html,body{height:100%;font-family:var(--font-body,'DM Sans',system-ui,sans-serif
 <script src="shared/werkzeuge.js?v=6"></script>
 <script>
 (async function () {
+  // Lokal läuft das Frontend auf :8124, die API auf :3001 → Cross-Origin-Präfix.
+  var isLocal = ['127.0.0.1','localhost'].includes(location.hostname);
+  var apiBase = isLocal ? 'http://' + location.hostname + ':3001' : '';
+  function showAll() {
+    document.querySelectorAll('[data-module]').forEach(function (el) { el.style.display = ''; });
+  }
   try {
-    var res = await fetch('/api/auth/me', { credentials: 'same-origin' });
-    if (!res.ok) return;
+    var res = await fetch(apiBase + '/api/auth/me', { credentials: isLocal ? 'include' : 'same-origin' });
+    if (!res.ok) {
+      // Lokal gibt es keinen Login-Gate → alle Module zeigen. Auf Prod: 401 = nicht eingeloggt.
+      if (isLocal) showAll();
+      return;
+    }
     var data = await res.json();
     var modules = data.modules || [];
     document.querySelectorAll('[data-module]').forEach(function (el) {
       if (modules.includes(el.dataset.module)) el.style.display = '';
     });
-  } catch (_) {}
+  } catch (_) {
+    // API nicht erreichbar (z.B. lokal ohne Backend) → nicht aussperren.
+    showAll();
+  }
 })();
 </script>
 </body>

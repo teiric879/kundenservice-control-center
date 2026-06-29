@@ -2411,10 +2411,13 @@ const BU_MODULE_LABELS = {
 let buAllModules = Object.keys(BU_MODULE_LABELS);
 let buEditId = null;
 
+// Lokal läuft das Frontend auf :8124, die API auf :3001 → gleiches Cross-Origin-Präfix wie alle anderen Admin-Calls.
+const BU_API = (['127.0.0.1','localhost'].includes(location.hostname) ? `http://${location.hostname}:3001` : '') + '/api/admin/users';
+
 async function buInit() {
   const el = document.getElementById('buList');
   try {
-    const res = await fetch('/api/admin/users');
+    const res = await fetch(BU_API);
     if (!res.ok) throw new Error(res.status);
     const users = await res.json();
     if (!users.length) {
@@ -2478,7 +2481,7 @@ function buNeuModal() {
 
 async function buEditModal(id) {
   try {
-    const res = await fetch('/api/admin/users');
+    const res = await fetch(BU_API);
     const users = await res.json();
     const user = users.find(u => u.id === id);
     if (!user) return;
@@ -2521,9 +2524,9 @@ async function buSave() {
     if (buEditId) {
       const body = { modules, isAdmin };
       if (password) body.password = password;
-      res = await fetch(`/api/admin/users/${buEditId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      res = await fetch(`${BU_API}/${buEditId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
     } else {
-      res = await fetch('/api/admin/users', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, password, modules, isAdmin }) });
+      res = await fetch(BU_API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, password, modules, isAdmin }) });
     }
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.error || 'Fehler beim Speichern.'; return; }
@@ -2537,7 +2540,7 @@ async function buSave() {
 async function buDelete(id, name) {
   if (!confirm(`Benutzer „${name}" wirklich löschen?`)) return;
   try {
-    const res = await fetch(`/api/admin/users/${id}`, { method:'DELETE' });
+    const res = await fetch(`${BU_API}/${id}`, { method:'DELETE' });
     const data = await res.json();
     if (!res.ok) { toast(data.error || 'Fehler beim Löschen', true); return; }
     toast('Benutzer gelöscht');
