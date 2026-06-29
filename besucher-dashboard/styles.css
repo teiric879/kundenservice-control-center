@@ -502,3 +502,72 @@ input[type=date]{border:1px solid var(--stroke);background:var(--glass);color:va
   .reveal{opacity:1;transform:none}
   .hbar .track i{transition:none}
 }
+
+/* ============================================================================
+   PDF-Export · Button + Druck-/PDF-Layout
+   ========================================================================== */
+/* Button im Header (gleiche CD-Sprache wie Select/Glass-Controls) */
+.pdf-btn{display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:13px;border:1px solid var(--stroke);
+  background:var(--glass);color:var(--ci);font-family:inherit;font-weight:600;
+  font-size:13px;line-height:1;cursor:pointer;box-shadow:var(--inner);
+  transition:background .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease),transform .2s var(--ease)}
+.pdf-btn svg{width:16px;height:16px;flex:0 0 16px;opacity:.9}
+.pdf-btn:hover{background:var(--glass-hi);border-color:var(--stroke-hi);box-shadow:var(--e1),var(--inner);transform:translateY(-1px)}
+.pdf-btn:active{transform:translateY(1px)}
+.pdf-btn:focus-visible{outline:2px solid var(--ci);outline-offset:2px}
+
+/* Druck-Dokumentkopf/-fuß: nur im PDF/Druck sichtbar */
+.print-doc-head,.print-foot{display:none}
+
+@media print{
+  /* Marken-/Akzentfarben im Druck erhalten (Business-Look) */
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  /* margin:0 entfernt die Browser-Kopf-/Fußzeile (Dateiname + URL) auf JEDER Seite.
+     Die Seitenränder kommen stattdessen aus dem .main-Padding unten. */
+  @page{size:A4;margin:0}
+  html,body{background:#fff!important}
+  body::before,body::after{display:none!important}
+
+  /* App-Chrome ausblenden: Sidebar, Filterleiste, Tabs, Floating-Bars, Tooltips, der Button selbst */
+  .sidebar,.topbar,.dash-tabs,.tip,.toast,.eb-root,.wz-root,.wz-tab,#pdfExportBtn{display:none!important}
+
+  /* Inhalt auf volle Seitenbreite, nur aktive View/Tab */
+  .app{display:block!important}
+  .main{padding:13mm 12mm 16mm!important}
+  .view{display:none!important}
+  .view.active{display:block!important}
+
+  /* Dokumentkopf */
+  .print-doc-head{display:flex!important;align-items:center;gap:16px;
+    padding-bottom:12px;margin-bottom:16px;border-bottom:2px solid var(--ci)}
+  .print-logo{height:32px;width:auto}
+  .print-meta{flex:1;min-width:0}
+  .print-kicker{font-family:'Hanken Grotesk',sans-serif;font-size:9.5px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.14em;color:#8a6a00}
+  .print-title{font-family:'Hanken Grotesk',sans-serif;font-size:19px;font-weight:700;color:var(--ci);line-height:1.12;margin-top:1px}
+  .print-scope{font-family:'Hanken Grotesk',sans-serif;font-size:12.5px;font-weight:600;color:var(--ink);margin-top:3px}
+  .print-filters{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.45}
+  .print-filters b{color:var(--ink);font-weight:700}
+  .print-stamp{font-size:10.5px;color:var(--muted-2);text-align:right;white-space:nowrap;line-height:1.45;align-self:flex-start}
+
+  /* Laufender Seitenfuß (im Seitenrand) */
+  .print-foot{display:block!important;position:fixed;left:0;right:0;bottom:0;
+    text-align:center;font-size:9px;color:var(--muted-2);letter-spacing:.02em;
+    background:#fff;padding:3mm 12mm 5mm;border-top:1px solid var(--stroke)}
+
+  /* Karten druckfreundlich + saubere Seitenumbrüche */
+  .reveal{opacity:1!important;transform:none!important;animation:none!important}
+  .card,.si-card,.mp-col,.fc-cell{box-shadow:none!important;transform:none!important;
+    border:1px solid var(--stroke)!important;overflow:visible!important;
+    break-inside:avoid;page-break-inside:avoid}
+  .card::before,.si-card::before{display:none!important}
+  .card:hover,.si-card:hover{transform:none!important;box-shadow:none!important}
+  .kpi,.dash-tab-panel>.card,.panels>div,.panels-3>div{break-inside:avoid;page-break-inside:avoid}
+
+  /* Etwas kompakter fürs Papier */
+  .kpis,.panels,.panels-3{gap:12px!important}
+
+  /* SVG-Diagramme skalieren sauber, nichts wird abgeschnitten */
+  svg{max-width:100%}
+}

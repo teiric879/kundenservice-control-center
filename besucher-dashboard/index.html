@@ -6,7 +6,7 @@
 <title>e-regio · Kundenservice Control Center</title>
 <link rel="stylesheet" href="../shared/fonts.css?v=1">
 <link rel="stylesheet" href="../shared/tokens.css?v=1">
-<link rel="stylesheet" href="styles.css?v=24">
+<link rel="stylesheet" href="styles.css?v=25">
 <link rel="stylesheet" href="../shared/sidebar.css?v=3">
 </head>
 <body>
@@ -165,7 +165,23 @@
           <div class="daterange glass" id="customRange" style="border-radius:13px;padding:5px 8px">
             <input type="date" id="fromDate" aria-label="von" autocomplete="off"><span>–</span><input type="date" id="toDate" aria-label="bis" autocomplete="off">
           </div>
+          <button id="pdfExportBtn" class="pdf-btn" type="button" title="Aktuelle Ansicht als PDF exportieren" aria-label="Dashboard als PDF exportieren">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            <span>PDF exportieren</span>
+          </button>
         </div>
+      </div>
+
+      <!-- Nur im Druck/PDF sichtbarer Dokumentkopf (Business-Look) -->
+      <div class="print-doc-head" id="printDocHead" aria-hidden="true">
+        <img class="print-logo" src="../shared/eregio-logo-gruen.png" alt="e-regio">
+        <div class="print-meta">
+          <div class="print-kicker">Besucher-Dashboard</div>
+          <div class="print-title">Management Report</div>
+          <div class="print-scope" id="printScope">–</div>
+          <div class="print-filters" id="printFilters">–</div>
+        </div>
+        <div class="print-stamp" id="printStamp">–</div>
       </div>
 
       <!-- ── Tab-Navigation ── -->
@@ -341,6 +357,8 @@
         </div>
       </div><!-- /tab-analyse -->
 
+      <!-- Nur im Druck/PDF sichtbarer Seitenfuß -->
+      <div class="print-foot" aria-hidden="true">e-regio · Kundenservice Control Center · Vertraulich – nur zur internen Verwendung</div>
     </section>
 
     <!-- MARKTLAGE -->
@@ -425,7 +443,7 @@
 </div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
-<script src="app.js?v=30"></script>
+<script src="app.js?v=31"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=4"></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">

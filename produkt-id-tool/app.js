@@ -297,6 +297,13 @@ verbrauchInput.addEventListener('input', debounce(() => {
   S.verbrauch = parseFloat(verbrauchInput.value) || 0;
   calculate();
 }, 400));
+// Manuelle kWh-Eingabe = bewusst „Jahresverbrauch": das Personen-Helferfeld leeren, damit NIE
+// beide Felder gleichzeitig zählen (sonst rechnete der Durchlauferhitzer pro Person statt einmalig).
+// Focus-Handler greift schon beim Klick ins Feld, input-Handler beim Tippen,
+// pageshow löscht bfcache-restaurierte Stale-Werte (Browser Back/Forward-Cache).
+verbrauchInput.addEventListener('focus', () => { if (personenInput) personenInput.value = ''; });
+verbrauchInput.addEventListener('input', () => { if (personenInput) personenInput.value = ''; });
+window.addEventListener('pageshow', () => { if (personenInput) personenInput.value = ''; });
 
 verbrauchInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') { S.verbrauch = parseFloat(verbrauchInput.value) || 0; calculate(); }
@@ -306,7 +313,7 @@ verbrauchInput.addEventListener('keydown', e => {
 // Befüllt nur das zentrale kWh-Feld. Prinzip „letzte bewusste Eingabe gewinnt":
 // jede Eingabe (kWh, Personen, Fläche, Durchlauferhitzer) setzt S.verbrauch direkt.
 
-// Strom: 1 Pers=1500, +1000 je weitere Person; +300/Person bei Durchlauferhitzer
+// Strom: 1 Pers=1500, +1000 je weitere Person; Durchlauferhitzer +300 kWh PRO PERSON (Personen-Schätzung)
 function vorschlagStrom(personen, dle) {
   if (!personen || personen < 1) return 0;
   const basis = 1000 * personen + 500;          // 1→1500, 2→2500, … 6→6500
@@ -347,10 +354,19 @@ personenInput.addEventListener('input', () => {
 flaecheInput.addEventListener('input', () => {
   applyVerbrauchVorschlag(vorschlagGas(parseFloat(flaecheInput.value)));
 });
+// Durchlauferhitzer – ZUSTANDSLOS anhand des Personen-Felds entscheiden:
+//   • Personen-Feld gefüllt (Verbrauch über Personenanzahl ermittelt) → +300 kWh PRO PERSON
+//   • Personen-Feld leer (nur manueller Jahresverbrauch)            → EINMALIG +300 kWh
+// Da eine manuelle kWh-Eingabe das Personen-Feld leert, zählen nie beide gleichzeitig.
 bindCheckbox(chkDLE, 'durchlauferhitzer', v => {
   S.durchlauferhitzer = v;
   const p = parseInt(personenInput.value, 10);
-  applyVerbrauchVorschlag(vorschlagStrom(p, v));   // nur wirksam wenn Personen gesetzt
+  if (p >= 1) {
+    applyVerbrauchVorschlag(vorschlagStrom(p, v));                              // +300 pro Person
+  } else {
+    const cur = parseFloat(verbrauchInput.value) || 0;
+    if (cur > 0) applyVerbrauchVorschlag(Math.max(0, cur + (v ? 300 : -300)));  // einmalig +300
+  }
 });
 
 verbrauchNTInput.addEventListener('input', debounce(() => {
@@ -454,8 +470,9 @@ radioBrutto.addEventListener('click', () => switchUstMode('brutto'));
 
 function bindCheckbox(labelEl, inputId, onToggle) {
   const input = $(inputId);
-  labelEl.addEventListener('click', () => {
-    input.checked = !input.checked;
+  // change-Event statt click auf Label: der Browser toggled input.checked nativ (Nested-Input),
+  // change feuert genau einmal mit dem finalen Wert — kein double-fire durch Bubbling.
+  input.addEventListener('change', () => {
     labelEl.classList.toggle('sel', input.checked);
     onToggle(input.checked);
   });

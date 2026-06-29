@@ -1410,3 +1410,63 @@ setInterval(refreshVisits, 20000);
 }());
 
 })();
+
+/* ══════════════════════════════════════════════════════
+   PDF-EXPORT – aktuelle Dashboard-Ansicht (inkl. Filter + Tab) drucken/als PDF
+   Nutzt window.print() + das @media-print-Layout (vektor-scharfe SVG-Charts,
+   automatische Seitenumbrüche). Der Dokumentkopf wird aus dem aktuellen
+   Filter-/Tab-Zustand des DOM befüllt – keine Abhängigkeit von internem State.
+   ══════════════════════════════════════════════════════ */
+(function(){
+  var btn=document.getElementById('pdfExportBtn');
+  if(!btn)return;
+
+  function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':s);return d.innerHTML;}
+  function clean(el){return el?el.textContent.replace(/\s+/g,' ').trim():'';}
+  function slug(s){return (s||'').replace(/[^\wÀ-ɏ]+/g,'-').replace(/^-+|-+$/g,'')||'alle';}
+
+  function fillHead(){
+    var stSel=document.getElementById('standortSel');
+    var standort=(stSel&&stSel.selectedOptions&&stSel.selectedOptions[0])
+      ? stSel.selectedOptions[0].textContent.trim() : 'Alle Standorte';
+    // Zeitraum ausgeschrieben (CD) statt nur „Woche"/„Monat"
+    var PMAP={heute:'Heute',gestern:'Gestern',woche:'Diese Woche',month:'Dieser Monat',ytd:'Dieses Jahr',custom:'Zeitraum',all:'Gesamter Zeitraum'};
+    var pbtn=document.querySelector('#periodSeg button.active');
+    var pkey=pbtn?(pbtn.getAttribute('data-p')||''):'';
+    var period=PMAP[pkey]||clean(pbtn)||'–';
+    // rangeInfo enthält „<von> – <bis> · N Besuche [· Standort]" → nur das Datumsfenster behalten
+    var range=clean(document.getElementById('rangeInfo')).split(' · ')[0];
+    var tab=clean(document.querySelector('.dash-tab.active'));
+
+    // „Übersicht · Diese Woche" – aktiver Tab + ausgeschriebener Zeitraum
+    var scope=document.getElementById('printScope');
+    if(scope){ scope.textContent=tab+' · '+period; }
+
+    var pf=document.getElementById('printFilters');
+    if(pf){
+      pf.innerHTML='<b>Standort:</b> '+esc(standort)+
+        ((range&&range!=='–')?' &nbsp;·&nbsp; <b>Zeitraum:</b> '+esc(range):'');
+    }
+    var stamp=document.getElementById('printStamp');
+    if(stamp){
+      var d=new Date();
+      stamp.innerHTML='Erstellt am<br>'+
+        d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})+' · '+
+        d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
+    }
+    return {standort:standort,period:period,tab:tab};
+  }
+
+  var prevTitle=null;
+  btn.addEventListener('click',function(){
+    var info=fillHead();
+    // Dateiname-Vorschlag des Browsers = document.title
+    prevTitle=document.title;
+    document.title='Besucher-Dashboard_'+slug(info.tab)+'_'+slug(info.period)+'_'+slug(info.standort)+
+      '_'+new Date().toISOString().slice(0,10);
+    window.print();
+  });
+  window.addEventListener('afterprint',function(){
+    if(prevTitle!=null){document.title=prevTitle;prevTitle=null;}
+  });
+})();

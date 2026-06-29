@@ -133,7 +133,7 @@ var FORMULARE = {
           '<div class="dc-line">kundenservice@e-regio.de</div>' +
         '</div>' +
       '</div>' +
-      '<div class="doc-date">' + esc(dateLong(d.datum)) + '</div>' +
+      '<div class="doc-date"><span class="doc-date-val">' + esc(dateLong(d.datum)) + '</span></div>' +
       '<div class="doc-subject">Ermittlung der Stromkosten für Trocknung und Bauarbeiten</div>' +
       '<div class="doc-note">(Bei dieser Mitteilung handelt es sich nicht um eine zu zahlende Rechnung!)</div>' +
       '<div class="doc-meta"><table>' +
@@ -164,7 +164,7 @@ var FORMULARE = {
   'brief-eregio': {
     name: 'Freitextbrief (e-regio)',
     kategorie: 'Brief',
-    beschreibung: 'Allgemeiner Geschäftsbrief im e-regio-Layout – Empfänger, Betreff und frei formulierbarer Brieftext.',
+    beschreibung: 'Geschäftsbrief e-regio',
     updated: '2026-06-27',
     builtin: true,
     icon: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
@@ -233,7 +233,7 @@ var FORMULARE = {
   'brief-wes': {
     name: 'Freitextbrief (WES)',
     kategorie: 'Wasser',
-    beschreibung: 'Geschäftsbrief des Wasserversorgungsverbands Euskirchen-Swisttal – Empfänger, Betreff und frei formulierbarer Brieftext.',
+    beschreibung: 'Geschäftsbrief WES',
     updated: '2026-06-27',
     builtin: true,
     icon: '<path d="M12 2.5C12 2.5 5 10 5 14.5a7 7 0 0 0 14 0C19 10 12 2.5 12 2.5Z"/>',
