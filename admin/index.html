@@ -283,8 +283,9 @@ h1,h2,h3,.num{font-family:var(--font-display,'Hanken Grotesk','DM Sans',sans-ser
   transition:all .15s var(--ease);
 }
 .btn svg{width:14px;height:14px}
-.btn-primary{background:linear-gradient(135deg,var(--acc),var(--acc-2));color:#fff}
-.btn-primary:hover{opacity:.88}
+.btn-primary{background:var(--ci);color:#fff}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:active{transform:translateY(1px)}
 .btn-ghost{background:var(--glass);border:1px solid var(--stroke);color:var(--muted)}
 .btn-ghost:hover{color:var(--ink);background:var(--glass-hi);border-color:var(--stroke-hi)}
 .btn-danger{background:rgba(255,138,120,.12);border:1px solid rgba(255,138,120,.25);color:var(--neg)}
@@ -2555,5 +2556,7 @@ document.getElementById('buModal').addEventListener('click', function(e){ if(e.t
 <script src="../shared/erfass-bar.js?v=4"></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">
 <script src="../shared/werkzeuge.js?v=6"></script>
+<script>window.CC_MODULE='admin';</script>
+<script src="../shared/access-guard.js?v=1"></script>
 </body>
 </html>
