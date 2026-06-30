@@ -76,11 +76,12 @@ h1,h2,h3,.num{font-family:'Carlito',Calibri,sans-serif;letter-spacing:var(--trac
 a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--ci);outline-offset:2px;border-radius:6px}
 
 /* ── Layout ─────────────────────────────────────────────────────────────── */
-.app{display:flex;height:100vh;overflow:hidden}
+.app{display:flex;min-height:100vh}   /* kein overflow:hidden → nichts wird je abgeschnitten; Seite scrollt im Notfall */
 
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
 .sidebar{
   width:240px;flex:0 0 240px;
+  position:sticky;top:0;align-self:flex-start;height:100vh;   /* bleibt fixiert, während die Seite scrollt */
   display:flex;flex-direction:column;
   padding:18px 12px 16px;
   background:linear-gradient(180deg,rgba(6,59,55,.055),rgba(6,59,55,.015));
@@ -358,10 +359,10 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
 
 /* ── Main Content ───────────────────────────────────────────────────────── */
 .content{
-  flex:1;min-width:0;
+  flex:1;min-width:0;min-height:100vh;
   display:flex;flex-direction:column;
   padding:48px 28px 28px;
-  overflow-y:auto;overflow-x:hidden;   /* passt alles → kein Scroll; sonst scrollt der ganze Inhalt (Leiste nie abgeschnitten) */
+  overflow:visible;   /* nicht clippen – wenn der Inhalt höher als der Schirm ist, scrollt die ganze Seite */
 }
 
 .content-top{
