@@ -22,8 +22,8 @@ html,body{height:100%;font-family:var(--font-body,'DM Sans',system-ui,sans-serif
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .wrap{text-align:center;padding:2rem}
 .brand-logo{width:230px;max-width:80vw;height:auto;display:block;margin:0 auto .5rem}
-.sub{color:var(--muted);font-size:1rem;margin-bottom:3rem;
-  font-family:var(--font-display,'Hanken Grotesk',sans-serif);font-style:italic;font-weight:300;letter-spacing:.005em}
+.sub{color:var(--muted);font-size:.95rem;margin-bottom:3rem;
+  font-family:'Hanken Grotesk',sans-serif;font-style:italic;font-weight:300;letter-spacing:.005em}
 .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.25rem;
   width:100%;max-width:960px;margin:0 auto}
 @media(max-width:780px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));max-width:640px}}
@@ -31,9 +31,12 @@ html,body{height:100%;font-family:var(--font-body,'DM Sans',system-ui,sans-serif
 .card{
   background:var(--glass);border:1px solid var(--stroke);
   border-radius:var(--radius);padding:2rem 2.25rem;text-decoration:none;
-  color:var(--ink);transition:background var(--t-med,.2s) var(--ease,ease),border-color var(--t-med,.2s) var(--ease,ease),transform var(--t-med,.2s) var(--ease,ease),box-shadow var(--t-med,.2s) var(--ease,ease);
+  color:var(--ink);transition:background var(--t-med,.2s) var(--ease,ease),border-color var(--t-med,.2s) var(--ease,ease),transform var(--t-med,.2s) var(--ease,ease),box-shadow var(--t-med,.2s) var(--ease,ease),opacity .25s ease;
   min-width:210px;box-shadow:var(--e1,0 10px 26px rgba(20,46,40,.06));
 }
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card[data-module]{opacity:0;pointer-events:none}
+.card.revealed{animation:fadeUp .28s ease both;pointer-events:auto}
 .card:hover{background:var(--glass-hi);border-color:var(--stroke-hi,var(--turq-2));transform:translateY(-3px);box-shadow:var(--e2,0 16px 34px rgba(20,46,40,.10))}
 .card:focus-visible{outline:2px solid var(--ci);outline-offset:3px}
 /* Icon-Chip wie KPI-Chip im Dashboard – einheitliche Bildsprache */
@@ -66,81 +69,108 @@ html,body{height:100%;font-family:var(--font-body,'DM Sans',system-ui,sans-serif
   </button>
 </div>
 <div class="wrap">
-  <img class="brand-logo" src="shared/eregio-logo-gruen.png" alt="e-regio Kundencenter">
+  <img class="brand-logo" src="shared/eregio-logo-gruen.png" alt="e-regio">
   <div class="sub">Kundenservice Control Center</div>
   <div class="cards">
-    <a class="card" href="/besucher-dashboard/" data-module="besucher-dashboard" style="display:none">
+    <a class="card" href="/besucher-dashboard/" data-module="besucher-dashboard">
       <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg></div>
       <div class="card-title">Besucher-Dashboard</div>
       <div class="card-desc">Besucherstatistiken Kall &amp; Euskirchen</div>
     </a>
-    <a class="card" href="/produkt-id-tool/" data-module="produkt-id-tool" style="display:none">
+    <a class="card" href="/produkt-id-tool/" data-module="produkt-id-tool">
       <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><circle cx="7" cy="7" r="1.4"/></svg></div>
       <div class="card-title">Produkt-ID Tool</div>
       <div class="card-desc">Preise, Produkt-IDs &amp; Angebots-IDs</div>
     </a>
-    <a class="card" href="/einsatzplaner/" data-module="einsatzplaner" style="display:none">
+    <a class="card" href="/einsatzplaner/" data-module="einsatzplaner">
       <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
       <div class="card-title">Einsatzplaner</div>
       <div class="card-desc">Wochenplanung Kall &amp; Euskirchen</div>
     </a>
-    <a class="card" href="/admin/" data-module="admin" style="display:none">
+    <a class="card" href="/admin/" data-module="admin">
       <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
       <div class="card-title">Administration</div>
       <div class="card-desc">Datenbank, Produkte, Formulare</div>
     </a>
-    <a class="card" href="/abschlag-wasser/" data-module="abschlag-wasser" style="display:none">
+    <a class="card" href="/abschlag-wasser/" data-module="abschlag-wasser">
       <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5C12 2.5 5 10 5 14.5a7 7 0 0 0 14 0C19 10 12 2.5 12 2.5Z"/></svg></div>
       <div class="card-title">Abschlag Wasser</div>
       <div class="card-desc">Wasser-Abschlag WES &amp; Alfter berechnen</div>
     </a>
-    <a class="card" href="/formulare/" data-module="formulare" style="display:none">
+    <a class="card" href="/formulare/" data-module="formulare">
       <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></div>
       <div class="card-title">Formulare</div>
       <div class="card-desc">Interne Formulare ausfüllen, drucken &amp; als PDF speichern</div>
     </a>
   </div>
-  <div class="footer">e-regio Regionetz GmbH · Euskirchen</div>
+  <div class="footer">e-regio Euskirchen</div>
 </div>
 <link rel="stylesheet" href="shared/werkzeuge.css?v=6">
 <script src="shared/werkzeuge.js?v=6"></script>
 <script>
 (async function () {
-  // Lokal läuft das Frontend auf :8124, die API auf :3001 → Cross-Origin-Präfix.
   var isLocal = ['127.0.0.1','localhost'].includes(location.hostname);
   var apiBase = isLocal ? 'http://' + location.hostname + ':3001' : '';
+  var CACHE_KEY = 'cc_auth_v1';
+
+  function revealModules(modules) {
+    var delay = 0;
+    document.querySelectorAll('[data-module]').forEach(function (el) {
+      if (modules.includes(el.dataset.module)) {
+        el.style.animationDelay = delay + 'ms';
+        el.classList.add('revealed');
+        delay += 45;
+      }
+    });
+  }
   function showAll() {
-    document.querySelectorAll('[data-module]').forEach(function (el) { el.style.display = ''; });
+    var all = [];
+    document.querySelectorAll('[data-module]').forEach(function (el) { all.push(el.dataset.module); });
+    revealModules(all);
   }
-  // Site-Logout: Cookie löschen → zurück zum Login.
-  async function ccLogout() {
-    try { await fetch(apiBase + '/api/auth/logout', { method: 'POST', credentials: isLocal ? 'include' : 'same-origin' }); }
-    catch (_) { /* egal */ }
-    location.replace('/login.html');
-  }
-  document.getElementById('topLogout').addEventListener('click', ccLogout);
   function showUser(name, isAdmin) {
     document.getElementById('topUser').textContent = (name || 'Unbekannt') + (isAdmin ? ' · Admin' : '');
     document.getElementById('topbar').style.display = 'flex';
   }
+
+  async function ccLogout() {
+    sessionStorage.removeItem(CACHE_KEY);
+    try { await fetch(apiBase + '/api/auth/logout', { method: 'POST', credentials: isLocal ? 'include' : 'same-origin' }); }
+    catch (_) {}
+    location.replace('/login.html');
+  }
+  document.getElementById('topLogout').addEventListener('click', ccLogout);
+
+  // Sofort aus Cache rendern (kein Flackern beim Seitenaufruf).
+  var cached = null;
+  try { cached = JSON.parse(sessionStorage.getItem(CACHE_KEY)); } catch (_) {}
+  if (cached) {
+    revealModules(cached.modules || []);
+    showUser(cached.username, cached.isAdmin);
+  }
+
+  // Im Hintergrund verifizieren (auch wenn Cache vorhanden).
   try {
     var res = await fetch(apiBase + '/api/auth/me', { credentials: isLocal ? 'include' : 'same-origin' });
     if (!res.ok) {
-      // Lokal gibt es keinen Login-Gate → alle Module zeigen.
-      // Auf Prod: 401 = nicht (mehr) eingeloggt → zur Login-Seite (fängt auch alte Tokens ab).
-      if (isLocal) { showAll(); return; }
+      sessionStorage.removeItem(CACHE_KEY);
+      if (isLocal) { if (!cached) showAll(); return; }
       location.replace('/login.html?next=' + encodeURIComponent(location.pathname));
       return;
     }
     var data = await res.json();
-    var modules = data.modules || [];
-    document.querySelectorAll('[data-module]').forEach(function (el) {
-      if (modules.includes(el.dataset.module)) el.style.display = '';
-    });
-    showUser(data.username, data.isAdmin);
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+      modules: data.modules || [],
+      username: data.username,
+      isAdmin: data.isAdmin
+    }));
+    // Nur neu rendern wenn vorher kein Cache da war.
+    if (!cached) {
+      revealModules(data.modules || []);
+      showUser(data.username, data.isAdmin);
+    }
   } catch (_) {
-    // API nicht erreichbar (z.B. lokal ohne Backend) → nicht aussperren.
-    showAll();
+    if (!cached) showAll();
   }
 })();
 </script>
