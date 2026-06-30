@@ -79,12 +79,14 @@ async function buildApp() {
 
   fastify.get('/api/health', async () => ({ ok: true }));
 
-  // Schema-Setup: immer ausführen (alle Statements nutzen IF NOT EXISTS → idempotent).
-  // Neu hinzugekommene Tabellen (z.B. users) werden so auch in Turso/Production angelegt.
-  await ensureSchemas();
+  // Schema-Setup: per PRAGMA user_version gewächtert (s. data/schema.js). Im Normalbetrieb
+  // (DB schon auf aktueller SCHEMA_VERSION) nur 3 billige Reads statt ~47 Round-Trips/Cold-Start.
+  // Nach einem Schema-Versionssprung läuft der Setup genau einmal.
+  const { migratedProdukte } = await ensureSchemas();
 
-  // Seed-Admin: wenn noch kein User existiert, Default-Admin anlegen.
-  await seedAdminUser();
+  // Admin-Seed nur bei (Erst-)Migration der produkte-DB nötig → spart pro Cold-Start einen
+  // weiteren Turso-Round-Trip (count()) im Normalbetrieb.
+  if (migratedProdukte) await seedAdminUser();
 
   return fastify;
 }

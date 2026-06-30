@@ -9552,6 +9552,18 @@ var require_schema = __commonJS({
   "backend/data/schema.js"(exports2, module2) {
     var { getDb } = require_driver();
     var ddl = require_ddl();
+    var SCHEMA_VERSION = 1;
+    async function getUserVersion(db) {
+      try {
+        const r = await db.get("PRAGMA user_version");
+        return r ? Number(r.user_version || 0) : 0;
+      } catch {
+        return 0;
+      }
+    }
+    async function setUserVersion(db) {
+      await db.exec(`PRAGMA user_version = ${Number(SCHEMA_VERSION)}`);
+    }
     async function tryAlters(db, statements) {
       for (const sql of statements) {
         try {
@@ -9562,37 +9574,52 @@ var require_schema = __commonJS({
     }
     async function ensureProdukte() {
       const db = getDb("produkte");
-      await db.exec(ddl.PRODUKTE_TABLES);
-      await tryAlters(db, ddl.PRODUKTE_ALTERS);
-      await db.exec(ddl.PRODUKTE_POST_INDEXES);
-      await db.exec(ddl.PRODUKTE_REGISTRY);
-      await db.exec(ddl.VERTRAGSFORMULARE_TABLE);
-      await tryAlters(db, ddl.VERTRAGSFORMULARE_ALTERS);
-      await db.exec(ddl.STANDALONE_FORMULARE_TABLE);
-      await db.exec(ddl.ENET_BETREIBER_TABLE);
-      await tryAlters(db, ddl.ENET_BETREIBER_ALTERS);
-      await db.exec(ddl.ENET_OVERRIDE_TABLE);
-      await db.exec(ddl.USERS_TABLE);
+      if (await getUserVersion(db) >= SCHEMA_VERSION) return false;
+      await db.exec([
+        ddl.PRODUKTE_TABLES,
+        ddl.PRODUKTE_POST_INDEXES,
+        ddl.PRODUKTE_REGISTRY,
+        ddl.VERTRAGSFORMULARE_TABLE,
+        ddl.STANDALONE_FORMULARE_TABLE,
+        ddl.ENET_BETREIBER_TABLE,
+        ddl.ENET_OVERRIDE_TABLE,
+        ddl.USERS_TABLE
+      ].join("\n"));
+      await tryAlters(db, [
+        ...ddl.PRODUKTE_ALTERS,
+        ...ddl.VERTRAGSFORMULARE_ALTERS,
+        ...ddl.ENET_BETREIBER_ALTERS
+      ]);
+      await setUserVersion(db);
+      return true;
     }
     async function ensureBesucher() {
       const db = getDb("besucher");
+      if (await getUserVersion(db) >= SCHEMA_VERSION) return;
       await db.exec(ddl.BESUCHER_TABLES);
       await tryAlters(db, ddl.BESUCHER_ALTERS);
+      await setUserVersion(db);
     }
     async function ensureEinsatzplan() {
       const db = getDb("einsatzplan");
+      if (await getUserVersion(db) >= SCHEMA_VERSION) return;
       await db.exec(ddl.EINSATZPLAN_TABLES);
-      const ins = "INSERT OR IGNORE INTO ep_agents (name, kuerzel, color) VALUES (?,?,?)";
-      for (const [name, kuerzel, color] of ddl.INITIAL_AGENTS) {
-        await db.run(ins, [name, kuerzel, color]);
-      }
+      const stmts = ddl.INITIAL_AGENTS.map(([name, kuerzel, color]) => ({
+        sql: "INSERT OR IGNORE INTO ep_agents (name, kuerzel, color) VALUES (?,?,?)",
+        args: [name, kuerzel, color]
+      }));
+      if (stmts.length) await db.batch(stmts);
+      await setUserVersion(db);
     }
     async function ensureSchemas() {
-      await ensureProdukte();
-      await ensureBesucher();
-      await ensureEinsatzplan();
+      const [migratedProdukte] = await Promise.all([
+        ensureProdukte(),
+        ensureBesucher(),
+        ensureEinsatzplan()
+      ]);
+      return { migratedProdukte };
     }
-    module2.exports = { ensureSchemas, ensureProdukte, ensureBesucher, ensureEinsatzplan };
+    module2.exports = { ensureSchemas, ensureProdukte, ensureBesucher, ensureEinsatzplan, SCHEMA_VERSION };
   }
 });
 
@@ -72055,11 +72082,13 @@ var require_enet = __commonJS({
   "backend/routes/enet.js"(exports2, module2) {
     var enetRepo = require_enetRepo();
     module2.exports = async function(fastify) {
+      const ENET_CACHE = "public, s-maxage=300, stale-while-revalidate=604800";
       fastify.get("/lookup", async (request, reply) => {
         const { plz } = request.query;
         if (!plz || !/^\d{5}$/.test(String(plz))) {
           return reply.status(400).send({ error: "plz (5-stellig) erforderlich" });
         }
+        reply.header("Cache-Control", ENET_CACHE);
         return enetRepo.lookup(String(plz));
       });
       fastify.get("/search", async (request, reply) => {
@@ -72068,6 +72097,7 @@ var require_enet = __commonJS({
           return reply.status(400).send({ error: "q (mind. 2 Zeichen) erforderlich" });
         }
         const treffer = await enetRepo.search(q, 50);
+        reply.header("Cache-Control", ENET_CACHE);
         return { q, anzahl: treffer.length, treffer };
       });
     };
@@ -72167,8 +72197,8 @@ var require_app = __commonJS({
       fastify.register(require_enet(), { prefix: "/api/enet" });
       fastify.register(require_admin_enet(), { prefix: "/api/admin/enet" });
       fastify.get("/api/health", async () => ({ ok: true }));
-      await ensureSchemas();
-      await seedAdminUser();
+      const { migratedProdukte } = await ensureSchemas();
+      if (migratedProdukte) await seedAdminUser();
       return fastify;
     }
     module2.exports = buildApp2;
