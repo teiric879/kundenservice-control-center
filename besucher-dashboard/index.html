@@ -364,35 +364,61 @@
     <!-- NB & GV-SUCHE (bundesweit) -->
     <section class="view" id="view-marktlage">
       <style>
-        #view-marktlage .enet-search-row{display:flex;gap:10px;align-items:center}
-        #view-marktlage .enet-input{flex:0 1 340px;padding:10px 14px;font-size:14px;border:1px solid var(--stroke,#e6e1d2);border-radius:10px;background:#fff;color:#063b37}
-        #view-marktlage .enet-input:focus{outline:none;border-color:#004442;box-shadow:0 0 0 1.5px rgba(0,68,66,.25)}
-        #view-marktlage .enet-results{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
-        #view-marktlage .enet-card{border:1px solid #c8e6e1;border-radius:12px;padding:16px 18px;background:#f3faf7}
-        #view-marktlage .enet-card h4{font-size:15px;color:#004442;margin:0 0 12px}
-        #view-marktlage .enet-grp{margin-bottom:11px}
+        /* Suchleiste: breit, linksbündig, unter der Überschrift */
+        #view-marktlage .enet-searchbar{position:relative;max-width:560px;margin-top:2px}
+        #view-marktlage .enet-search-ico{position:absolute;left:17px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted-2);pointer-events:none}
+        #view-marktlage .enet-input{
+          width:100%;padding:15px 18px 15px 48px;font-size:15px;font-family:inherit;
+          border:1px solid var(--stroke);border-radius:14px;background:var(--glass);color:var(--ink);
+          box-shadow:0 10px 26px rgba(20,46,40,.05);transition:border-color .15s,box-shadow .15s}
+        #view-marktlage .enet-input::placeholder{color:var(--muted-2)}
+        #view-marktlage .enet-input:focus{outline:none;border-color:var(--ci);box-shadow:0 0 0 3px rgba(0,68,66,.12)}
+        #view-marktlage .enet-spin{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:16px;height:16px;border:2px solid rgba(0,68,66,.18);border-top-color:var(--ci);border-radius:50%;animation:enetspin .7s linear infinite;display:none}
+        #view-marktlage.searching .enet-spin{display:block}
+        @keyframes enetspin{to{transform:translateY(-50%) rotate(360deg)}}
+
+        /* Ergebnisse darunter */
+        #view-marktlage .enet-results{margin-top:24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+        #view-marktlage .enet-card{
+          position:relative;overflow:hidden;border:1px solid var(--turq-2);border-radius:18px;
+          background:linear-gradient(135deg,var(--turq) 0%,#d7ece7 52%,#eef5f2 100%);padding:18px 22px;
+          box-shadow:0 12px 30px rgba(20,46,40,.07);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+        #view-marktlage .enet-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ci)}
+        #view-marktlage .enet-card:hover{transform:translateY(-2px);box-shadow:0 18px 42px rgba(20,46,40,.12)}
+        #view-marktlage .enet-card h4{font-family:'Hanken Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--ci);margin:0 0 15px;display:flex;align-items:center;gap:8px;letter-spacing:-.01em}
+        #view-marktlage .enet-card h4 svg{width:15px;height:15px;flex:0 0 15px;opacity:.7}
+        #view-marktlage .enet-grp{margin-bottom:14px}
         #view-marktlage .enet-grp:last-child{margin-bottom:0}
-        #view-marktlage .enet-sp{font-size:11px;font-weight:700;color:#004442;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
-        #view-marktlage .enet-line{font-size:13px;color:#243b37;line-height:1.5}
-        #view-marktlage .enet-line .role{color:#6f8a84;font-size:11px;margin-right:4px}
-        #view-marktlage .enet-line .nm{font-weight:600}
-        #view-marktlage .enet-meta{display:flex;flex-wrap:wrap;gap:12px;margin-top:1px}
-        #view-marktlage .enet-meta a{display:inline-flex;align-items:center;gap:4px;color:#0f7a5a;text-decoration:none;font-size:12px;font-weight:600}
-        #view-marktlage .enet-meta a:hover{text-decoration:underline}
-        #view-marktlage .enet-meta svg{width:12px;height:12px}
-        #view-marktlage .enet-hint{color:#6f8a84;font-size:13px;margin-top:16px}
+        #view-marktlage .enet-sp{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--ci);text-transform:uppercase;letter-spacing:.06em;padding-bottom:7px;margin-bottom:8px;border-bottom:2px solid rgba(0,68,66,.18)}
+        #view-marktlage .enet-sp .sp-ico{display:inline-grid;place-items:center;width:20px;height:20px;flex:0 0 20px}
+        #view-marktlage .enet-sp .sp-ico svg{width:16px;height:16px}
+        /* CD-Akzent durchgehend Gelb-Gold: Piktogramm-Outline + Trennlinie, ohne Hintergrund-Viereck */
+        #view-marktlage .enet-grp.is-strom .enet-sp,
+        #view-marktlage .enet-grp.is-gas .enet-sp{border-bottom-color:rgba(222,166,0,.65)}
+        #view-marktlage .enet-grp.is-strom .sp-ico,
+        #view-marktlage .enet-grp.is-gas .sp-ico{background:none;color:#dea600}
+        #view-marktlage .enet-line{font-size:13px;color:var(--ink);line-height:1.45;margin-bottom:8px}
+        #view-marktlage .enet-line:last-child{margin-bottom:0}
+        #view-marktlage .enet-line .role{display:block;color:var(--ci);opacity:.62;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+        #view-marktlage .enet-line .nm{font-weight:700;color:var(--ci);font-size:13.5px}
+        #view-marktlage .enet-meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:4px}
+        #view-marktlage .enet-meta a{display:inline-flex;align-items:center;gap:5px;color:var(--ci);text-decoration:none;font-size:11.5px;font-weight:600;opacity:.82}
+        #view-marktlage .enet-meta a:hover{opacity:1;text-decoration:underline}
+        #view-marktlage .enet-meta svg{width:12px;height:12px;flex:0 0 12px;opacity:.7}
+        #view-marktlage .enet-hint{grid-column:1/-1;color:var(--muted);font-size:14px;padding:34px 4px;text-align:left}
+        #view-marktlage .enet-hint svg{width:34px;height:34px;display:block;margin-bottom:10px;opacity:.4}
       </style>
       <div class="topbar">
         <div class="title">
           <h1>NB &amp; GV-Suche</h1>
           <p>Netzbetreiber &amp; Grundversorger bundesweit – Suche per PLZ oder Ort.</p>
         </div>
-        <div class="controls">
-          <div class="enet-search-row">
-            <input type="text" id="enetSearchInput" class="enet-input" placeholder="z. B. 53879 oder Euskirchen" autocomplete="off">
-            <button class="seg-btn glass" id="enetSearchBtn">Suchen</button>
-          </div>
-        </div>
+      </div>
+
+      <div class="enet-searchbar">
+        <svg class="enet-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="enetSearchInput" class="enet-input" placeholder="PLZ oder Ort eingeben – z. B. 53879 oder Euskirchen" autocomplete="off" aria-label="Suche nach Netzbetreiber und Grundversorger">
+        <div class="enet-spin" aria-hidden="true"></div>
       </div>
 
       <div id="enetResults" class="enet-results"></div>
@@ -410,7 +436,7 @@
 </div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
-<script src="app.js?v=33"></script>
+<script src="app.js?v=35"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=5"></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">

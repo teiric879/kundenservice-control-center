@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>e-regio · Produkt-ID Tool</title>
-<link rel="stylesheet" href="styles.css?v=18">
+<link rel="stylesheet" href="styles.css?v=28">
 <link rel="stylesheet" href="../shared/tokens.css?v=1">
 <link rel="stylesheet" href="../shared/sidebar.css?v=3">
 </head>
@@ -309,14 +309,17 @@
       <p>Jahresverbrauch eingeben –<br>Preise erscheinen automatisch</p>
     </div>
     <div id="warnBox" class="warn-box" style="display:none"></div>
-    <div id="cardsWrap" style="display:none;flex:1;overflow:hidden">
+    <div id="cardsWrap" style="display:none;flex:1 0 auto;overflow:visible">
       <div class="cards-scroll" id="cardsGrid"></div>
     </div>
 
     <!-- ── Untere Leiste: Vergleichstarif-Eingabe + Netz/Grundversorgung ──────── -->
     <div class="market-bar" id="marketBar" style="display:none">
       <div class="mb-seg mb-vergleich">
-        <div class="mb-seg-title">Vergleichstarif</div>
+        <div class="mb-seg-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7"/></svg>
+          Vergleichstarif
+        </div>
         <div class="mb-fields">
           <div class="mb-field">
             <label class="mb-lbl" id="lblVglAP">AP (ct/kWh brutto)</label>
@@ -345,15 +348,18 @@
       </div>
 
       <div class="mb-seg mb-enet" id="mbEnet">
-        <div class="mb-seg-title">Netz &amp; Grundversorgung <span class="mb-enet-plz" id="enetPlz"></span></div>
+        <div class="mb-seg-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M12 8v3M6 21v-4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4M6 21h2m8 0h2M12 11v4"/></svg>
+          Netz &amp; Grundversorgung <span class="mb-enet-plz" id="enetPlz"></span>
+        </div>
         <div class="mb-enet-grid">
-          <div class="enet-col">
-            <div class="enet-sparte">Strom</div>
+          <div class="enet-col is-strom">
+            <div class="enet-sparte"><span class="sp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>Strom</div>
             <div class="enet-line"><span class="enet-role">Netzbetreiber</span><span class="enet-val" id="enetStromNb">–</span></div>
             <div class="enet-line"><span class="enet-role">Grundversorger</span><span class="enet-val" id="enetStromGv">–</span></div>
           </div>
-          <div class="enet-col">
-            <div class="enet-sparte">Gas</div>
+          <div class="enet-col is-gas">
+            <div class="enet-sparte"><span class="sp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span>Gas</div>
             <div class="enet-line"><span class="enet-role">Netzbetreiber</span><span class="enet-val" id="enetGasNb">–</span></div>
             <div class="enet-line"><span class="enet-role">Grundversorger</span><span class="enet-val" id="enetGasGv">–</span></div>
           </div>
@@ -366,7 +372,7 @@
 <!-- data.js (statischer Preis-Fallback, ~16 KB) wird NICHT mehr eager geladen, sondern
      in app.js nur dann nachgeladen, wenn /api/produktdaten nicht erreichbar ist.
      pdf-lib + fontkit ebenso lazy erst beim Öffnen eines PDF-Formulars (modules/pdf-modal.js). -->
-<script type="module" src="app.js?v=20260630e"></script>
+<script type="module" src="app.js?v=20260630g"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=5"></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">

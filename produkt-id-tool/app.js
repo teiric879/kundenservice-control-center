@@ -159,7 +159,8 @@ async function updateEnetBar(plz) {
   const reqId = ++_enetReqId;
   const data = await lookupEnet(plz);
   if (reqId !== _enetReqId) return;            // veraltete Antwort verwerfen
-  enetPlzEl.textContent = data && (data.strom || data.gas) ? `PLZ ${plz}` : `PLZ ${plz} – keine Daten`;
+  const ort = (data && data.ort) || plzToStadt(plz) || '';
+  enetPlzEl.textContent = ort ? `${plz} · ${ort}` : plz;   // Format: Zahlen + Stadt, ohne „PLZ"
   setVals(data);
 }
 
@@ -613,6 +614,7 @@ const CHEVRON_DOWN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 function enhanceNumberInputs() {
   document.querySelectorAll('input[type=number].field-input').forEach(inp => {
     if (inp.dataset.stepped) return;
+    if (inp.closest('.market-bar')) return;   // Vergleichstarif: nur Zahleneingabe, keine Stepper-Pfeile
     inp.dataset.stepped = '1';
 
     // Positionierungs-Kontext sicherstellen: vorhandene .input-unit nutzen,

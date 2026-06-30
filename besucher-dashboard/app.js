@@ -1419,41 +1419,56 @@ setInterval(refreshVisits, 20000);
 (function(){
   var API=(location.hostname==='127.0.0.1'||location.hostname==='localhost'?'http://'+location.hostname+':3001':'')+'/api/enet';
   var input=document.getElementById('enetSearchInput');
-  var btn=document.getElementById('enetSearchBtn');
   var box=document.getElementById('enetResults');
-  if(!input||!btn||!box) return;
+  var view=document.getElementById('view-marktlage');
+  if(!input||!box) return;
 
   var IC_TEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
   var IC_WEB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
   var IC_MAIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>';
+  var IC_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+  var IC_BOLT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+  var IC_FLAME='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
 
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function op(o){
-    if(!o||!o.name) return '<span style="color:#9bb0ab">–</span>';
+    if(!o||!o.name) return '<span class="nm" style="opacity:.45">–</span>';
     var m='';
     if(o.tel) m+='<a href="tel:'+esc(o.tel.replace(/\s/g,''))+'">'+IC_TEL+esc(o.tel)+'</a>';
     if(o.url){ var raw=String(o.url).trim(); var href=/^https?:\/\//i.test(raw)?raw:'https://'+raw; var label=raw.replace(/^https?:\/\//i,'').replace(/\/.*$/,''); m+='<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer">'+IC_WEB+esc(label)+'</a>'; }
     if(o.email) m+='<a href="mailto:'+esc(o.email)+'">'+IC_MAIL+esc(o.email)+'</a>';
     return '<span class="nm">'+esc(o.name)+'</span>'+(m?'<span class="enet-meta">'+m+'</span>':'');
   }
-  function grp(label,r){ if(!r) return '';
-    return '<div class="enet-grp"><div class="enet-sp">'+label+'</div>'+
+  function grp(label,icon,cls,r){ if(!r) return '';
+    return '<div class="enet-grp '+cls+'"><div class="enet-sp"><span class="sp-ico">'+icon+'</span>'+label+'</div>'+
       '<div class="enet-line"><span class="role">Netzbetreiber</span>'+op(r.nb)+'</div>'+
       '<div class="enet-line"><span class="role">Grundversorger</span>'+op(r.gv)+'</div></div>';
   }
+  function hint(txt,withIcon){
+    var ico=withIcon?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>':'';
+    return '<div class="enet-hint">'+ico+esc(txt)+'</div>';
+  }
+
+  var reqId=0, timer=null;
   function run(){
     var q=(input.value||'').trim();
-    if(q.length<2){ box.innerHTML='<div class="enet-hint">Bitte mindestens 2 Zeichen eingeben.</div>'; return; }
-    box.innerHTML='<div class="enet-hint">Suche …</div>';
+    if(q.length<2){ box.innerHTML=hint('Tippe eine PLZ oder einen Ort ein, um Netzbetreiber und Grundversorger zu finden.',true); if(view)view.classList.remove('searching'); return; }
+    var mine=++reqId;
+    if(view)view.classList.add('searching');
     fetch(API+'/search?q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(j){
-      if(!j.treffer||!j.treffer.length){ box.innerHTML='<div class="enet-hint">Keine Treffer.</div>'; return; }
+      if(mine!==reqId) return;               // veraltete Antwort verwerfen
+      if(view)view.classList.remove('searching');
+      if(!j.treffer||!j.treffer.length){ box.innerHTML=hint('Keine Treffer für „'+q+'". Andere PLZ oder Schreibweise probieren.',true); return; }
       box.innerHTML=j.treffer.map(function(t){
-        return '<div class="enet-card"><h4>'+esc(t.plz)+' · '+esc(t.ort||'')+'</h4>'+grp('Strom',t.strom)+grp('Gas',t.gas)+'</div>';
+        return '<div class="enet-card"><h4>'+IC_PIN+esc(t.plz)+' · '+esc(t.ort||'')+'</h4>'+
+          grp('Strom',IC_BOLT,'is-strom',t.strom)+grp('Gas',IC_FLAME,'is-gas',t.gas)+'</div>';
       }).join('');
-    }).catch(function(){ box.innerHTML='<div class="enet-hint">Fehler bei der Suche.</div>'; });
+    }).catch(function(){ if(mine!==reqId) return; if(view)view.classList.remove('searching'); box.innerHTML=hint('Fehler bei der Suche. Bitte erneut versuchen.',true); });
   }
-  btn.addEventListener('click',run);
-  input.addEventListener('keydown',function(e){ if(e.key==='Enter') run(); });
+  // Live-Suche ohne Enter (debounced); Enter löst sofort aus.
+  input.addEventListener('input',function(){ clearTimeout(timer); timer=setTimeout(run,280); });
+  input.addEventListener('keydown',function(e){ if(e.key==='Enter'){ clearTimeout(timer); run(); } });
+  box.innerHTML=hint('Tippe eine PLZ oder einen Ort ein, um Netzbetreiber und Grundversorger zu finden.',true);
 })();
 
 /* ══════════════════════════════════════════════════════
