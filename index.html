@@ -170,7 +170,10 @@ html,body{height:100%;font-family:var(--font-body,'DM Sans',system-ui,sans-serif
       showUser(data.username, data.isAdmin);
     }
   } catch (_) {
-    if (!cached) showAll();
+    // API nicht erreichbar: lokal → alle Kacheln zeigen (Dev-Modus).
+    // In Produktion ohne Cache → zur Login-Seite, nicht Kacheln für Unbekannte zeigen.
+    if (isLocal) { if (!cached) showAll(); }
+    else if (!cached) location.replace('/login.html?next=' + encodeURIComponent(location.pathname));
   }
 })();
 </script>
