@@ -579,6 +579,20 @@ input[type=date].field-input::-webkit-calendar-picker-indicator{cursor:pointer}
 .tab-sach .sach-only{display:flex;flex-direction:column}
 .tab-sach .kunde-only{display:none}
 
+/* ── Sachbearbeiter-Tab: dichter, damit Karten + NB/GV-Leiste auf normalen
+   Bildschirmen ohne Scrollen passen. NUR auf diesem Tab (Kunden-Tab unberührt). */
+.content.tab-sach{padding-top:24px}
+.tab-sach .cards-scroll{padding-bottom:10px}
+.tab-sach .card-hdr{padding:12px 18px 10px}
+.tab-sach .card-hdr .prod-name{font-size:19px;margin-bottom:7px;min-height:1.7em}
+.tab-sach .card-hero .amount{font-size:36px}
+.tab-sach .card-hero .currency{font-size:19px}
+.tab-sach .card-body{padding:10px 18px}
+.tab-sach .card-row{padding:4px 0}
+.tab-sach .card-sach{margin-top:2px;padding:6px 16px 9px}
+.tab-sach .sach-id-row{padding:2px 0}
+.tab-sach .sach-sep{margin:3px 0}
+
 /* ── No-match warning ────────────────────────────────────────────────────── */
 .warn-box{
   padding:12px 16px;border-radius:12px;font-size:13px;
@@ -634,15 +648,17 @@ input[type=date].field-input::-webkit-calendar-picker-indicator{cursor:pointer}
 /* ── Untere Leiste: Vergleichstarif + Netz/Grundversorgung ──────────────────── */
 .market-bar{
   flex:0 0 auto;display:flex;gap:14px;align-items:stretch;
-  margin-top:2px;padding-top:10px;border-top:1px solid var(--stroke);
+  /* mittig im freien Raum zwischen Karten und Seitenende; bei wenig Platz =0 → scrollt */
+  margin-top:auto;margin-bottom:auto;
 }
 .mb-seg{
   background:var(--glass);border:1px solid var(--stroke);border-radius:14px;
   padding:9px 16px;box-shadow:0 8px 22px rgba(20,46,40,.06);
 }
-.mb-vergleich{flex:0 0 234px;display:flex;flex-direction:column;position:relative;overflow:hidden}
-/* goldener CD-Akzentstreifen (Pendant zum grünen der Infobox) */
-.mb-vergleich::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc);opacity:.9}
+/* overflow:visible, damit das GP-Info-Tooltip nicht abgeschnitten wird.
+   Goldener CD-Akzent als border-left (respektiert runde Ecken ohne Clipping). */
+.mb-vergleich{flex:0 0 234px;display:flex;flex-direction:column;position:relative;
+  overflow:visible;border-left:3px solid var(--acc)}
 .mb-enet{
   flex:1 1 auto;position:relative;overflow:hidden;
   background:linear-gradient(135deg,var(--turq) 0%,#d7ece7 55%,#e6f2ee 100%);
