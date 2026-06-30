@@ -162,7 +162,7 @@ function updatePanelForProduct() {
   if (!isStrom) personenInput.value = '';
   if (!isGas)   flaecheInput.value  = '';
 
-  const defaultV = { gas:20000, strom:3500, heizstrom:8000, autostrom:2000, steuve:5000 };
+  const defaultV = { gas:20000, strom:2500, heizstrom:8000, autostrom:2000, steuve:5000 };
   const dv = defaultV[S.produkt] || 5000;
   verbrauchInput.placeholder = String(dv);
   verbrauchInput.value       = String(dv);

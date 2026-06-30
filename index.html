@@ -59,6 +59,9 @@ html,body{height:100%;font-family:var(--font-body,'DM Sans',system-ui,sans-serif
 .topbar .logout svg{width:14px;height:14px;opacity:.8}
 </style>
 <link rel="stylesheet" href="shared/tokens.css?v=1">
+<!-- Sekundärtext etwas dunkler als der shared-Token (#5d7d77 ≈ 4.4:1) → klare WCAG-AA-Lesbarkeit
+     für Kachel-Beschreibungen/Sub/Footer. Nur diese Startseite; lädt nach tokens.css. -->
+<style>:root{--muted:#4e6a64}</style>
 </head>
 <body>
 <div class="topbar" id="topbar">
