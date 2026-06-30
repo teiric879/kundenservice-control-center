@@ -615,7 +615,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
 <!-- ── Lock Screen ──────────────────────────────────────────────────────────── -->
 <div id="lockScreen">
   <div class="lock-box">
-    <img src="../shared/eregio-logo-gruen.png" class="lock-logo" alt="e-regio">
+    <img width="600" height="193" decoding="async" src="../shared/eregio-logo-gruen.png" class="lock-logo" alt="e-regio">
 
     <div class="lock-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -646,7 +646,7 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="brand">
-      <img src="../shared/eregio-logo-gruen.png" class="brand-logo" alt="e-regio">
+      <img width="600" height="193" decoding="async" src="../shared/eregio-logo-gruen.png" class="brand-logo" alt="e-regio">
       <div class="brand-caption">Kundenservice Control Center</div>
     </div>
 
@@ -2646,10 +2646,10 @@ async function buDelete(id, name) {
 document.getElementById('buModal').addEventListener('click', function(e){ if(e.target===this) buCloseModal(); });
 </script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
-<script src="../shared/erfass-bar.js?v=5"></script>
+<script src="../shared/erfass-bar.js?v=5" defer></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">
-<script src="../shared/werkzeuge.js?v=6"></script>
+<script src="../shared/werkzeuge.js?v=6" defer></script>
 <script>window.CC_MODULE='admin';</script>
-<script src="../shared/access-guard.js?v=1"></script>
+<script src="../shared/access-guard.js?v=1" defer></script>
 </body>
 </html>

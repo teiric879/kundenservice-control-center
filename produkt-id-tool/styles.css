@@ -2,10 +2,10 @@
 
 /* ── CD-Schrift · Carlito (freier, metrik-identischer Calibri-Klon = offizieller
    digitaler CD-Ersatz für Buenos Aires). Nur im Produkt-ID-Tool. ───────────── */
-@font-face{font-family:'Carlito';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/Carlito-Regular.ttf') format('truetype');}
-@font-face{font-family:'Carlito';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/Carlito-Bold.ttf') format('truetype');}
-@font-face{font-family:'Carlito';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/Carlito-Italic.ttf') format('truetype');}
-@font-face{font-family:'Carlito';font-style:italic;font-weight:700;font-display:swap;src:url('fonts/Carlito-BoldItalic.ttf') format('truetype');}
+@font-face{font-family:'Carlito';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/Carlito-Regular.woff2') format('woff2');}
+@font-face{font-family:'Carlito';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/Carlito-Bold.woff2') format('woff2');}
+@font-face{font-family:'Carlito';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/Carlito-Italic.woff2') format('woff2');}
+@font-face{font-family:'Carlito';font-style:italic;font-weight:700;font-display:swap;src:url('fonts/Carlito-BoldItalic.woff2') format('woff2');}
 
 :root{
   /* ===== e-regio Corporate Design · Heller Look ===== */
