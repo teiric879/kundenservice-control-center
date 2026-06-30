@@ -72,7 +72,7 @@ var FORMULARE = {
   'kostenaufstellung-trocknung': {
     name: 'Kostenaufstellung Trocknungsmaßnahme',
     kategorie: 'Strom',
-    beschreibung: 'Ermittlung der Stromkosten für Trocknung und Bauarbeiten – mit automatischer Netto-/MwSt-/Brutto-Berechnung.',
+    beschreibung: 'Für Trocknungs- und Baumaßnahmen – mit Netto-/MwSt-/Brutto-Berechnung.',
     updated: '2026-06-26',
     builtin: true,
     icon: '<path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/>',

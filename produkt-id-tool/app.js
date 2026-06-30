@@ -2,8 +2,8 @@ import { S } from './modules/state.js';
 import { plzToGebiet, plzToStadt } from './modules/plz.js';
 import { debounce, dateFmt, copyVal } from './modules/helpers.js';
 import { getData, findPreisRow, findKondRow, calcTarif, calcVergleich } from './modules/calc.js?v=20260624c';
-import { buildCard } from './modules/render.js?v=20260624c';
-import { openPdfModal } from './modules/pdf-modal.js?v=20260626b';
+import { buildCard } from './modules/render.js?v=20260630a';
+import { openPdfModal } from './modules/pdf-modal.js?v=20260630a';
 
 const LOCAL_HOSTS = ['127.0.0.1', 'localhost'];
 const API_BASE = LOCAL_HOSTS.includes(location.hostname) ? `http://${location.hostname}:3001` : '';
@@ -417,12 +417,6 @@ $('zaehlerartPills').addEventListener('click', e => {
   $('zaehlerartPills').querySelectorAll('.pill-sm').forEach(b =>
     b.classList.toggle('active', b.dataset.za === S.zaehlerart));
   updatePanelForProduct();
-  calculate();
-});
-
-$('btnCalc').addEventListener('click', () => {
-  S.verbrauch   = parseFloat(verbrauchInput.value)   || 0;
-  S.verbrauchNT = parseFloat(verbrauchNTInput.value) || 0;
   calculate();
 });
 

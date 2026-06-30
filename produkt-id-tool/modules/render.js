@@ -1,5 +1,5 @@
 import { S } from './state.js';
-import { myRound, eur, ct, fmtDate, escape, cardColors } from './helpers.js';
+import { myRound, eur, ct, fmtDate, escape } from './helpers.js';
 import { getData, preisTiers, lookupPrice, lookupKond } from './calc.js?v=20260624c';
 import { plzToStadt } from './plz.js';
 
@@ -69,8 +69,6 @@ export function buildFillData(productKey, ga, gebiet, ort) {
 }
 
 export function buildCard(productKey, label, result, isVergleich = false, animDelay = 0, vergleich = null) {
-  const [c0, c1] = isVergleich ? ['#3d2800','#5c3d00'] : cardColors(productKey);
-
   const vbFmt = S.vertragsbeginn
     ? new Date(S.vertragsbeginn).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})
     : null;
@@ -145,9 +143,15 @@ export function buildCard(productKey, label, result, isVergleich = false, animDe
     }
   }
 
+  // Tarifname im CD-Headline-Stil: Sparte normal, Tarif-Zusatz kursiv (z. B. „Erdgas Basis").
+  const lblParts = String(label).split(/\s+/);
+  const prodNameHtml = lblParts.length > 1
+    ? `${escape(lblParts[0])} <i>${escape(lblParts.slice(1).join(' '))}</i>`
+    : escape(label);
+
   return `<article class="price-card${isVergleich ? ' is-vergleich' : ''}" style="animation-delay:${animDelay}s">
-    <div class="card-hdr" style="--card-from:${c0};--card-to:${c1}">
-      <div class="prod-name">${escape(label)}</div>
+    <div class="card-hdr">
+      <div class="prod-name">${prodNameHtml}</div>
       <div class="card-hero">
         <div class="price-main">
           <span class="amount">${Math.ceil(result.monatspreis).toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0})}</span>

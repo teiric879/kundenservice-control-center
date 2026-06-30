@@ -570,4 +570,23 @@ input[type=date]{border:1px solid var(--stroke);background:var(--glass);color:va
 
   /* SVG-Diagramme skalieren sauber, nichts wird abgeschnitten */
   svg{max-width:100%}
+
+  /* ── Professioneller Management-Report-Look (NUR Export) ──────────────────
+     Reine weiße Karten statt warmweißer App-Flächen (--glass), klare CD-Konturen
+     und e-regio-Grün für Kennzahlen/Überschriften. Betrifft ausschließlich den
+     PDF-/Druck-Export – die Bildschirm-Ansicht des Dashboards bleibt unberührt. */
+  .card,.si-card,.glass,.fc-cell,.te-stat,.kpi-card{
+    background:#fff!important;background-image:none!important;
+    border:1px solid #d2e3de!important;border-radius:12px!important;
+    box-shadow:none!important;
+  }
+  .card::before,.si-card::before{display:none!important}
+  /* Kennzahlen + Überschriften in e-regio-Grün, Sekundärlabels gedämpft */
+  .kpi .num,.kpi-val{color:var(--ci)!important}
+  .kpi .k-top,.p-head .sub,.kpi-lbl{color:var(--muted)!important}
+  .p-head h3,.p-head h2,.card h3,.card h2,.si-head,.si-card h3{color:var(--ci)!important}
+  /* Icon-Chips dezent in CD-Gold (Markenakzent, nicht cremig) */
+  .kpi .chip{background:#fff8e1!important;border-color:#ecd592!important;color:var(--acc-ink)!important}
+  /* Trend-/Sparkline-Flächen ruhiger: kräftige Goldfüllung raus, klare Linie bleibt */
+  .k-spark [fill^="url("],.k-spark path[fill]:not([fill="none"]){opacity:.5!important}
 }

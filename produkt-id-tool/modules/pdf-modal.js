@@ -520,7 +520,10 @@ async function loadAndShow(entry, fieldValues) {
     console.warn('PDF-Autofill übersprungen:', e);
   }
 
-  const filename = `Vertrag_${fieldValues.sparte || ''}_${fieldValues.tarif || ''}.pdf`;
+  // Default-Dateiname = Produkt-Anzeigename mit Leerzeichen (z. B. „Erdgas Basis.pdf").
+  // Für Dateisysteme unzulässige Zeichen (\ / : * ? " < > |) entfernen.
+  const baseName = (fieldValues.produktName || `${fieldValues.sparte || ''} ${fieldValues.tarif || ''}`).trim();
+  const filename = `${baseName.replace(/[\\/:*?"<>|]/g, '').trim() || 'Vertragsformular'}.pdf`;
 
   // Interaktiv mit pdf.js rendern: AcroForm-Felder werden zu echten HTML-Inputs.
   // saveDocument() schreibt anschließend Autofill UND manuell getippte Eingaben ins PDF.
@@ -574,7 +577,11 @@ export async function openPdfModal(btn) {
   let fill = {};
   try { fill = JSON.parse(btn.dataset.fill || '{}'); } catch { /* kein/ungültiges JSON */ }
 
-  const fieldValues = { sparte, tarif, ...fill };
+  // Anzeigename des Produkts (z. B. „Erdgas Basis") für den Default-Dateinamen.
+  // Quelle: PRODUKTDATEN[sparte].labels[tarif]; Fallback: „<sparte> <tarif>".
+  const produktName = (window.PRODUKTDATEN?.[sparte]?.labels?.[tarif]) || `${sparte} ${tarif}`.trim();
+
+  const fieldValues = { sparte, tarif, produktName, ...fill };
 
   // Altes Modal entfernen, neues bauen
   closeModal();

@@ -309,7 +309,13 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
 @media print{
   /* @page-Rand 0 → Browser druckt KEINE URL/Titel-Kopfzeile mehr */
   @page{size:A4;margin:0}
-  html,body{height:auto!important;background:#fff!important}
+  /* Reine weiße PDF-Seite: beigen App-Farbverlauf + alle Container-Hintergründe
+     hart auf Weiß zwingen (auch bei aktivierten „Hintergrundgrafiken" im Druckdialog).
+     Betrifft NUR den Druck – die App-/Dashboard-Ansicht bleibt unberührt. */
+  html,body{height:auto!important;background:#fff!important;background-image:none!important}
+  .app,.content,.content-doc,#viewEditor,.doc-scroll{
+    background:#fff!important;background-image:none!important;box-shadow:none!important;
+  }
   /* Alles außerhalb der App (z. B. Werkzeugleiste) raus */
   body>*:not(.app){display:none!important}
   /* App-Chrome wirklich kollabieren (nicht nur unsichtbar) → keine Geisterseite */
