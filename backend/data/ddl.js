@@ -203,6 +203,25 @@ const PRODUKTE_REGISTRY = `
   CREATE INDEX IF NOT EXISTS idx_mitbewerber_anbieter ON mitbewerber_preise(anbieter, sparte);
 `;
 
+// Netzbetreiber/Grundversorger je PLZ (Quelle: enet-NNE-Export, wöchentlich via GitHub Actions).
+// Pro (plz, sparte) ein Datensatz; ort dient der bundesweiten Ortssuche (Marktlage).
+const ENET_BETREIBER_TABLE = `
+  CREATE TABLE IF NOT EXISTS enet_betreiber (
+    plz           TEXT NOT NULL,
+    ort           TEXT,
+    sparte        TEXT NOT NULL,       -- 'strom' | 'gas'
+    netzbetreiber TEXT,
+    nb_tel        TEXT,
+    nb_url        TEXT,
+    grundversorger TEXT,
+    gv_tel        TEXT,
+    stand         TEXT,
+    PRIMARY KEY (plz, ort, sparte)
+  );
+  CREATE INDEX IF NOT EXISTS idx_enet_plz ON enet_betreiber(plz, sparte);
+  CREATE INDEX IF NOT EXISTS idx_enet_ort ON enet_betreiber(lower(ort));
+`;
+
 const BESUCHER_TABLES = `
   CREATE TABLE IF NOT EXISTS besuche (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -293,6 +312,7 @@ module.exports = {
   VERTRAGSFORMULARE_TABLE,
   VERTRAGSFORMULARE_ALTERS,
   STANDALONE_FORMULARE_TABLE,
+  ENET_BETREIBER_TABLE,
   USERS_TABLE,
   BESUCHER_TABLES,
   BESUCHER_ALTERS,

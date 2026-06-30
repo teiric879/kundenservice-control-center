@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>e-regio · Produkt-ID Tool</title>
-<link rel="stylesheet" href="styles.css?v=13">
+<link rel="stylesheet" href="styles.css?v=18">
 <link rel="stylesheet" href="../shared/tokens.css?v=1">
 <link rel="stylesheet" href="../shared/sidebar.css?v=3">
 </head>
@@ -291,38 +291,7 @@
       </div>
     </div>
 
-    <div class="vergleich-panel">
-      <div class="section-sep"></div>
-      <div class="field-label" style="margin-bottom:8px">Vergleichstarif</div>
-      <div class="frei-grid">
-        <div class="form-group" style="margin-bottom:0">
-          <div class="frei-label" id="lblVglAP">AP (ct/kWh brutto)</div>
-          <input type="number" id="vergleichAP" class="field-input" placeholder="0,00" min="0" step="0.01" style="margin-top:3px">
-        </div>
-        <div class="form-group" style="margin-bottom:0;position:relative">
-          <div class="frei-label">
-            <span id="lblVglGP">GP (€/Monat brutto)</span>
-            <span class="info-tip" tabindex="0" role="img" aria-label="Werte ab 60 € werden automatisch als Jahresgrundpreis interpretiert und durch 12 in einen monatlichen Grundpreis umgerechnet.">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r=".5" fill="currentColor" stroke="none"/></svg>
-              <span class="info-tip-bubble">Werte ab 60 € werden automatisch als Jahresgrundpreis interpretiert und durch 12 in einen monatlichen Grundpreis umgerechnet.</span>
-            </span>
-          </div>
-          <input type="number" id="vergleichGP" class="field-input" placeholder="0,00" min="0" step="0.01" style="margin-top:3px">
-          <div id="vglGpHint" class="gp-hint" aria-live="polite"></div>
-        </div>
-      </div>
-      <div class="form-group" id="grpVergleichNT" style="display:none;margin-top:8px;margin-bottom:0">
-        <div class="frei-label" id="lblVglAPNT">AP NT (ct/kWh brutto)</div>
-        <input type="number" id="vergleichAPNT" class="field-input" placeholder="0,00" min="0" step="0.01" style="margin-top:3px">
-      </div>
-      <div class="form-group" style="margin-top:8px;margin-bottom:0">
-        <div class="frei-label">Bonus (€ einmalig)</div>
-        <div class="input-unit" style="margin-top:3px">
-          <input type="number" id="vergleichBonus" class="field-input" placeholder="0" min="0" step="10">
-          <span class="unit-badge">€</span>
-        </div>
-      </div>
-    </div>
+    <!-- Vergleichstarif-Eingabe ist in die untere Leiste (.market-bar) umgezogen. -->
   </div>
 
   <!-- ── Main Content ────────────────────────────────────────────────────── -->
@@ -343,13 +312,61 @@
     <div id="cardsWrap" style="display:none;flex:1;overflow:hidden">
       <div class="cards-scroll" id="cardsGrid"></div>
     </div>
+
+    <!-- ── Untere Leiste: Vergleichstarif-Eingabe + Netz/Grundversorgung ──────── -->
+    <div class="market-bar" id="marketBar" style="display:none">
+      <div class="mb-seg mb-vergleich">
+        <div class="mb-seg-title">Vergleichstarif</div>
+        <div class="mb-fields">
+          <div class="mb-field">
+            <label class="mb-lbl" id="lblVglAP">AP (ct/kWh brutto)</label>
+            <input type="number" id="vergleichAP" class="field-input" placeholder="0,00" min="0" step="0.01">
+          </div>
+          <div class="mb-field">
+            <label class="mb-lbl">
+              <span id="lblVglGP">GP (€/Monat brutto)</span>
+              <span class="info-tip" tabindex="0" role="img" aria-label="Werte ab 60 € werden automatisch als Jahresgrundpreis interpretiert und durch 12 in einen monatlichen Grundpreis umgerechnet.">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r=".5" fill="currentColor" stroke="none"/></svg>
+                <span class="info-tip-bubble">Werte ab 60 € werden automatisch als Jahresgrundpreis interpretiert und durch 12 in einen monatlichen Grundpreis umgerechnet.</span>
+              </span>
+            </label>
+            <input type="number" id="vergleichGP" class="field-input" placeholder="0,00" min="0" step="0.01">
+            <div id="vglGpHint" class="gp-hint" aria-live="polite"></div>
+          </div>
+          <div class="mb-field" id="grpVergleichNT" style="display:none">
+            <label class="mb-lbl" id="lblVglAPNT">AP NT (ct/kWh brutto)</label>
+            <input type="number" id="vergleichAPNT" class="field-input" placeholder="0,00" min="0" step="0.01">
+          </div>
+          <div class="mb-field">
+            <label class="mb-lbl">Bonus (€ einmalig)</label>
+            <input type="number" id="vergleichBonus" class="field-input" placeholder="0" min="0" step="10">
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-seg mb-enet" id="mbEnet">
+        <div class="mb-seg-title">Netz &amp; Grundversorgung <span class="mb-enet-plz" id="enetPlz"></span></div>
+        <div class="mb-enet-grid">
+          <div class="enet-col">
+            <div class="enet-sparte">Strom</div>
+            <div class="enet-line"><span class="enet-role">Netzbetreiber</span><span class="enet-val" id="enetStromNb">–</span></div>
+            <div class="enet-line"><span class="enet-role">Grundversorger</span><span class="enet-val" id="enetStromGv">–</span></div>
+          </div>
+          <div class="enet-col">
+            <div class="enet-sparte">Gas</div>
+            <div class="enet-line"><span class="enet-role">Netzbetreiber</span><span class="enet-val" id="enetGasNb">–</span></div>
+            <div class="enet-line"><span class="enet-role">Grundversorger</span><span class="enet-val" id="enetGasGv">–</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
 </div>
 <!-- data.js (statischer Preis-Fallback, ~16 KB) wird NICHT mehr eager geladen, sondern
      in app.js nur dann nachgeladen, wenn /api/produktdaten nicht erreichbar ist.
      pdf-lib + fontkit ebenso lazy erst beim Öffnen eines PDF-Formulars (modules/pdf-modal.js). -->
-<script type="module" src="app.js?v=20260630b"></script>
+<script type="module" src="app.js?v=20260630c"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=5"></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">

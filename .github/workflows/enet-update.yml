@@ -1,0 +1,67 @@
+name: enet Netzbetreiber/Grundversorger aktualisieren
+
+# Lädt wöchentlich die enet-NNE-Exporte (Strom + Gas), extrahiert die PLZ→NB/GV-Zuordnung
+# und schreibt sie in die Turso-`produkte`-DB (Tabelle enet_betreiber).
+#
+# Benötigt:
+#   - Repository-Variables: ENET_DL_STROM, ENET_DL_GAS  (die stabilen enet-Direktlink-URLs)
+#   - Secrets:              TURSO_PRODUKTE_URL, TURSO_PRODUKTE_TOKEN
+#                           (alternativ PRODUKTE_DB_URL / PRODUKTE_DB_AUTH_TOKEN)
+
+on:
+  schedule:
+    - cron: '30 3 * * 1'   # Montags 03:30 UTC
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: enet-Exporte laden
+        env:
+          DL_STROM: ${{ vars.ENET_DL_STROM }}
+          DL_GAS: ${{ vars.ENET_DL_GAS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DL_STROM:-}" ] || [ -z "${DL_GAS:-}" ]; then
+            echo "::error::Repository-Variables ENET_DL_STROM / ENET_DL_GAS fehlen."; exit 1
+          fi
+          mkdir -p work
+          echo "Lade Strom-Export…"
+          curl -fSL "$DL_STROM" -o work/strom.zip
+          echo "Lade Gas-Export…"
+          curl -fSL "$DL_GAS" -o work/gas.zip
+          unzip -o work/strom.zip 'nns_access.accdb' -d work
+          unzip -o work/gas.zip   'nng_access.accdb' -d work
+          ls -la work
+
+      - name: Extrahieren (Jackcess)
+        run: |
+          set -euo pipefail
+          CP="tools/enet/lib/jackcess-4.0.5.jar:tools/enet/lib/commons-logging-1.3.0.jar:tools/enet/lib/commons-lang3-3.14.0.jar"
+          javac -cp "$CP" -d tools/enet tools/enet/EnetExport.java
+          java -cp "tools/enet:$CP" EnetExport \
+            work/nns_access.accdb work/nng_access.accdb tools/enet/enet-betreiber-bundesweit.json
+
+      - name: In Turso schreiben
+        env:
+          TURSO_PRODUKTE_URL: ${{ secrets.TURSO_PRODUKTE_URL }}
+          TURSO_PRODUKTE_TOKEN: ${{ secrets.TURSO_PRODUKTE_TOKEN }}
+          PRODUKTE_DB_URL: ${{ secrets.PRODUKTE_DB_URL }}
+          PRODUKTE_DB_AUTH_TOKEN: ${{ secrets.PRODUKTE_DB_AUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm install @libsql/client --no-save
+          node tools/enet/push-turso.js tools/enet/enet-betreiber-bundesweit.json

@@ -9418,6 +9418,22 @@ var require_ddl = __commonJS({
   CREATE INDEX IF NOT EXISTS idx_mitbewerber_lookup ON mitbewerber_preise(sparte, heizstrom_typ, zaehlerart, ns_messung, steuve_modul, plz_gebiet);
   CREATE INDEX IF NOT EXISTS idx_mitbewerber_anbieter ON mitbewerber_preise(anbieter, sparte);
 `;
+    var ENET_BETREIBER_TABLE = `
+  CREATE TABLE IF NOT EXISTS enet_betreiber (
+    plz           TEXT NOT NULL,
+    ort           TEXT,
+    sparte        TEXT NOT NULL,       -- 'strom' | 'gas'
+    netzbetreiber TEXT,
+    nb_tel        TEXT,
+    nb_url        TEXT,
+    grundversorger TEXT,
+    gv_tel        TEXT,
+    stand         TEXT,
+    PRIMARY KEY (plz, ort, sparte)
+  );
+  CREATE INDEX IF NOT EXISTS idx_enet_plz ON enet_betreiber(plz, sparte);
+  CREATE INDEX IF NOT EXISTS idx_enet_ort ON enet_betreiber(lower(ort));
+`;
     var BESUCHER_TABLES = `
   CREATE TABLE IF NOT EXISTS besuche (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -9499,6 +9515,7 @@ var require_ddl = __commonJS({
       VERTRAGSFORMULARE_TABLE,
       VERTRAGSFORMULARE_ALTERS,
       STANDALONE_FORMULARE_TABLE,
+      ENET_BETREIBER_TABLE,
       USERS_TABLE,
       BESUCHER_TABLES,
       BESUCHER_ALTERS,
@@ -9530,6 +9547,7 @@ var require_schema = __commonJS({
       await db.exec(ddl.VERTRAGSFORMULARE_TABLE);
       await tryAlters(db, ddl.VERTRAGSFORMULARE_ALTERS);
       await db.exec(ddl.STANDALONE_FORMULARE_TABLE);
+      await db.exec(ddl.ENET_BETREIBER_TABLE);
       await db.exec(ddl.USERS_TABLE);
     }
     async function ensureBesucher() {
@@ -71858,6 +71876,82 @@ var require_mitbewerber = __commonJS({
   }
 });
 
+// backend/data/repositories/enetRepo.js
+var require_enetRepo = __commonJS({
+  "backend/data/repositories/enetRepo.js"(exports2, module2) {
+    var { getDb } = require_driver();
+    function shapeRow(r) {
+      return {
+        nb: { name: r.netzbetreiber || "", tel: r.nb_tel || "", url: r.nb_url || "" },
+        gv: { name: r.grundversorger || "", tel: r.gv_tel || "" }
+      };
+    }
+    async function lookup(plz) {
+      const db = getDb("produkte");
+      const rows = await db.all(`SELECT * FROM enet_betreiber WHERE plz = ? LIMIT 10`, [plz]);
+      const out = { plz, ort: null, strom: null, gas: null, stand: null };
+      for (const r of rows) {
+        if (!out.ort) out.ort = r.ort;
+        if (!out.stand) out.stand = r.stand;
+        if (r.sparte === "strom" && !out.strom) out.strom = shapeRow(r);
+        if (r.sparte === "gas" && !out.gas) out.gas = shapeRow(r);
+      }
+      return out;
+    }
+    async function search(q, limit = 50) {
+      const db = getDb("produkte");
+      q = String(q || "").trim();
+      if (!q) return [];
+      let rows;
+      if (/^\d+$/.test(q)) {
+        rows = await db.all(
+          `SELECT * FROM enet_betreiber WHERE plz LIKE ? ORDER BY plz, ort, sparte LIMIT ?`,
+          [q + "%", limit * 2]
+        );
+      } else {
+        rows = await db.all(
+          `SELECT * FROM enet_betreiber WHERE lower(ort) LIKE ? ORDER BY ort, plz, sparte LIMIT ?`,
+          ["%" + q.toLowerCase() + "%", limit * 2]
+        );
+      }
+      const map = /* @__PURE__ */ new Map();
+      for (const r of rows) {
+        const key = r.plz + "|" + (r.ort || "");
+        if (!map.has(key)) map.set(key, { plz: r.plz, ort: r.ort, strom: null, gas: null });
+        const g = map.get(key);
+        if (r.sparte === "strom") g.strom = shapeRow(r);
+        if (r.sparte === "gas") g.gas = shapeRow(r);
+      }
+      return Array.from(map.values()).slice(0, limit);
+    }
+    module2.exports = { lookup, search };
+  }
+});
+
+// backend/routes/enet.js
+var require_enet = __commonJS({
+  "backend/routes/enet.js"(exports2, module2) {
+    var enetRepo = require_enetRepo();
+    module2.exports = async function(fastify) {
+      fastify.get("/lookup", async (request, reply) => {
+        const { plz } = request.query;
+        if (!plz || !/^\d{5}$/.test(String(plz))) {
+          return reply.status(400).send({ error: "plz (5-stellig) erforderlich" });
+        }
+        return enetRepo.lookup(String(plz));
+      });
+      fastify.get("/search", async (request, reply) => {
+        const q = String(request.query.q || "").trim();
+        if (q.length < 2) {
+          return reply.status(400).send({ error: "q (mind. 2 Zeichen) erforderlich" });
+        }
+        const treffer = await enetRepo.search(q, 50);
+        return { q, anzahl: treffer.length, treffer };
+      });
+    };
+  }
+});
+
 // backend/app.js
 var require_app = __commonJS({
   "backend/app.js"(exports2, module2) {
@@ -71915,6 +72009,7 @@ var require_app = __commonJS({
       fastify.register(require_standaloneFormulare());
       fastify.register(require_admin_import());
       fastify.register(require_mitbewerber(), { prefix: "/api/mitbewerber" });
+      fastify.register(require_enet(), { prefix: "/api/enet" });
       fastify.get("/api/health", async () => ({ ok: true }));
       await ensureSchemas();
       await seedAdminUser();

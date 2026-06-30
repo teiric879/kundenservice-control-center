@@ -53,6 +53,21 @@
   .refresh-btn { padding: 6px 12px; font-size: 12px; background: #00a651; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
   .refresh-btn:hover { background: #008a3a; }
   .refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
+  /* Netzbetreiber & Grundversorger (bundesweit) */
+  .enet-search { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+  .enet-search-row { display: flex; gap: 10px; margin-top: 12px; }
+  .enet-search-row input { flex: 0 1 320px; padding: 9px 13px; font-size: 14px; border: 1px solid #ddd; border-radius: 6px; }
+  .enet-search-row input:focus { outline: none; border-color: #00a651; }
+  .enet-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; margin-top: 16px; }
+  .enet-card { border: 1px solid #c8e6e1; border-radius: 8px; padding: 14px 16px; background: #f0faf6; }
+  .enet-card h4 { font-size: 14px; color: #004442; margin-bottom: 10px; }
+  .enet-grp { margin-bottom: 9px; }
+  .enet-grp .sp { font-size: 11px; font-weight: 700; color: #004442; text-transform: uppercase; letter-spacing: 0.4px; }
+  .enet-row2 { font-size: 12.5px; color: #333; margin-top: 2px; line-height: 1.4; }
+  .enet-row2 .role { color: #888; font-size: 11px; }
+  .enet-row2 a { color: #00a651; text-decoration: none; margin-left: 8px; font-weight: 600; }
+  .enet-row2 a:hover { text-decoration: underline; }
+  .enet-hint { font-size: 12px; color: #999; margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -92,6 +107,17 @@
       <p>Aktuelle Mitbewerber-Preise und Markt-Statistiken</p>
     </div>
 
+    <!-- Netzbetreiber & Grundversorger (bundesweit) -->
+    <div class="enet-search">
+      <div class="section-title">Netzbetreiber &amp; Grundversorger – bundesweit</div>
+      <p style="font-size:13px;color:#666">Suche nach Netzbetreiber und Grundversorger per Postleitzahl oder Ort.</p>
+      <div class="enet-search-row">
+        <input id="enetQ" type="text" placeholder="z. B. 53879 oder Euskirchen" autocomplete="off">
+        <button class="refresh-btn" onclick="searchEnet()">Suchen</button>
+      </div>
+      <div id="enetResults"></div>
+    </div>
+
     <!-- Controls -->
     <div class="controls">
       <div class="control-group">
@@ -113,6 +139,44 @@
 </div>
 
 <script>
+// API-Base: lokal → :3001, deployed → same-origin.
+const ENET_API = ['127.0.0.1', 'localhost'].includes(location.hostname) ? `http://${location.hostname}:3001` : '';
+
+function enetEsc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+
+// op = {name, tel?, url?}. Vorgabe: kein Ort, keine E-Mail; Telefon/Website nur wo erlaubt.
+function enetOp(op, withTel, withUrl) {
+  if (!op || !op.name) return '<span style="color:#aaa">–</span>';
+  let m = '';
+  if (withTel && op.tel) m += `<a href="tel:${enetEsc(op.tel.replace(/\s/g, ''))}">${enetEsc(op.tel)}</a>`;
+  if (withUrl && op.url) m += `<a href="${enetEsc(op.url)}" target="_blank" rel="noopener noreferrer">Website</a>`;
+  return `${enetEsc(op.name)}${m}`;
+}
+function enetGrp(label, r, gvTel) {
+  if (!r) return '';
+  return `<div class="enet-grp"><div class="sp">${label}</div>
+    <div class="enet-row2"><span class="role">Netzbetreiber:</span> ${enetOp(r.nb, true, true)}</div>
+    <div class="enet-row2"><span class="role">Grundversorger:</span> ${enetOp(r.gv, gvTel, false)}</div></div>`;
+}
+async function searchEnet() {
+  const q = document.getElementById('enetQ').value.trim();
+  const box = document.getElementById('enetResults');
+  if (q.length < 2) { box.innerHTML = '<div class="enet-hint">Bitte mindestens 2 Zeichen eingeben.</div>'; return; }
+  box.innerHTML = '<div class="loading">Suche…</div>';
+  try {
+    const j = await fetch(`${ENET_API}/api/enet/search?q=${encodeURIComponent(q)}`).then(r => r.json());
+    if (!j.treffer || !j.treffer.length) { box.innerHTML = '<div class="enet-hint">Keine Treffer.</div>'; return; }
+    box.innerHTML = `<div class="enet-cards">${j.treffer.map(t => `
+      <div class="enet-card"><h4>${enetEsc(t.plz)} · ${enetEsc(t.ort || '')}</h4>${enetGrp('Strom', t.strom, false)}${enetGrp('Gas', t.gas, true)}</div>`).join('')}</div>`;
+  } catch (e) {
+    box.innerHTML = `<div class="error">Fehler bei der Suche: ${enetEsc(e.message)}</div>`;
+  }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('enetQ');
+  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') searchEnet(); });
+});
+
 async function loadData() {
   const sparte = document.getElementById('sparteSel').value;
   const content = document.getElementById('content');

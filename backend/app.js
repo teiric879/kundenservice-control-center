@@ -74,6 +74,7 @@ async function buildApp() {
   fastify.register(require('./routes/standaloneFormulare'));
   fastify.register(require('./routes/admin-import'));
   fastify.register(require('./routes/mitbewerber'), { prefix: '/api/mitbewerber' });
+  fastify.register(require('./routes/enet'), { prefix: '/api/enet' });
 
   fastify.get('/api/health', async () => ({ ok: true }));
 

@@ -1,0 +1,4 @@
+# Kompilierte Klassen + generierte Daten (werden im Workflow erzeugt)
+*.class
+enet-betreiber-bundesweit.json
+work/
