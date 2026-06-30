@@ -213,6 +213,7 @@ const ENET_BETREIBER_TABLE = `
     netzbetreiber TEXT,
     nb_tel        TEXT,
     nb_url        TEXT,
+    nb_email      TEXT,
     grundversorger TEXT,
     gv_tel        TEXT,
     stand         TEXT,
@@ -220,6 +221,30 @@ const ENET_BETREIBER_TABLE = `
   );
   CREATE INDEX IF NOT EXISTS idx_enet_plz ON enet_betreiber(plz, sparte);
   CREATE INDEX IF NOT EXISTS idx_enet_ort ON enet_betreiber(lower(ort));
+`;
+
+// Migration für bereits existierende enet_betreiber-Tabellen.
+const ENET_BETREIBER_ALTERS = [
+  'ALTER TABLE enet_betreiber ADD COLUMN nb_email TEXT',
+];
+
+// Manuelle Korrekturen je (plz, sparte). Wird vom wöchentlichen enet-Import NICHT angefasst und
+// beim Lesen über die Basisdaten gelegt (leeres Feld = kein Override, Basiswert gilt).
+const ENET_OVERRIDE_TABLE = `
+  CREATE TABLE IF NOT EXISTS enet_override (
+    plz        TEXT NOT NULL,
+    sparte     TEXT NOT NULL,          -- 'strom' | 'gas'
+    nb_name    TEXT,
+    nb_tel     TEXT,
+    nb_url     TEXT,
+    nb_email   TEXT,
+    gv_name    TEXT,
+    gv_tel     TEXT,
+    gv_url     TEXT,
+    gv_email   TEXT,
+    updated_at TEXT,
+    PRIMARY KEY (plz, sparte)
+  );
 `;
 
 const BESUCHER_TABLES = `
@@ -313,6 +338,8 @@ module.exports = {
   VERTRAGSFORMULARE_ALTERS,
   STANDALONE_FORMULARE_TABLE,
   ENET_BETREIBER_TABLE,
+  ENET_BETREIBER_ALTERS,
+  ENET_OVERRIDE_TABLE,
   USERS_TABLE,
   BESUCHER_TABLES,
   BESUCHER_ALTERS,

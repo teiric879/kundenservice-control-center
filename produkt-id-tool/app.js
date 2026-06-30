@@ -122,20 +122,24 @@ function updateGebietBadge() {
 // ── Netzbetreiber / Grundversorger (untere Leiste) ──────────────────────────
 const ICON_TEL  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
 const ICON_WEB  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+const ICON_MAIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>';
 
 function escHtml(s) {
   return String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 }
 
-// op = {name, tel?, url?}. withTel/withUrl steuern, ob Kontakt gezeigt wird (Vorgabe: kein Ort, keine E-Mail).
-function fmtOp(op, withTel, withUrl) {
+// op = {name, tel?, url?, email?}. Zeigt nur tatsächlich vorhandene Kontaktinfos (kein Ort).
+function fmtOp(op) {
   if (!op || !op.name) return '<span class="enet-empty">–</span>';
   let meta = '';
-  if (withTel && op.tel) {
+  if (op.tel) {
     meta += `<a class="enet-link" href="tel:${escHtml(op.tel.replace(/\s/g, ''))}">${ICON_TEL}${escHtml(op.tel)}</a>`;
   }
-  if (withUrl && op.url) {
+  if (op.url) {
     meta += `<a class="enet-link" href="${escHtml(op.url)}" target="_blank" rel="noopener noreferrer">${ICON_WEB}Website</a>`;
+  }
+  if (op.email) {
+    meta += `<a class="enet-link" href="mailto:${escHtml(op.email)}">${ICON_MAIL}${escHtml(op.email)}</a>`;
   }
   return `<span class="enet-name">${escHtml(op.name)}</span>${meta ? `<span class="enet-meta">${meta}</span>` : ''}`;
 }
@@ -143,10 +147,10 @@ function fmtOp(op, withTel, withUrl) {
 let _enetReqId = 0;
 async function updateEnetBar(plz) {
   const setVals = (d) => {
-    $('enetStromNb').innerHTML = fmtOp(d?.strom?.nb, true,  true);
-    $('enetStromGv').innerHTML = fmtOp(d?.strom?.gv, false, false); // Strom-GV: nur Name
-    $('enetGasNb').innerHTML   = fmtOp(d?.gas?.nb,   true,  true);
-    $('enetGasGv').innerHTML   = fmtOp(d?.gas?.gv,   true,  false); // Gas-GV: Name + Telefon
+    $('enetStromNb').innerHTML = fmtOp(d?.strom?.nb);
+    $('enetStromGv').innerHTML = fmtOp(d?.strom?.gv);
+    $('enetGasNb').innerHTML   = fmtOp(d?.gas?.nb);
+    $('enetGasGv').innerHTML   = fmtOp(d?.gas?.gv);
   };
   if (!/^\d{5}$/.test(plz)) { enetPlzEl.textContent = ''; setVals(null); return; }
   const reqId = ++_enetReqId;
@@ -645,6 +649,7 @@ function init() {
   S.verbrauch = 20000;
   S.plz = '53879';
   plzInput.value = '53879';
+  updateEnetBar(S.plz);               // NB/GV-Leiste sofort für die Default-PLZ füllen
   const urlP = new URLSearchParams(location.search).get('p');
   const valid = ['gas','strom','heizstrom','autostrom','steuve'];
   switchProduct(valid.includes(urlP) ? urlP : 'gas');

@@ -27,6 +27,8 @@ async function ensureProdukte() {
   await tryAlters(db, ddl.VERTRAGSFORMULARE_ALTERS);
   await db.exec(ddl.STANDALONE_FORMULARE_TABLE);
   await db.exec(ddl.ENET_BETREIBER_TABLE);
+  await tryAlters(db, ddl.ENET_BETREIBER_ALTERS);
+  await db.exec(ddl.ENET_OVERRIDE_TABLE);
   await db.exec(ddl.USERS_TABLE);
 }
 

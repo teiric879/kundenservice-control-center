@@ -18,7 +18,7 @@ import java.util.*;
  */
 public class EnetExport {
 
-  static class Op { String name = "", tel = "", url = ""; }
+  static class Op { String name = "", tel = "", url = "", email = ""; }
 
   public static void main(String[] args) throws Exception {
     String stromDb = args[0], gasDb = args[1], outPath = args[2];
@@ -58,12 +58,14 @@ public class EnetExport {
       Long nr = num(r.get("EVU_Nr"));
       if (nr != null) evu.put(nr, str(r.get("EVU_Name")));
     }
-    // Netz_Nr -> {VNB_Nr, Grundversorger_Nr}
+    // Netz_Nr -> {VNB_Nr, Grundversorger_Nr} + Ansprechpartner-E-Mail (best-effort)
     Map<Long, long[]> netze = new HashMap<>();
+    Map<Long, String> netzeEmail = new HashMap<>();
     for (Row r : db.getTable("Netze")) {
       Long nr = num(r.get("Netz_Nr"));
       if (nr == null) continue;
       netze.put(nr, new long[]{ z(num(r.get("VNB_Nr"))), z(num(r.get("Grundversorger_Nr"))) });
+      netzeEmail.put(nr, normMail(str(r.get("Ansprechp_email"))));
     }
 
     Set<String> seen = new HashSet<>();
@@ -76,14 +78,15 @@ public class EnetExport {
       if (!seen.add(key)) continue;
 
       Long netzNr = num(r.get("Netz_Nr"));
-      Op o = null; String gvName = "";
+      Op o = null; String gvName = ""; String nbEmail = "";
       if (netzNr != null && netze.containsKey(netzNr)) {
         long[] n = netze.get(netzNr);
         o = nb.get(n[0]);
         gvName = evu.getOrDefault(n[1], "");
+        nbEmail = netzeEmail.getOrDefault(netzNr, "");
       }
       writeRow(out, count, plz, ort, "strom",
-        o != null ? o.name : "", o != null ? o.tel : "", o != null ? o.url : "",
+        o != null ? o.name : "", o != null ? o.tel : "", o != null ? o.url : "", nbEmail,
         gvName, "");
     }
   }
@@ -95,9 +98,10 @@ public class EnetExport {
       Long nr = num(r.get("VNBG_Nr"));
       if (nr == null) continue;
       Op o = new Op();
-      o.name = str(r.get("Betreiber_Name"));
-      o.tel  = str(r.get("Tel"));
-      o.url  = normUrl(str(r.get("Internet")));
+      o.name  = str(r.get("Betreiber_Name"));
+      o.tel   = str(r.get("Tel"));
+      o.url   = normUrl(str(r.get("Internet")));
+      o.email = normMail(str(r.get("Ansprechpartner_eMail")));
       nb.put(nr, o);
     }
     Map<Long, Op> gv = new HashMap<>();
@@ -122,14 +126,14 @@ public class EnetExport {
       Op o  = nb.get(num(r.get("ND_VNBG_Nr")));
       Op g  = gv.get(num(r.get("Grundversorger_Nr")));
       writeRow(out, count, plz, ort, "gas",
-        o != null ? o.name : "", o != null ? o.tel : "", o != null ? o.url : "",
+        o != null ? o.name : "", o != null ? o.tel : "", o != null ? o.url : "", o != null ? o.email : "",
         g != null ? g.name : "", g != null ? g.tel : "");
     }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   static void writeRow(StringBuilder out, int[] count, Long plz, String ort, String sparte,
-                       String nbName, String nbTel, String nbUrl, String gvName, String gvTel) {
+                       String nbName, String nbTel, String nbUrl, String nbEmail, String gvName, String gvTel) {
     if (count[0] > 0) out.append(",");
     out.append("\n{");
     out.append("\"plz\":\"").append(plzPad(plz)).append("\",");
@@ -138,9 +142,18 @@ public class EnetExport {
     out.append("\"nb_name\":\"").append(esc(nbName)).append("\",");
     out.append("\"nb_tel\":\"").append(esc(nbTel)).append("\",");
     out.append("\"nb_url\":\"").append(esc(nbUrl)).append("\",");
+    out.append("\"nb_email\":\"").append(esc(nbEmail)).append("\",");
     out.append("\"gv_name\":\"").append(esc(gvName)).append("\",");
     out.append("\"gv_tel\":\"").append(esc(gvTel)).append("\"}");
     count[0]++;
+  }
+
+  // E-Mail säubern: nur erste Zeile, keine Umbrüche; offensichtlich leere/ungültige verwerfen.
+  static String normMail(String m) {
+    if (m == null) return "";
+    m = m.trim();
+    if (m.contains("\n")) m = m.split("\\n")[0].trim();
+    return m.contains("@") ? m : "";
   }
 
   static String plzPad(Long plz) {

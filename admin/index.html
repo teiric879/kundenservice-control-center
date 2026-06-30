@@ -767,6 +767,10 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
             Benutzer
           </button>
+          <button class="mod-item" id="sideTab-enet" onclick="showTab('enet')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20 8 14l4 3 10-11"/><line x1="2" y1="22" x2="22" y2="22"/></svg>
+            NB &amp; GV-Suche
+          </button>
         </div>
       </div>
 
@@ -820,6 +824,10 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
       <button class="tab-btn" id="tab-benutzer" onclick="showTab('benutzer')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
         Benutzer
+      </button>
+      <button class="tab-btn" id="tab-enet" onclick="showTab('enet')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 20 8 14l4 3 10-11"/><line x1="2" y1="22" x2="22" y2="22"/></svg>
+        NB &amp; GV-Suche
       </button>
     </div>
 
@@ -1211,6 +1219,31 @@ td input:focus{outline:none;border-color:rgba(191,146,0,.4);background:rgba(6,59
 
     </div><!-- /panel-benutzer -->
 
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: NB & GV-Suche (enet-Daten pflegen)                                -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-enet">
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Netzbetreiber &amp; Grundversorger pflegen</div>
+            <div class="card-sub">PLZ suchen und Name / Website / E-Mail / Telefon korrigieren. Korrekturen überschreiben die enet-Basisdaten und bleiben beim wöchentlichen Import erhalten.</div>
+          </div>
+          <div class="card-icon icon-gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 20 8 14l4 3 10-11"/><line x1="2" y1="22" x2="22" y2="22"/></svg>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:6px;gap:8px;align-items:center">
+          <input id="enetPlzInput" type="text" inputmode="numeric" maxlength="5" placeholder="PLZ z. B. 53879"
+                 style="padding:10px 12px;border:1.5px solid var(--stroke);border-radius:10px;font:inherit;font-size:14px;color:var(--ink);background:#fafaf8;outline:none;width:160px">
+          <button class="btn btn-primary" onclick="enetLoad()">Laden</button>
+          <span id="enetStatus" style="font-size:12px;color:var(--muted-2)"></span>
+        </div>
+      </div>
+
+      <div id="enetEditor" style="display:none"></div>
+    </div><!-- /panel-enet -->
+
   </main>
 </div><!-- /adminApp -->
 
@@ -1358,7 +1391,7 @@ function logout(){
 }
 
 // ── Tab Navigation ───────────────────────────────────────────────────────────
-const TABS = ['produkte','gueltigkeiten','formulare','downloadformulare','einsatzplaner','datenupdate','benutzer'];
+const TABS = ['produkte','gueltigkeiten','formulare','downloadformulare','einsatzplaner','datenupdate','benutzer','enet'];
 function showTab(name){
   TABS.forEach(t=>{
     const panel = document.getElementById('panel-'+t);
@@ -1374,6 +1407,87 @@ function showTab(name){
   if(name==='downloadformulare') sfRender();
   if(name==='datenupdate') duInit();
   if(name==='benutzer') buInit();
+  if(name==='enet') enetInit();
+}
+
+// ── NB & GV-Daten pflegen (enet-Override pro PLZ) ────────────────────────────
+// ADMIN_API wird weiter unten deklariert (const) → erst zur Laufzeit (Klick) referenzieren, nicht beim Laden.
+function enetApi(){ return ADMIN_API + '/enet'; }
+let enetCurrentPlz = null;
+
+function enetInit(){ /* lazy – erst beim Laden einer PLZ */ }
+
+function enetEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function enetField(sparte, role, key, label, base, ov){
+  const id='enet_'+sparte+'_'+role+'_'+key;
+  return '<div style="margin-bottom:8px">'+
+    '<label for="'+id+'" style="display:block;font-size:11px;color:var(--muted);margin-bottom:3px">'+label+'</label>'+
+    '<input id="'+id+'" type="text" value="'+enetEsc(ov)+'" placeholder="'+enetEsc(base)+'" '+
+    'style="width:100%;padding:8px 10px;border:1.5px solid var(--stroke);border-radius:8px;font:inherit;font-size:13px;color:var(--ink);background:#fafaf8;outline:none"></div>';
+}
+function enetRoleCard(sparte, role, title, base, ov){
+  return '<div class="card" style="margin:0">'+
+    '<div class="card-title" style="font-size:13px;margin-bottom:10px">'+title+'</div>'+
+    enetField(sparte,role,'name','Name',base.name,ov.name)+
+    enetField(sparte,role,'url','Website',base.url,ov.url)+
+    enetField(sparte,role,'email','E-Mail',base.email,ov.email)+
+    enetField(sparte,role,'tel','Telefon',base.tel,ov.tel)+'</div>';
+}
+function enetSparteBlock(sparte, label, s){
+  return '<div style="margin-bottom:18px">'+
+    '<div style="font-size:13px;font-weight:700;color:var(--ci);margin-bottom:10px">'+label+'</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
+    enetRoleCard(sparte,'nb','Netzbetreiber',s.base.nb,s.override.nb)+
+    enetRoleCard(sparte,'gv','Grundversorger',s.base.gv,s.override.gv)+'</div></div>';
+}
+function enetEditorHtml(d){
+  return '<div class="card" style="margin-bottom:20px">'+
+    enetSparteBlock('strom','Strom',d.strom)+
+    enetSparteBlock('gas','Gas',d.gas)+
+    '<div class="btn-row" style="margin-top:4px;gap:8px;align-items:center">'+
+    '<button class="btn btn-primary" onclick="enetSave()">Speichern</button>'+
+    '<button class="btn" onclick="enetReset()">Auf enet-Basis zurücksetzen</button>'+
+    '<span style="font-size:12px;color:var(--muted-2)">Leeres Feld = enet-Basiswert (grau) gilt.</span>'+
+    '</div></div>';
+}
+async function enetLoad(){
+  const plz=(document.getElementById('enetPlzInput').value||'').replace(/\D/g,'').slice(0,5);
+  const status=document.getElementById('enetStatus');
+  const ed=document.getElementById('enetEditor');
+  if(plz.length!==5){ status.textContent='Bitte eine 5-stellige PLZ eingeben.'; ed.style.display='none'; return; }
+  status.textContent='Lade…';
+  try{
+    const r=await fetch(enetApi()+'/lookup?plz='+plz);
+    if(!r.ok){ status.textContent='Fehler ('+r.status+')'; ed.style.display='none'; return; }
+    const d=await r.json();
+    enetCurrentPlz=plz;
+    ed.innerHTML=enetEditorHtml(d);
+    ed.style.display='block';
+    status.textContent=d.ort ? (plz+' · '+d.ort) : plz;
+  }catch(e){ status.textContent='Fehler: '+e.message; ed.style.display='none'; }
+}
+function enetCollect(sparte, role){
+  const g=k=>(document.getElementById('enet_'+sparte+'_'+role+'_'+k).value||'').trim();
+  return { name:g('name'), url:g('url'), email:g('email'), tel:g('tel') };
+}
+async function enetSave(){
+  if(!enetCurrentPlz) return;
+  const body={ plz:enetCurrentPlz,
+    strom:{ nb:enetCollect('strom','nb'), gv:enetCollect('strom','gv') },
+    gas:{ nb:enetCollect('gas','nb'), gv:enetCollect('gas','gv') } };
+  try{
+    const r=await fetch(enetApi()+'/override',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok) showToast('NB/GV gespeichert','ok'); else showToast('Speichern fehlgeschlagen','err');
+  }catch(e){ showToast('Fehler: '+e.message,'err'); }
+}
+async function enetReset(){
+  if(!enetCurrentPlz) return;
+  if(!confirm('Korrekturen für PLZ '+enetCurrentPlz+' entfernen und auf enet-Basis zurücksetzen?')) return;
+  try{
+    const r=await fetch(enetApi()+'/override?plz='+enetCurrentPlz,{method:'DELETE'});
+    if(r.ok){ showToast('Zurückgesetzt','ok'); enetLoad(); } else showToast('Zurücksetzen fehlgeschlagen','err');
+  }catch(e){ showToast('Fehler: '+e.message,'err'); }
 }
 
 // ── Sidebar Toggles ──────────────────────────────────────────────────────────

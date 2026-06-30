@@ -1124,6 +1124,8 @@ setInterval(refreshVisits, 20000);
    MARKTLAGE – Mitbewerber-Preise (Heizstrom + SteuVE Variants)
    ══════════════════════════════════════════════════════ */
 (function(){
+  // Mitbewerber-Preis-Ansicht verworfen (Schnittstelle zu teuer) → ersetzt durch die NB/GV-Suche (IIFE unten).
+  return;
   var API_ML=(location.hostname==='127.0.0.1'?'http://127.0.0.1:3001':'')+'/api/mitbewerber';
   var mlLoaded=false, mlCache={}, mlCurrentAnbieter=[], plzOrtCache={};
   // zaehlerart: gemeinsam für WP und NS. nsMessung nur bei heizstromTyp='ns'.
@@ -1409,6 +1411,49 @@ setInterval(refreshVisits, 20000);
   updateControlsVisibility();
 }());
 
+})();
+
+/* ══════════════════════════════════════════════════════
+   NB & GV-SUCHE (bundesweit) – Netzbetreiber & Grundversorger je PLZ/Ort
+   ══════════════════════════════════════════════════════ */
+(function(){
+  var API=(location.hostname==='127.0.0.1'||location.hostname==='localhost'?'http://'+location.hostname+':3001':'')+'/api/enet';
+  var input=document.getElementById('enetSearchInput');
+  var btn=document.getElementById('enetSearchBtn');
+  var box=document.getElementById('enetResults');
+  if(!input||!btn||!box) return;
+
+  var IC_TEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
+  var IC_WEB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+  var IC_MAIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>';
+
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function op(o){
+    if(!o||!o.name) return '<span style="color:#9bb0ab">–</span>';
+    var m='';
+    if(o.tel) m+='<a href="tel:'+esc(o.tel.replace(/\s/g,''))+'">'+IC_TEL+esc(o.tel)+'</a>';
+    if(o.url) m+='<a href="'+esc(o.url)+'" target="_blank" rel="noopener noreferrer">'+IC_WEB+'Website</a>';
+    if(o.email) m+='<a href="mailto:'+esc(o.email)+'">'+IC_MAIL+esc(o.email)+'</a>';
+    return '<span class="nm">'+esc(o.name)+'</span>'+(m?'<span class="enet-meta">'+m+'</span>':'');
+  }
+  function grp(label,r){ if(!r) return '';
+    return '<div class="enet-grp"><div class="enet-sp">'+label+'</div>'+
+      '<div class="enet-line"><span class="role">Netzbetreiber</span>'+op(r.nb)+'</div>'+
+      '<div class="enet-line"><span class="role">Grundversorger</span>'+op(r.gv)+'</div></div>';
+  }
+  function run(){
+    var q=(input.value||'').trim();
+    if(q.length<2){ box.innerHTML='<div class="enet-hint">Bitte mindestens 2 Zeichen eingeben.</div>'; return; }
+    box.innerHTML='<div class="enet-hint">Suche …</div>';
+    fetch(API+'/search?q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(j){
+      if(!j.treffer||!j.treffer.length){ box.innerHTML='<div class="enet-hint">Keine Treffer.</div>'; return; }
+      box.innerHTML=j.treffer.map(function(t){
+        return '<div class="enet-card"><h4>'+esc(t.plz)+' · '+esc(t.ort||'')+'</h4>'+grp('Strom',t.strom)+grp('Gas',t.gas)+'</div>';
+      }).join('');
+    }).catch(function(){ box.innerHTML='<div class="enet-hint">Fehler bei der Suche.</div>'; });
+  }
+  btn.addEventListener('click',run);
+  input.addEventListener('keydown',function(e){ if(e.key==='Enter') run(); });
 })();
 
 /* ══════════════════════════════════════════════════════

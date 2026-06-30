@@ -89,13 +89,13 @@
           <svg class="mod-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
           </svg>
-          <span class="mod-label">Marktlage</span>
+          <span class="mod-label">NB &amp; GV-Suche</span>
           <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="mod-items" id="mi-marktlage">
           <a data-view="marktlage" class="mod-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
-            Marktübersicht
+            Bundesweite Suche
           </a>
         </div>
       </div>
@@ -361,74 +361,41 @@
       <div class="print-foot" aria-hidden="true">e-regio · Kundenservice Control Center · Vertraulich – nur zur internen Verwendung</div>
     </section>
 
-    <!-- MARKTLAGE -->
+    <!-- NB & GV-SUCHE (bundesweit) -->
     <section class="view" id="view-marktlage">
+      <style>
+        #view-marktlage .enet-search-row{display:flex;gap:10px;align-items:center}
+        #view-marktlage .enet-input{flex:0 1 340px;padding:10px 14px;font-size:14px;border:1px solid var(--stroke,#e6e1d2);border-radius:10px;background:#fff;color:#063b37}
+        #view-marktlage .enet-input:focus{outline:none;border-color:#004442;box-shadow:0 0 0 1.5px rgba(0,68,66,.25)}
+        #view-marktlage .enet-results{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+        #view-marktlage .enet-card{border:1px solid #c8e6e1;border-radius:12px;padding:16px 18px;background:#f3faf7}
+        #view-marktlage .enet-card h4{font-size:15px;color:#004442;margin:0 0 12px}
+        #view-marktlage .enet-grp{margin-bottom:11px}
+        #view-marktlage .enet-grp:last-child{margin-bottom:0}
+        #view-marktlage .enet-sp{font-size:11px;font-weight:700;color:#004442;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+        #view-marktlage .enet-line{font-size:13px;color:#243b37;line-height:1.5}
+        #view-marktlage .enet-line .role{color:#6f8a84;font-size:11px;margin-right:4px}
+        #view-marktlage .enet-line .nm{font-weight:600}
+        #view-marktlage .enet-meta{display:flex;flex-wrap:wrap;gap:12px;margin-top:1px}
+        #view-marktlage .enet-meta a{display:inline-flex;align-items:center;gap:4px;color:#0f7a5a;text-decoration:none;font-size:12px;font-weight:600}
+        #view-marktlage .enet-meta a:hover{text-decoration:underline}
+        #view-marktlage .enet-meta svg{width:12px;height:12px}
+        #view-marktlage .enet-hint{color:#6f8a84;font-size:13px;margin-top:16px}
+      </style>
       <div class="topbar">
         <div class="title">
-          <h1>Marktlage</h1>
-          <p>Aktuelle Mitbewerber-Preise und Markt-Statistiken</p>
+          <h1>NB &amp; GV-Suche</h1>
+          <p>Netzbetreiber &amp; Grundversorger bundesweit – Suche per PLZ oder Ort.</p>
         </div>
         <div class="controls">
-          <div class="field">
-            <select id="marktlageSparteSel" aria-label="Sparte" autocomplete="off">
-              <option value="strom">Strom</option>
-              <option value="gas">Gas</option>
-              <option value="heizstrom">Heizstrom</option>
-              <option value="steuve">SteuVE §14a</option>
-            </select>
+          <div class="enet-search-row">
+            <input type="text" id="enetSearchInput" class="enet-input" placeholder="z. B. 53879 oder Euskirchen" autocomplete="off">
+            <button class="seg-btn glass" id="enetSearchBtn">Suchen</button>
           </div>
-          <!-- Heizstrom: Typ (WP|NS) Dropdown -->
-          <div class="field" id="heizstromTypGroup" style="display:none">
-            <select id="marktlageHeizstromTyp" aria-label="Heizstrom-Typ" autocomplete="off">
-              <option value="wp">Wärmepumpe</option>
-              <option value="ns">Nachtspeicher</option>
-            </select>
-          </div>
-          <!-- Heizstrom WP: Zählerart Buttons -->
-          <div class="field ml-button-group" id="wpZaehlerartGroup" style="display:none">
-            <button class="ml-toggle-btn ml-toggle-btn--active" data-zaehlerart="einzeltarif">Einzeltarifzähler</button>
-            <button class="ml-toggle-btn" data-zaehlerart="doppeltarif">Doppeltarifzähler</button>
-          </div>
-          <!-- Heizstrom NS: Zählerart Buttons -->
-          <div class="field ml-button-group" id="nsZaehlerartGroup" style="display:none">
-            <button class="ml-toggle-btn ml-toggle-btn--active" data-zaehlerart="einzeltarif">Einzeltarifzähler</button>
-            <button class="ml-toggle-btn" data-zaehlerart="doppeltarif">Doppeltarifzähler</button>
-          </div>
-          <!-- Heizstrom NS: Messung Buttons -->
-          <div class="field ml-button-group" id="nsMessungGroup" style="display:none">
-            <button class="ml-toggle-btn ml-toggle-btn--active" data-ns-messung="getrennt">Getrennte Messung</button>
-            <button class="ml-toggle-btn" data-ns-messung="gemeinsam">Gemeinsame Messung</button>
-          </div>
-          <!-- SteuVE: Modul Toggle (Modul1|Modul2) -->
-          <div class="field ml-button-group" id="steuvModulGroup" style="display:none">
-            <button class="ml-toggle-btn ml-toggle-btn--active" data-modul="modul1">Modul 1</button>
-            <button class="ml-toggle-btn" data-modul="modul2">Modul 2</button>
-          </div>
-          <div class="ml-plz-group">
-            <span class="ml-plz-label">PLZ</span>
-            <input type="text" id="marktlagePlzInput" placeholder="53721" maxlength="5" autocomplete="off" inputmode="numeric" class="ml-input-plz">
-            <span id="marktlagePlzOrt" class="ml-plz-ort"></span>
-          </div>
-          <div class="field">
-            <input type="text" id="marktlageSuchInput" placeholder="Anbieter suchen..." autocomplete="off" class="ml-input-search">
-          </div>
-          <label class="ml-toggle-label" id="marktlageBonusToggle">
-            <input type="checkbox" id="marktlageBonusCheck" checked>
-            <span>Bonus anzeigen</span>
-          </label>
-          <button class="seg-btn glass" id="marktlageRefreshBtn">Neu laden</button>
         </div>
       </div>
 
-      <div id="marktlage-kpis" class="kpis"></div>
-
-      <div class="card reveal" id="marktlage-table-card" style="animation-delay:.05s;margin-top:18px">
-        <div class="p-head">
-          <div><h3>Alle Anbieter</h3><div class="sub" id="marktlage-update-info">–</div></div>
-        </div>
-        <div id="marktlage-table-body"></div>
-        <p class="marktlage-disclaimer">Preise aus öffentlichen Quellen (Check24 / Verivox). Keine Gewähr. Bonus-Bedingungen beim jeweiligen Anbieter prüfen.</p>
-      </div>
+      <div id="enetResults" class="enet-results"></div>
     </section>
 
     <!-- ERFASSEN -->
@@ -443,7 +410,7 @@
 </div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
-<script src="app.js?v=31"></script>
+<script src="app.js?v=32"></script>
 <link rel="stylesheet" href="../shared/erfass-bar.css?v=3">
 <script src="../shared/erfass-bar.js?v=5"></script>
 <link rel="stylesheet" href="../shared/werkzeuge.css?v=6">

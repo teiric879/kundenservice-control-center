@@ -35,26 +35,28 @@ async function main() {
   await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS enet_betreiber (
       plz TEXT NOT NULL, ort TEXT, sparte TEXT NOT NULL,
-      netzbetreiber TEXT, nb_tel TEXT, nb_url TEXT,
+      netzbetreiber TEXT, nb_tel TEXT, nb_url TEXT, nb_email TEXT,
       grundversorger TEXT, gv_tel TEXT, stand TEXT,
       PRIMARY KEY (plz, ort, sparte)
     );
     CREATE INDEX IF NOT EXISTS idx_enet_plz ON enet_betreiber(plz, sparte);
     CREATE INDEX IF NOT EXISTS idx_enet_ort ON enet_betreiber(lower(ort));
   `);
+  // Spalte auf bereits bestehenden Tabellen nachziehen (ignoriert Fehler, wenn vorhanden).
+  try { await db.execute('ALTER TABLE enet_betreiber ADD COLUMN nb_email TEXT'); } catch (_) { /* existiert */ }
 
   await db.execute('DELETE FROM enet_betreiber');
 
   const sql = `INSERT OR REPLACE INTO enet_betreiber
-    (plz, ort, sparte, netzbetreiber, nb_tel, nb_url, grundversorger, gv_tel, stand)
-    VALUES (?,?,?,?,?,?,?,?,?)`;
+    (plz, ort, sparte, netzbetreiber, nb_tel, nb_url, nb_email, grundversorger, gv_tel, stand)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`;
 
   let done = 0;
   for (let i = 0; i < rows.length; i += CHUNK) {
     const batch = rows.slice(i, i + CHUNK).map((r) => ({
       sql,
       args: [r.plz, r.ort || '', r.sparte, r.nb_name || '', r.nb_tel || '', r.nb_url || '',
-             r.gv_name || '', r.gv_tel || '', stand],
+             r.nb_email || '', r.gv_name || '', r.gv_tel || '', stand],
     }));
     await db.batch(batch, 'write');
     done += batch.length;
