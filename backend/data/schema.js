@@ -21,15 +21,23 @@ const ddl = require('./ddl');
 
 const SCHEMA_VERSION = 1;
 
-async function getUserVersion(db) {
+// Versionsmarker in einer Tabelle (NICHT via PRAGMA user_version — Turso lehnt das
+// Setzen mit HTTP 400 ab). Reines Standard-SQL, das überall läuft.
+async function getSchemaVersion(db) {
   try {
-    const r = await db.get('PRAGMA user_version');
-    return r ? Number(r.user_version || 0) : 0;
-  } catch { return 0; }
+    const r = await db.get('SELECT version FROM schema_meta WHERE id = 1');
+    return r ? Number(r.version || 0) : 0;     // Tabelle existiert, aber leer → 0
+  } catch { return 0; }                         // Tabelle fehlt (noch nicht migriert) → 0
 }
-async function setUserVersion(db) {
-  // PRAGMA akzeptiert keine Parameter; SCHEMA_VERSION ist eine hartcodierte Zahl.
-  await db.exec(`PRAGMA user_version = ${Number(SCHEMA_VERSION)}`);
+async function setSchemaVersion(db) {
+  try {
+    await db.exec('CREATE TABLE IF NOT EXISTS schema_meta (id INTEGER PRIMARY KEY, version INTEGER NOT NULL)');
+    await db.run('INSERT OR REPLACE INTO schema_meta (id, version) VALUES (1, ?)', [Number(SCHEMA_VERSION)]);
+  } catch (e) {
+    // Marker-Schreiben darf den Boot NIE crashen: schlimmstenfalls läuft der (idempotente)
+    // Setup beim nächsten Cold-Start erneut (langsamer, aber korrekt).
+    console.error('[schema] Versionsmarker konnte nicht gesetzt werden:', e.message);
+  }
 }
 
 // ALTER … ADD COLUMN wirft auf bereits vorhandener Spalte → einzeln absichern.
@@ -42,50 +50,65 @@ async function tryAlters(db, statements) {
 
 async function ensureProdukte() {
   const db = getDb('produkte');
-  if (await getUserVersion(db) >= SCHEMA_VERSION) return false;   // schon aktuell → Setup überspringen
-  // Alle CREATE TABLE/INDEX (IF NOT EXISTS) in EINEM Round-Trip.
-  await db.exec([
-    ddl.PRODUKTE_TABLES,
-    ddl.PRODUKTE_POST_INDEXES,
-    ddl.PRODUKTE_REGISTRY,
-    ddl.VERTRAGSFORMULARE_TABLE,
-    ddl.STANDALONE_FORMULARE_TABLE,
-    ddl.ENET_BETREIBER_TABLE,
-    ddl.ENET_OVERRIDE_TABLE,
-    ddl.USERS_TABLE,
-  ].join('\n'));
-  await tryAlters(db, [
-    ...ddl.PRODUKTE_ALTERS,
-    ...ddl.VERTRAGSFORMULARE_ALTERS,
-    ...ddl.ENET_BETREIBER_ALTERS,
-  ]);
-  await setUserVersion(db);
-  return true;                                                    // migriert → Admin-Seed sinnvoll
+  if (await getSchemaVersion(db) >= SCHEMA_VERSION) return false;  // schon aktuell → Setup überspringen
+  try {
+    // Alle CREATE TABLE/INDEX (IF NOT EXISTS) in EINEM Round-Trip.
+    await db.exec([
+      ddl.PRODUKTE_TABLES,
+      ddl.PRODUKTE_POST_INDEXES,
+      ddl.PRODUKTE_REGISTRY,
+      ddl.VERTRAGSFORMULARE_TABLE,
+      ddl.STANDALONE_FORMULARE_TABLE,
+      ddl.ENET_BETREIBER_TABLE,
+      ddl.ENET_OVERRIDE_TABLE,
+      ddl.USERS_TABLE,
+    ].join('\n'));
+    await tryAlters(db, [
+      ...ddl.PRODUKTE_ALTERS,
+      ...ddl.VERTRAGSFORMULARE_ALTERS,
+      ...ddl.ENET_BETREIBER_ALTERS,
+    ]);
+    await setSchemaVersion(db);
+    return true;                                                   // migriert → Admin-Seed sinnvoll
+  } catch (e) {
+    // Setup darf den Boot NIE crashen (Tabellen existieren in Prod ohnehin schon).
+    console.error('[schema] ensureProdukte fehlgeschlagen:', e.message);
+    return false;
+  }
 }
 
 async function ensureBesucher() {
   const db = getDb('besucher');
-  if (await getUserVersion(db) >= SCHEMA_VERSION) return;
-  await db.exec(ddl.BESUCHER_TABLES);
-  await tryAlters(db, ddl.BESUCHER_ALTERS);
-  await setUserVersion(db);
+  if (await getSchemaVersion(db) >= SCHEMA_VERSION) return;
+  try {
+    await db.exec(ddl.BESUCHER_TABLES);
+    await tryAlters(db, ddl.BESUCHER_ALTERS);
+    await setSchemaVersion(db);
+  } catch (e) {
+    console.error('[schema] ensureBesucher fehlgeschlagen:', e.message);
+  }
 }
 
 async function ensureEinsatzplan() {
   const db = getDb('einsatzplan');
-  if (await getUserVersion(db) >= SCHEMA_VERSION) return;
-  await db.exec(ddl.EINSATZPLAN_TABLES);
-  // Stammbesetzung seeden (INSERT OR IGNORE → kein Überschreiben bestehender Stände),
-  // alle in EINEM batch()-Round-Trip statt 16 Einzel-INSERTs.
-  const stmts = ddl.INITIAL_AGENTS.map(([name, kuerzel, color]) => ({
-    sql: 'INSERT OR IGNORE INTO ep_agents (name, kuerzel, color) VALUES (?,?,?)',
-    args: [name, kuerzel, color],
-  }));
-  if (stmts.length) await db.batch(stmts);
-  await setUserVersion(db);
+  if (await getSchemaVersion(db) >= SCHEMA_VERSION) return;
+  try {
+    await db.exec(ddl.EINSATZPLAN_TABLES);
+    // Stammbesetzung seeden (INSERT OR IGNORE → kein Überschreiben bestehender Stände),
+    // alle in EINEM batch()-Round-Trip statt 16 Einzel-INSERTs.
+    const stmts = ddl.INITIAL_AGENTS.map(([name, kuerzel, color]) => ({
+      sql: 'INSERT OR IGNORE INTO ep_agents (name, kuerzel, color) VALUES (?,?,?)',
+      args: [name, kuerzel, color],
+    }));
+    if (stmts.length) await db.batch(stmts);
+    await setSchemaVersion(db);
+  } catch (e) {
+    console.error('[schema] ensureEinsatzplan fehlgeschlagen:', e.message);
+  }
 }
 
 // Liefert true, wenn die produkte-DB (erst-)migriert wurde → Aufrufer kann den Admin-Seed anstoßen.
+// Wirft NIE (jede ensureX ist intern gekapselt) → der Server-Boot kann am Schema-Setup nicht scheitern.
 async function ensureSchemas() {
   const [migratedProdukte] = await Promise.all([
     ensureProdukte(),

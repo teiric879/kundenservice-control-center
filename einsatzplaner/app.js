@@ -235,9 +235,12 @@ function safeColor(c) {
 /* ── Init ───────────────────────────────────────────────────────────────── */
 async function init() {
   S.monday = isoMonday();
-  S.agents = await api('/agents');
+  // Kombi-Endpoint: Agents + erste Woche in EINEM Round-Trip (statt /agents -> dann loadWeek).
+  updateWeekLabel();
+  const data = await api(`/week?monday=${S.monday}`);
+  S.agents = data.agents || [];
   renderAgentPills();
-  await loadWeek();
+  applyWeekData(data.assignments || [], data.notes || []);
 
   const now = new Date();
   document.getElementById('dashYear').value  = now.getFullYear();
@@ -320,7 +323,12 @@ async function loadWeek() {
     api(`/assignments?monday=${S.monday}`),
     api(`/notes?monday=${S.monday}`),
   ]);
+  applyWeekData(asgns, notes);
+}
 
+// Baut die Wochen-Maps aus assignments/notes auf und rendert Grid + Notizen.
+// Geteilt von init() (Kombi-Endpoint /week) und loadWeek() (Wochen-Navigation).
+function applyWeekData(asgns, notes) {
   S.assignments = new Map();
   for (const a of asgns) {
     const k = assignKey(a.date, a.location, a.slot);

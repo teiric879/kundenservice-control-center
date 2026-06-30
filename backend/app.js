@@ -49,9 +49,15 @@ async function buildApp() {
     contentSecurityPolicy: false, // API liefert JSON/PDF, keine eigene HTML-UI
   });
 
-  // Antworten komprimieren (gzip/br). Greift v.a. lokal/self-hosted – auf Vercel komprimiert
-  // bereits der Edge. threshold:1024 → winzige JSON-Antworten bleiben unkomprimiert (kein Overhead).
-  await fastify.register(require('@fastify/compress'), { global: true, threshold: 1024 });
+  // Antworten komprimieren (gzip/br): nur lokal/self-hosted – auf Vercel komprimiert bereits der
+  // Edge. Dynamischer require (Variable) → esbuild bündelt @fastify/compress NICHT ins Serverless-
+  // Bundle (spart mime-db + Streaming-Deps, ~0,6 MB → schnellerer Cold-Start). Auf Vercel
+  // (process.env.VERCEL gesetzt) wird der Zweig nie betreten. threshold:1024 → winzige JSON-
+  // Antworten bleiben unkomprimiert (kein Overhead).
+  if (!process.env.VERCEL) {
+    const compressMod = '@fastify/compress';
+    await fastify.register(require(compressMod), { global: true, threshold: 1024 });
+  }
 
   // Rate-Limit global; Bulk-Import-Routen zusätzlich strenger (siehe Routen).
   await fastify.register(require('@fastify/rate-limit'), {
@@ -82,11 +88,17 @@ async function buildApp() {
   // Schema-Setup: per PRAGMA user_version gewächtert (s. data/schema.js). Im Normalbetrieb
   // (DB schon auf aktueller SCHEMA_VERSION) nur 3 billige Reads statt ~47 Round-Trips/Cold-Start.
   // Nach einem Schema-Versionssprung läuft der Setup genau einmal.
-  const { migratedProdukte } = await ensureSchemas();
-
-  // Admin-Seed nur bei (Erst-)Migration der produkte-DB nötig → spart pro Cold-Start einen
-  // weiteren Turso-Round-Trip (count()) im Normalbetrieb.
-  if (migratedProdukte) await seedAdminUser();
+  // Schema-Setup darf den Boot NIE crashen (ensureSchemas ist intern gekapselt; zusätzlich hier
+  // abgesichert) – sonst ist bei einer DB-Macke die KOMPLETTE API down (gelernt 2026-06-30).
+  let migratedProdukte = false;
+  try {
+    ({ migratedProdukte } = await ensureSchemas());
+    // Admin-Seed nur bei (Erst-)Migration der produkte-DB nötig → spart pro Cold-Start einen
+    // weiteren Turso-Round-Trip (count()) im Normalbetrieb.
+    if (migratedProdukte) await seedAdminUser();
+  } catch (e) {
+    console.error('[boot] Schema-Setup/Seed übersprungen:', e.message);
+  }
 
   return fastify;
 }

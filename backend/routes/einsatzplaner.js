@@ -8,6 +8,19 @@ module.exports = async function einsatzplanerRoutes(fastify) {
   // Schreibzugriffe nur für User mit Einsatzplaner-Berechtigung (oder Admins).
   const writeGuard = { preHandler: requireModule('einsatzplaner') };
 
+  // ── Kombi-Endpoint für den Initial-Load ──────────────────────────────────
+  // Agents + Assignments + Notes einer Woche in EINER Antwort (3 Turso-Queries parallel,
+  // 1 Browser-Round-Trip statt bisher /agents -> dann /assignments + /notes).
+  fastify.get('/api/einsatzplaner/week', async (req) => {
+    const { monday, from, to } = req.query;
+    const [agents, assignments, notes] = await Promise.all([
+      repo.listAgents(),
+      repo.listAssignments({ monday, from, to }),
+      repo.listNotes({ monday, from, to }),
+    ]);
+    return { agents, assignments, notes };
+  });
+
   // ── Agents ───────────────────────────────────────────────────────────────
   fastify.get('/api/einsatzplaner/agents', async () => repo.listAgents());
 
