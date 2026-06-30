@@ -121,6 +121,8 @@ async function upsertOverride(plz, data) {
   const db = getDb('produkte');
   const now = new Date().toISOString();
   const s = (x) => (x == null ? '' : String(x).trim());
+  // URL absolut machen, sonst rendert das Frontend einen relativen Link (→ 404).
+  const sUrl = (x) => { const u = s(x); return (!u || /^https?:\/\//i.test(u)) ? u : 'https://' + u; };
   for (const sparte of ['strom', 'gas']) {
     const d = data[sparte];
     if (!d) continue;
@@ -129,8 +131,8 @@ async function upsertOverride(plz, data) {
       `INSERT OR REPLACE INTO enet_override
         (plz, sparte, nb_name, nb_tel, nb_url, nb_email, gv_name, gv_tel, gv_url, gv_email, updated_at)
         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-      [plz, sparte, s(nb.name), s(nb.tel), s(nb.url), s(nb.email),
-       s(gv.name), s(gv.tel), s(gv.url), s(gv.email), now]);
+      [plz, sparte, s(nb.name), s(nb.tel), sUrl(nb.url), s(nb.email),
+       s(gv.name), s(gv.tel), sUrl(gv.url), s(gv.email), now]);
   }
   return true;
 }

@@ -72012,6 +72012,10 @@ var require_enetRepo = __commonJS({
       const db = getDb("produkte");
       const now = (/* @__PURE__ */ new Date()).toISOString();
       const s = (x) => x == null ? "" : String(x).trim();
+      const sUrl = (x) => {
+        const u = s(x);
+        return !u || /^https?:\/\//i.test(u) ? u : "https://" + u;
+      };
       for (const sparte of ["strom", "gas"]) {
         const d = data[sparte];
         if (!d) continue;
@@ -72025,11 +72029,11 @@ var require_enetRepo = __commonJS({
             sparte,
             s(nb.name),
             s(nb.tel),
-            s(nb.url),
+            sUrl(nb.url),
             s(nb.email),
             s(gv.name),
             s(gv.tel),
-            s(gv.url),
+            sUrl(gv.url),
             s(gv.email),
             now
           ]

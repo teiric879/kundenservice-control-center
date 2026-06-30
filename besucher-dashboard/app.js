@@ -1432,7 +1432,7 @@ setInterval(refreshVisits, 20000);
     if(!o||!o.name) return '<span style="color:#9bb0ab">–</span>';
     var m='';
     if(o.tel) m+='<a href="tel:'+esc(o.tel.replace(/\s/g,''))+'">'+IC_TEL+esc(o.tel)+'</a>';
-    if(o.url) m+='<a href="'+esc(o.url)+'" target="_blank" rel="noopener noreferrer">'+IC_WEB+'Website</a>';
+    if(o.url){ var raw=String(o.url).trim(); var href=/^https?:\/\//i.test(raw)?raw:'https://'+raw; var label=raw.replace(/^https?:\/\//i,'').replace(/\/.*$/,''); m+='<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer">'+IC_WEB+esc(label)+'</a>'; }
     if(o.email) m+='<a href="mailto:'+esc(o.email)+'">'+IC_MAIL+esc(o.email)+'</a>';
     return '<span class="nm">'+esc(o.name)+'</span>'+(m?'<span class="enet-meta">'+m+'</span>':'');
   }

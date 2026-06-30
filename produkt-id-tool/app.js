@@ -136,7 +136,10 @@ function fmtOp(op) {
     meta += `<a class="enet-link" href="tel:${escHtml(op.tel.replace(/\s/g, ''))}">${ICON_TEL}${escHtml(op.tel)}</a>`;
   }
   if (op.url) {
-    meta += `<a class="enet-link" href="${escHtml(op.url)}" target="_blank" rel="noopener noreferrer">${ICON_WEB}Website</a>`;
+    const raw   = String(op.url).trim();
+    const href  = /^https?:\/\//i.test(raw) ? raw : 'https://' + raw;     // sonst wäre der Link relativ → 404
+    const label = raw.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');  // www.xxx.xx (Domain ohne Protokoll/Pfad)
+    meta += `<a class="enet-link" href="${escHtml(href)}" target="_blank" rel="noopener noreferrer">${ICON_WEB}${escHtml(label)}</a>`;
   }
   if (op.email) {
     meta += `<a class="enet-link" href="mailto:${escHtml(op.email)}">${ICON_MAIL}${escHtml(op.email)}</a>`;
