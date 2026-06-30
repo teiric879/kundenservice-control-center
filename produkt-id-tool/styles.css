@@ -45,7 +45,10 @@
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+/* Normales Dokument-Scrolling: html ist der Scroll-Container (Browser-Scrollbalken),
+   body darf mit dem Inhalt wachsen → nichts wird je abgeschnitten. */
+html{overflow-x:hidden}
+html,body{min-height:100%}
 body{
   font-family:'Carlito',Calibri,system-ui,-apple-system,sans-serif;
   color:var(--ink);
@@ -55,7 +58,6 @@ body{
     linear-gradient(160deg,var(--bg0),var(--bg1) 60%,#efe9d8 100%);
   background-attachment:fixed;
   -webkit-font-smoothing:antialiased;
-  overflow-x:hidden;
 }
 body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(60px);opacity:.5;z-index:-1;pointer-events:none}
 body::before{width:520px;height:520px;top:-120px;right:-80px;background:radial-gradient(circle,rgba(255,195,0,.12),transparent 70%)}
@@ -359,7 +361,7 @@ input[type=number].field-input::-webkit-inner-spin-button{-webkit-appearance:non
 
 /* ── Main Content ───────────────────────────────────────────────────────── */
 .content{
-  flex:1;min-width:0;min-height:100vh;
+  flex:1;min-width:0;
   display:flex;flex-direction:column;
   padding:48px 28px 28px;
   overflow:visible;   /* nicht clippen – wenn der Inhalt höher als der Schirm ist, scrollt die ganze Seite */
