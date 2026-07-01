@@ -48,6 +48,28 @@ function visibleSlots(loc) {
 function allSlots(loc) {
   return loc.extra ? [...loc.slots, ...loc.extra.slots] : loc.slots;
 }
+/* Heutiges Datum als ISO ("2026-07-01") – für die Sammel-Leiste. */
+function todayIso() {
+  const d = new Date();
+  return localIso(d.getFullYear(), d.getMonth(), d.getDate());
+}
+/* Personen, die in den aktuell VERDECKTEN Extra-Plätzen (BO2–BO5 / H4–H8) am
+   angegebenen Tag eingetragen sind. Für die Sammel-Leiste, damit am aktuellen
+   Tag niemand unsichtbar hinter dem eingeklappten Bereich verschwindet.
+   Distinct nach Kürzel, in Slot-Reihenfolge. */
+function hiddenExtraPeople(loc, date) {
+  if (!loc.extra || !date) return [];
+  const hiddenSlots = loc.extra.slots.slice(loc.extra.defaultShow ?? 0);
+  const seen = new Map(); // kuerzel -> {kuerzel, name, color}
+  for (const slot of hiddenSlots) {
+    const list = S.assignments.get(assignKey(date, loc.id, slot)) ?? [];
+    for (const a of list) {
+      const kz = a.kuerzel || a.name;
+      if (kz && !seen.has(kz)) seen.set(kz, { kuerzel: kz, name: a.name, color: a.color });
+    }
+  }
+  return [...seen.values()];
+}
 
 /* Zeit als Stunde ohne ":00" ("13"), sonst "13:30" – für kompakte Lücken-Labels. */
 function hm(min) { const s = tStr(min); return s.endsWith(':00') ? s.slice(0, 2) : s; }
@@ -411,14 +433,26 @@ function renderGrid() {
     }
     if (loc.extra) {
       if (!S_EXPAND.has(loc.id) && remaining > 0) {
+        const heute = todayIso();
+        const hidden = days.includes(heute) ? hiddenExtraPeople(loc, heute) : [];
+        let inner, title, cls;
+        if (hidden.length) {
+          const chips = hidden.map(p =>
+            `<span class="ex-kz" style="--ac:${safeColor(p.color)}">${esc(p.kuerzel)}</span>`).join('');
+          inner = `${CHEV_DOWN}<span class="ex-kz-wrap">${chips}</span>`;
+          title = 'Heute verdeckt eingetragen: ' + hidden.map(p => `${p.kuerzel} – ${p.name}`).join(', ') + ' · aufklappen';
+          cls = ' has-hidden';
+        } else {
+          inner = `${CHEV_DOWN} Aufklappen`;
+          title = 'Weitere Plätze anzeigen';
+          cls = '';
+        }
         html += `<div class="pg-row expand-row" style="--loc:${lc}">
-          <button class="expand-btn" onclick="toggleExpand('${loc.id}')">${CHEV_DOWN} ${remaining} weitere</button>
-          <div style="grid-column:span 5"></div>
+          <button class="expand-btn${cls}" title="${esc(title)}" onclick="toggleExpand('${loc.id}')">${inner}</button>
         </div>`;
       } else if (S_EXPAND.has(loc.id)) {
         html += `<div class="pg-row expand-row" style="--loc:${lc}">
           <button class="expand-btn" onclick="toggleExpand('${loc.id}')">${CHEV_UP} einklappen</button>
-          <div style="grid-column:span 5"></div>
         </div>`;
       }
     }

@@ -241,7 +241,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,te
 .time-band:hover .band-remove{display:block}
 
 /* ── Expand-Chip (einklappbare Zeilen) ────────────────────────────────────── */
-.expand-row{align-items:center;margin:1px 0 7px}
+.expand-row{display:flex;align-items:center;margin:1px 0 7px}
 .expand-btn{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
   font-size:11.5px;font-weight:600;font-family:inherit;color:var(--muted);
   background:var(--glass);border:1px solid var(--stroke);
@@ -251,6 +251,13 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,te
 .expand-btn:hover{color:var(--ci);border-color:color-mix(in srgb,var(--loc,var(--stroke-hi)) 55%,var(--stroke));
   background:var(--glass-hi)}
 .expand-btn:hover .ex-chev{opacity:1}
+/* Sammel-Leiste: Kürzel der verdeckt eingetragenen Personen */
+.expand-btn.has-hidden{color:var(--ink);border-color:color-mix(in srgb,var(--loc,var(--stroke-hi)) 40%,var(--stroke))}
+.ex-kz-wrap{display:inline-flex;flex-wrap:nowrap;align-items:center;gap:5px}
+.ex-kz{font-family:'Hanken Grotesk';font-weight:800;font-size:11px;line-height:1.5;
+  color:#fff;padding:1px 6px;border-radius:5px;
+  background:color-mix(in srgb,var(--ac,var(--loc,var(--ci))) 82%,#0a2e2a);
+  text-shadow:0 1px 2px rgba(0,0,0,.35)}
 
 /* ── Notes Section ───────────────────────────────────────────────────────────── */
 .notes-section{background:var(--glass);border:1px solid var(--stroke);border-radius:var(--radius);
